@@ -857,8 +857,17 @@ async function autoPredictNextCandles() {
         const tradingSignal = generateTradingSignal(currentData, aiPrediction, volumeAnalysis, mtfTrendFilter);
         console.log('Trading signal generated:', tradingSignal);
         
-        // Store signal in history with timestamp and candle index
-        if (tradingSignal) {
+        // Only update signal if:
+        // 1. There's a new signal and no current signal exists, OR
+        // 2. The new signal is different from the current one
+        const shouldUpdateSignal = !window.currentTradingSignal || 
+                                   (tradingSignal && 
+                                    (!window.currentTradingSignal || 
+                                     tradingSignal.type !== window.currentTradingSignal.type ||
+                                     Math.abs(tradingSignal.entry - window.currentTradingSignal.entry) > 1));
+        
+        // Store signal in history with timestamp and candle index (only if new signal)
+        if (tradingSignal && shouldUpdateSignal) {
             historicalSignals.push({
                 ...tradingSignal,
                 timestamp: Date.now(),
@@ -870,9 +879,17 @@ async function autoPredictNextCandles() {
             if (historicalSignals.length > 50) {
                 historicalSignals.shift();
             }
+            
+            // Update the display with new signal
+            displayTradingSignal(tradingSignal);
+            console.log('✅ New signal displayed and locked');
+        } else if (!tradingSignal && window.currentTradingSignal) {
+            // Signal conditions no longer met - clear it
+            displayTradingSignal(null);
+            console.log('⏳ Signal cleared - waiting for new setup');
+        } else {
+            console.log('🔒 Keeping existing signal (SL/TP locked)');
         }
-        
-        displayTradingSignal(tradingSignal);
     } else {
         console.error('Trading signal functions not loaded');
     }
