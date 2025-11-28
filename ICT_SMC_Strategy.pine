@@ -11,9 +11,9 @@ strategy("ICT/SMC Trading Strategy v2.0", overlay=true, initial_capital=500, def
 // ═══════════════════════════════════════════════════════════════════
 
 // Strategy Settings
-minConfluence = input.int(8, "Minimum Confluence Score", minval=1, maxval=38, group="Strategy Settings")
-minRR = input.float(1.5, "Minimum Risk-Reward Ratio", minval=0.5, step=0.1, group="Strategy Settings")
-minAIConfidence = input.int(55, "Minimum AI Confidence %", minval=0, maxval=100, group="Strategy Settings")
+minConfluence = input.int(10, "Minimum Confluence Score", minval=1, maxval=38, group="Strategy Settings", tooltip="Higher = fewer but better trades. Try 10-12 for best results")
+minRR = input.float(2.0, "Minimum Risk-Reward Ratio", minval=0.5, step=0.1, group="Strategy Settings", tooltip="Minimum 2:1 RR for quality trades")
+minAIConfidence = input.int(60, "Minimum AI Confidence %", minval=0, maxval=100, group="Strategy Settings", tooltip="Higher confidence = better win rate")
 
 // Risk Management
 riskPercent = input.float(1.0, "Risk Per Trade %", minval=0.1, maxval=10, step=0.1, group="Risk Management")
@@ -262,17 +262,23 @@ aiConfidence := math.max(0, math.min(100, aiConfidence))
 bullishConfluence = calculateConfluence(true)
 bearishConfluence = calculateConfluence(false)
 
-// BUY Signal
+// BUY Signal - More Strict Conditions
 buySignal = bullishConfluence >= minConfluence and 
             aiConfidence >= minAIConfidence and
             upTrend and
-            cumulativeDelta > 0
+            cumulativeDelta > 0 and
+            volumeRatio > 1.0 and  // Require above average volume
+            rsi < 70 and  // Not overbought
+            close > sma20  // Above short-term MA
 
-// SELL Signal
+// SELL Signal - More Strict Conditions
 sellSignal = bearishConfluence >= minConfluence and 
              aiConfidence >= minAIConfidence and
              downTrend and
-             cumulativeDelta < 0
+             cumulativeDelta < 0 and
+             volumeRatio > 1.0 and  // Require above average volume
+             rsi > 30 and  // Not oversold
+             close < sma20  // Below short-term MA
 
 // ═══════════════════════════════════════════════════════════════════
 //  POSITION MANAGEMENT
@@ -287,15 +293,16 @@ var float takeProfit3 = 0.0
 
 if buySignal and strategy.position_size == 0
     entryPrice := close
-    stopLoss := bullishOB ? obLow - (atr * atrMultiplier) : ta.lowest(low, 15) - (atr * 0.5)
+    stopLoss := bullishOB ? obLow - (atr * 0.5) : ta.lowest(low, 15) - (atr * 0.5)
     
     risk = entryPrice - stopLoss
-    rr = risk > 0 ? (atr * 2.5) / risk : 0
+    reward = atr * 3.0  // Increased reward target
+    rr = risk > 0 ? reward / risk : 0
     
-    if rr >= minRR
-        takeProfit1 := entryPrice + (atr * 2.5)
-        takeProfit2 := entryPrice + (atr * 4.5)
-        takeProfit3 := entryPrice + (atr * 7.0)
+    if rr >= minRR and risk > 0
+        takeProfit1 := entryPrice + (atr * 3.0)
+        takeProfit2 := entryPrice + (atr * 5.0)
+        takeProfit3 := entryPrice + (atr * 8.0)
         
         strategy.entry("BUY", strategy.long)
         strategy.exit("TP1", "BUY", limit=takeProfit1, stop=stopLoss, qty_percent=40)
@@ -304,15 +311,16 @@ if buySignal and strategy.position_size == 0
 
 if sellSignal and strategy.position_size == 0
     entryPrice := close
-    stopLoss := bearishOB ? obHigh + (atr * atrMultiplier) : ta.highest(high, 15) + (atr * 0.5)
+    stopLoss := bearishOB ? obHigh + (atr * 0.5) : ta.highest(high, 15) + (atr * 0.5)
     
     risk = stopLoss - entryPrice
-    rr = risk > 0 ? (atr * 2.5) / risk : 0
+    reward = atr * 3.0  // Increased reward target
+    rr = risk > 0 ? reward / risk : 0
     
-    if rr >= minRR
-        takeProfit1 := entryPrice - (atr * 2.5)
-        takeProfit2 := entryPrice - (atr * 4.5)
-        takeProfit3 := entryPrice - (atr * 7.0)
+    if rr >= minRR and risk > 0
+        takeProfit1 := entryPrice - (atr * 3.0)
+        takeProfit2 := entryPrice - (atr * 5.0)
+        takeProfit3 := entryPrice - (atr * 8.0)
         
         strategy.entry("SELL", strategy.short)
         strategy.exit("TP1", "SELL", limit=takeProfit1, stop=stopLoss, qty_percent=40)
