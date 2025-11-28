@@ -980,6 +980,14 @@ async function autoPredictNextCandles() {
             // Play sound and show notification
             playAlertSound(tradingSignal.type);
             showNotification(tradingSignal);
+            
+            // Send WhatsApp/Telegram alert (if configured)
+            if (window.sendWhatsAppAlert) {
+                sendWhatsAppAlert(tradingSignal);
+            }
+            if (window.sendTelegramAlert) {
+                sendTelegramAlert(tradingSignal);
+            }
         } else if (!tradingSignal && window.currentTradingSignal) {
             // Signal conditions no longer met - clear it
             displayTradingSignal(null);
