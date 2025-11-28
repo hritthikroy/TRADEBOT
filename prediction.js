@@ -13,6 +13,10 @@ let currentInterval = '15m'; // Default interval
 let currentSymbol = 'BTCUSDT'; // Default symbol
 let candleCloseTime = null;
 
+// Store historical signals for visualization
+let historicalSignals = [];
+window.historicalSignals = historicalSignals;
+
 // Initialize TradingView Advanced Chart
 function initChart() {
     widget = new TradingView.widget({
@@ -204,9 +208,9 @@ async function fetchMultiTimeframeData() {
         const higherTFs = getHigherTimeframes(currentInterval);
         const timeframes = [currentInterval, ...higherTFs];
         
-        // Fetch data for all timeframes in parallel
+        // Fetch data for all timeframes in parallel (increased to 100 for better analysis)
         const promises = timeframes.map(tf => 
-            fetch(`https://api.binance.com/api/v3/klines?symbol=${currentSymbol}&interval=${tf}&limit=50`)
+            fetch(`https://api.binance.com/api/v3/klines?symbol=${currentSymbol}&interval=${tf}&limit=100`)
                 .then(res => res.json())
                 .then(data => ({ timeframe: tf, data }))
                 .catch(err => {
@@ -269,8 +273,8 @@ async function fetchRealMarketData() {
         // Fetch multi-timeframe data
         await fetchMultiTimeframeData();
         
-        // Get current timeframe data
-        const url = `https://api.binance.com/api/v3/klines?symbol=${currentSymbol}&interval=${currentInterval}&limit=50`;
+        // Get current timeframe data (increased to 200 for more history)
+        const url = `https://api.binance.com/api/v3/klines?symbol=${currentSymbol}&interval=${currentInterval}&limit=200`;
         console.log('Fetching:', url);
         
         const response = await fetch(url);
@@ -580,7 +584,46 @@ function drawChart() {
         }
     }
     
-    // Draw trading signals on chart
+    // Draw historical signal markers (small arrows)
+    if (historicalSignals.length > 0) {
+        const startIndex = Math.max(0, currentData.length - realCandlesToShow);
+        
+        historicalSignals.forEach(signal => {
+            const signalIndex = signal.candleIndex - startIndex;
+            
+            // Only draw if signal is in visible range
+            if (signalIndex >= 0 && signalIndex < realCandlesToShow) {
+                const x = leftPadding + (signalIndex + 0.5) * candleWidth;
+                const signalPrice = signal.entry;
+                const y = priceToY(signalPrice);
+                
+                // Draw small arrow
+                ctx.fillStyle = signal.type === 'BUY' ? '#26a69a' : '#ef5350';
+                ctx.beginPath();
+                if (signal.type === 'BUY') {
+                    // Up arrow
+                    ctx.moveTo(x, y + 15);
+                    ctx.lineTo(x - 5, y + 25);
+                    ctx.lineTo(x + 5, y + 25);
+                } else {
+                    // Down arrow
+                    ctx.moveTo(x, y - 15);
+                    ctx.lineTo(x - 5, y - 25);
+                    ctx.lineTo(x + 5, y - 25);
+                }
+                ctx.closePath();
+                ctx.fill();
+                
+                // Draw small label
+                ctx.fillStyle = signal.type === 'BUY' ? '#26a69a' : '#ef5350';
+                ctx.font = 'bold 9px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(signal.type, x, signal.type === 'BUY' ? y + 38 : y - 28);
+            }
+        });
+    }
+    
+    // Draw trading signals on chart (current signal - larger)
     if (window.currentTradingSignal) {
         drawTradingSignalOnChart(window.currentTradingSignal, leftPadding, topPadding, chartHeight, maxPrice, minPrice, padding);
     }
@@ -813,6 +856,22 @@ async function autoPredictNextCandles() {
         
         const tradingSignal = generateTradingSignal(currentData, aiPrediction, volumeAnalysis, mtfTrendFilter);
         console.log('Trading signal generated:', tradingSignal);
+        
+        // Store signal in history with timestamp and candle index
+        if (tradingSignal) {
+            historicalSignals.push({
+                ...tradingSignal,
+                timestamp: Date.now(),
+                candleIndex: currentData.length - 1,
+                price: currentData[currentData.length - 1].close
+            });
+            
+            // Keep only last 50 signals
+            if (historicalSignals.length > 50) {
+                historicalSignals.shift();
+            }
+        }
+        
         displayTradingSignal(tradingSignal);
     } else {
         console.error('Trading signal functions not loaded');
@@ -1320,7 +1379,7 @@ function generateRealisticPredictedCandle(previousCandle, isUptrend, candleNumbe
 }
 
 // Zoom level for candle display (like TradingView)
-let zoomLevel = 50; // Number of real candles to show (default)
+let zoomLevel = 100; // Number of real candles to show (default - increased to see more history)
 const MIN_ZOOM = 5;   // Maximum zoom in (5 candles)
 const MAX_ZOOM = 200; // Maximum zoom out (200 candles)
 
