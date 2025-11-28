@@ -17,6 +17,99 @@ let candleCloseTime = null;
 let historicalSignals = [];
 window.historicalSignals = historicalSignals;
 
+// Audio context for sound alerts
+let audioContext = null;
+let notificationsEnabled = false;
+
+// Request notification permission on page load
+function requestNotificationPermission() {
+    const statusEl = document.getElementById('notification-status');
+    
+    if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission().then(permission => {
+            if (permission === 'granted') {
+                notificationsEnabled = true;
+                console.log('✅ Notifications enabled');
+                if (statusEl) statusEl.textContent = '🔔 Alerts: ON';
+                if (statusEl) statusEl.style.color = '#26a69a';
+            } else {
+                if (statusEl) statusEl.textContent = '🔕 Alerts: OFF';
+                if (statusEl) statusEl.style.color = '#ef5350';
+            }
+        });
+    } else if (Notification.permission === 'granted') {
+        notificationsEnabled = true;
+        if (statusEl) statusEl.textContent = '🔔 Alerts: ON';
+        if (statusEl) statusEl.style.color = '#26a69a';
+    } else {
+        if (statusEl) statusEl.textContent = '🔕 Alerts: OFF';
+        if (statusEl) statusEl.style.color = '#ef5350';
+    }
+}
+
+// Play alert sound
+function playAlertSound(type) {
+    try {
+        if (!audioContext) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        // Different tones for BUY vs SELL
+        if (type === 'BUY') {
+            // Higher pitch for BUY (bullish)
+            oscillator.frequency.value = 800;
+        } else {
+            // Lower pitch for SELL (bearish)
+            oscillator.frequency.value = 400;
+        }
+        
+        oscillator.type = 'sine';
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.5);
+        
+        console.log(`🔊 Alert sound played for ${type}`);
+    } catch (error) {
+        console.warn('Could not play sound:', error);
+    }
+}
+
+// Show browser notification
+function showNotification(signal) {
+    if (!notificationsEnabled || !signal) return;
+    
+    try {
+        const title = `${signal.type} Signal - ${currentSymbol}`;
+        const body = `Entry: ${signal.entry.toFixed(2)}\nStop Loss: ${signal.stopLoss.toFixed(2)}\nTP1: ${signal.targets[0].price.toFixed(2)} (${signal.targets[0].rr.toFixed(1)}R)\nStrength: ${signal.strength}%`;
+        
+        const notification = new Notification(title, {
+            body: body,
+            icon: signal.type === 'BUY' ? '📈' : '📉',
+            badge: signal.type === 'BUY' ? '📈' : '📉',
+            tag: 'trading-signal',
+            requireInteraction: true,
+            silent: false
+        });
+        
+        notification.onclick = () => {
+            window.focus();
+            notification.close();
+        };
+        
+        console.log('📬 Browser notification sent');
+    } catch (error) {
+        console.warn('Could not show notification:', error);
+    }
+}
+
 // Initialize TradingView Advanced Chart
 function initChart() {
     widget = new TradingView.widget({
@@ -883,6 +976,10 @@ async function autoPredictNextCandles() {
             // Update the display with new signal
             displayTradingSignal(tradingSignal);
             console.log('✅ New signal displayed and locked');
+            
+            // Play sound and show notification
+            playAlertSound(tradingSignal.type);
+            showNotification(tradingSignal);
         } else if (!tradingSignal && window.currentTradingSignal) {
             // Signal conditions no longer met - clear it
             displayTradingSignal(null);
@@ -1496,6 +1593,9 @@ function changeInterval(interval) {
 // Initialize chart on page load
 window.addEventListener('DOMContentLoaded', () => {
     console.log('=== DOM loaded, initializing... ===');
+    
+    // Request notification permission
+    requestNotificationPermission();
     
     try {
         initChart();
