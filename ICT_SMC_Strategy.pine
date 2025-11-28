@@ -1,10 +1,5 @@
 //@version=5
-strategy("ICT/SMC Trading Strategy v2.0", overlay=true, 
-         initial_capital=500, 
-         default_qty_type=strategy.percent_of_equity, 
-         default_qty_value=100,
-         commission_type=strategy.commission.percent, 
-         commission_value=0.1)
+strategy("ICT/SMC Trading Strategy v2.0", overlay=true, initial_capital=500, default_qty_type=strategy.percent_of_equity, default_qty_value=100, commission_type=strategy.commission.percent, commission_value=0.1)
 
 // ═══════════════════════════════════════════════════════════════════
 //  ICT/SMC TRADING STRATEGY v2.0
@@ -346,26 +341,24 @@ plot(sma20, "SMA 20", color=color.blue, linewidth=1)
 plot(sma50, "SMA 50", color=color.orange, linewidth=1)
 
 // Plot Order Blocks
+var box bullishOBBox = na
+var box bearishOBBox = na
+
 if showOrderBlocks and bullishOB
-    box.new(bar_index[1], obHigh, bar_index + 10, obLow, 
-            border_color=color.new(color.green, 50), 
-            bgcolor=color.new(color.green, 90))
+    bullishOBBox := box.new(bar_index[1], obHigh, bar_index + 10, obLow, border_color=color.new(color.green, 50), bgcolor=color.new(color.green, 90))
 
 if showOrderBlocks and bearishOB
-    box.new(bar_index[1], obHigh, bar_index + 10, obLow, 
-            border_color=color.new(color.red, 50), 
-            bgcolor=color.new(color.red, 90))
+    bearishOBBox := box.new(bar_index[1], obHigh, bar_index + 10, obLow, border_color=color.new(color.red, 50), bgcolor=color.new(color.red, 90))
 
 // Plot Fair Value Gaps
+var box bullishFVGBox = na
+var box bearishFVGBox = na
+
 if showFVG and bullishFVG
-    box.new(bar_index[2], fvgTop, bar_index, fvgBottom, 
-            border_color=color.new(color.green, 70), 
-            bgcolor=color.new(color.green, 95))
+    bullishFVGBox := box.new(bar_index[2], fvgTop, bar_index, fvgBottom, border_color=color.new(color.green, 70), bgcolor=color.new(color.green, 95))
 
 if showFVG and bearishFVG
-    box.new(bar_index[2], fvgTop, bar_index, fvgBottom, 
-            border_color=color.new(color.red, 70), 
-            bgcolor=color.new(color.red, 95))
+    bearishFVGBox := box.new(bar_index[2], fvgTop, bar_index, fvgBottom, border_color=color.new(color.red, 70), bgcolor=color.new(color.red, 95))
 
 // Plot Entry Signals
 plotshape(showSignals and buySignal, "Buy Signal", 
@@ -377,84 +370,46 @@ plotshape(showSignals and sellSignal, "Sell Signal",
           color.new(color.red, 0), size=size.small)
 
 // Plot Signal Labels
+var label buyLabel = na
+var label sellLabel = na
+
 if showLabels and buySignal
-    label.new(bar_index, low, 
-              text="BUY\n" + str.tostring(bullishConfluence) + "/38\n" + 
-                   str.tostring(math.round(aiConfidence)) + "%", 
-              style=label.style_label_up, 
-              color=color.new(color.green, 20), 
-              textcolor=color.white, 
-              size=size.small)
+    buyLabel := label.new(bar_index, low, text="BUY\n" + str.tostring(bullishConfluence) + "/38\n" + str.tostring(math.round(aiConfidence)) + "%", style=label.style_label_up, color=color.new(color.green, 20), textcolor=color.white, size=size.small)
 
 if showLabels and sellSignal
-    label.new(bar_index, high, 
-              text="SELL\n" + str.tostring(bearishConfluence) + "/38\n" + 
-                   str.tostring(math.round(aiConfidence)) + "%", 
-              style=label.style_label_down, 
-              color=color.new(color.red, 20), 
-              textcolor=color.white, 
-              size=size.small)
+    sellLabel := label.new(bar_index, high, text="SELL\n" + str.tostring(bearishConfluence) + "/38\n" + str.tostring(math.round(aiConfidence)) + "%", style=label.style_label_down, color=color.new(color.red, 20), textcolor=color.white, size=size.small)
 
-// Plot Stop Loss and Take Profit Lines
-var line slLine = na
-var line tp1Line = na
-var line tp2Line = na
-var line tp3Line = na
-
-if strategy.position_size != 0
-    if na(slLine)
-        slLine := line.new(bar_index, stopLoss, bar_index + 1, stopLoss, 
-                          color=color.red, width=2, style=line.style_dashed)
-        tp1Line := line.new(bar_index, takeProfit1, bar_index + 1, takeProfit1, 
-                           color=color.green, width=1, style=line.style_dashed)
-        tp2Line := line.new(bar_index, takeProfit2, bar_index + 1, takeProfit2, 
-                           color=color.green, width=1, style=line.style_dashed)
-        tp3Line := line.new(bar_index, takeProfit3, bar_index + 1, takeProfit3, 
-                           color=color.green, width=1, style=line.style_dashed)
-    else
-        line.set_x2(slLine, bar_index)
-        line.set_x2(tp1Line, bar_index)
-        line.set_x2(tp2Line, bar_index)
-        line.set_x2(tp3Line, bar_index)
-else
-    if not na(slLine)
-        line.delete(slLine)
-        line.delete(tp1Line)
-        line.delete(tp2Line)
-        line.delete(tp3Line)
-        slLine := na
+// Plot Stop Loss and Take Profit Lines (Simplified)
+plot(strategy.position_size != 0 ? stopLoss : na, "Stop Loss", color=color.red, linewidth=2, style=plot.style_linebr)
+plot(strategy.position_size != 0 ? takeProfit1 : na, "TP1", color=color.green, linewidth=1, style=plot.style_linebr)
+plot(strategy.position_size != 0 ? takeProfit2 : na, "TP2", color=color.green, linewidth=1, style=plot.style_linebr)
+plot(strategy.position_size != 0 ? takeProfit3 : na, "TP3", color=color.green, linewidth=1, style=plot.style_linebr)
 
 // ═══════════════════════════════════════════════════════════════════
 //  DASHBOARD
 // ═══════════════════════════════════════════════════════════════════
 
-var table dashboard = table.new(position.top_right, 2, 8, 
-                                bgcolor=color.new(color.black, 80), 
-                                border_width=1)
+var table dashboard = table.new(position.top_right, 2, 8, bgcolor=color.new(color.black, 80), border_width=1)
 
 if barstate.islast
+    table.clear(dashboard, 0, 0, 1, 7)
+    
     // Header
-    table.cell(dashboard, 0, 0, "ICT/SMC v2.0", 
-              text_color=color.white, text_size=size.normal, bgcolor=color.new(color.blue, 50))
-    table.cell(dashboard, 1, 0, "Status", 
-              text_color=color.white, text_size=size.normal, bgcolor=color.new(color.blue, 50))
+    table.cell(dashboard, 0, 0, "ICT/SMC v2.0", text_color=color.white, text_size=size.normal, bgcolor=color.new(color.blue, 50))
+    table.cell(dashboard, 1, 0, "Status", text_color=color.white, text_size=size.normal, bgcolor=color.new(color.blue, 50))
     
     // Metrics
     table.cell(dashboard, 0, 1, "Confluence", text_color=color.gray, text_size=size.small)
-    table.cell(dashboard, 1, 1, str.tostring(math.max(bullishConfluence, bearishConfluence)) + "/38", 
-              text_color=color.white, text_size=size.small)
+    table.cell(dashboard, 1, 1, str.tostring(math.max(bullishConfluence, bearishConfluence)) + "/38", text_color=color.white, text_size=size.small)
     
     table.cell(dashboard, 0, 2, "AI Confidence", text_color=color.gray, text_size=size.small)
-    table.cell(dashboard, 1, 2, str.tostring(math.round(aiConfidence)) + "%", 
-              text_color=color.white, text_size=size.small)
+    table.cell(dashboard, 1, 2, str.tostring(math.round(aiConfidence)) + "%", text_color=color.white, text_size=size.small)
     
     table.cell(dashboard, 0, 3, "Delta", text_color=color.gray, text_size=size.small)
-    table.cell(dashboard, 1, 3, str.tostring(math.round(cumulativeDelta)), 
-              text_color=cumulativeDelta > 0 ? color.green : color.red, text_size=size.small)
+    table.cell(dashboard, 1, 3, str.tostring(math.round(cumulativeDelta)), text_color=cumulativeDelta > 0 ? color.green : color.red, text_size=size.small)
     
     table.cell(dashboard, 0, 4, "PO3 Phase", text_color=color.gray, text_size=size.small)
-    table.cell(dashboard, 1, 4, po3Phase, 
-              text_color=color.white, text_size=size.small)
+    table.cell(dashboard, 1, 4, po3Phase, text_color=color.white, text_size=size.small)
     
     table.cell(dashboard, 0, 5, "Trend", text_color=color.gray, text_size=size.small)
     trendText = upTrend ? "UP" : downTrend ? "DOWN" : "NEUTRAL"
@@ -462,8 +417,7 @@ if barstate.islast
     table.cell(dashboard, 1, 5, trendText, text_color=trendColor, text_size=size.small)
     
     table.cell(dashboard, 0, 6, "Volume", text_color=color.gray, text_size=size.small)
-    table.cell(dashboard, 1, 6, str.tostring(math.round(volumeRatio * 100)) + "%", 
-              text_color=volumeRatio > 1.2 ? color.green : color.gray, text_size=size.small)
+    table.cell(dashboard, 1, 6, str.tostring(math.round(volumeRatio * 100)) + "%", text_color=volumeRatio > 1.2 ? color.green : color.gray, text_size=size.small)
     
     table.cell(dashboard, 0, 7, "Signal", text_color=color.gray, text_size=size.small)
     signalText = buySignal ? "BUY" : sellSignal ? "SELL" : "WAIT"
@@ -474,10 +428,8 @@ if barstate.islast
 //  ALERTS
 // ═══════════════════════════════════════════════════════════════════
 
-alertcondition(buySignal, "BUY Signal", 
-               "ICT/SMC BUY Signal - Confluence: {{plot_0}}/38")
-alertcondition(sellSignal, "SELL Signal", 
-               "ICT/SMC SELL Signal - Confluence: {{plot_0}}/38")
+alertcondition(buySignal, "BUY Signal", "ICT/SMC BUY Signal")
+alertcondition(sellSignal, "SELL Signal", "ICT/SMC SELL Signal")
 
 // ═══════════════════════════════════════════════════════════════════
 //  END OF STRATEGY
