@@ -55,8 +55,8 @@ volumeRatio = volume / avgVolume
 // Calculate Delta Volume (Buy vs Sell Pressure)
 calculateDelta() =>
     var float cumulativeDelta = 0
-    range = high - low
-    closePosition = range > 0 ? (close - low) / range : 0.5
+    candleRange = high - low
+    closePosition = candleRange > 0 ? (close - low) / candleRange : 0.5
     
     buyVol = 0.0
     sellVol = 0.0
