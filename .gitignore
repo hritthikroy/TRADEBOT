@@ -1,0 +1,28 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment variables
+.env
+.env.local
+
+# API Keys (if any)
+config.js
+secrets.js
+
+# Temporary files
+*.tmp
+*.temp
+*_old.js
+
+# Node modules (if you add npm later)
+node_modules/
