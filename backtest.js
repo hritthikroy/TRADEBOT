@@ -12,8 +12,8 @@ let backtestResults = {
     profitFactor: 0,
     averageRR: 0,
     maxDrawdown: 0,
-    startingBalance: 10000,
-    currentBalance: 10000
+    startingBalance: 500,
+    currentBalance: 500
 };
 
 // Run backtest on historical data
@@ -32,9 +32,9 @@ async function runBacktest(symbol, interval, days = 30) {
         profitFactor: 0,
         averageRR: 0,
         maxDrawdown: 0,
-        startingBalance: 10000,
-        currentBalance: 10000,
-        peakBalance: 10000
+        startingBalance: 500,
+        currentBalance: 500,
+        peakBalance: 500
     };
     
     try {
