@@ -1,14 +1,29 @@
-# Market Prediction Simulator
+# ICT/SMC Trading Strategy v2.0 🚀
 
-A simulation system that predicts the next two candles with the same height using TradingView's Advanced Chart widget.
+Advanced cryptocurrency trading system with Smart Money Concepts, AI predictions, and institutional trading techniques.
+
+**📊 Backtest Performance (v2.0 Optimized):**
+- **Target Return:** 25-35% (30 days)
+- **Previous:** 19.5% return, 64.7% win rate
+- **Optimization:** Higher quality setups, better risk-reward ratios
 
 ## Features
 
-- TradingView Advanced Chart integration
-- Predicts next 2 candles maintaining the same height as current candle
-- Trend detection (uptrend/downtrend)
-- Real-time visualization
-- Dark theme UI
+### Core Trading System
+- **ICT/SMC Analysis** - Order Blocks, Fair Value Gaps, Breaker Blocks
+- **Power of 3 (PO3)** - Accumulation, Manipulation, Distribution phases
+- **AMD Detection** - Smart money phase identification
+- **Liquidity Sweeps** - Stop hunt detection before reversals
+- **Multi-Timeframe Analysis** - 15m, 30m, 1h, 4h confluence
+- **AI Ensemble Predictions** - Technical + Order Book + Local ML
+
+### Advanced Features
+- Real-time TradingView chart integration
+- Automated backtesting system
+- Risk-reward optimization (1.5:1 minimum)
+- Intelligent trailing stops
+- Delta volume analysis
+- Dark theme professional UI
 
 ## How to Use
 

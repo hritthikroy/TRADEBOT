@@ -427,12 +427,12 @@ function simulateTrade(signal, futureData) {
             if (candle.high > highestPrice) {
                 highestPrice = candle.high;
                 
-                // Activate trailing stop after 0.8R profit (very early)
+                // Activate trailing stop after 1.0R profit (optimized)
                 const profitPercent = (highestPrice - entry) / (entry - signal.stopLoss);
-                if (profitPercent > 0.8) {
+                if (profitPercent > 1.0) {
                     trailingActive = true;
-                    // Trail stop to breakeven + 35% of profit
-                    stopLoss = Math.max(stopLoss, entry + (highestPrice - entry) * 0.35);
+                    // Trail stop to breakeven + 50% of profit (more aggressive)
+                    stopLoss = Math.max(stopLoss, entry + (highestPrice - entry) * 0.50);
                 }
             }
             
@@ -454,12 +454,12 @@ function simulateTrade(signal, futureData) {
             if (candle.low < lowestPrice) {
                 lowestPrice = candle.low;
                 
-                // Activate trailing stop after 0.8R profit (very early)
+                // Activate trailing stop after 1.0R profit (optimized)
                 const profitPercent = (entry - lowestPrice) / (signal.stopLoss - entry);
-                if (profitPercent > 0.8) {
+                if (profitPercent > 1.0) {
                     trailingActive = true;
-                    // Trail stop to breakeven + 35% of profit
-                    stopLoss = Math.min(stopLoss, entry - (entry - lowestPrice) * 0.35);
+                    // Trail stop to breakeven + 50% of profit (more aggressive)
+                    stopLoss = Math.min(stopLoss, entry - (entry - lowestPrice) * 0.50);
                 }
             }
             

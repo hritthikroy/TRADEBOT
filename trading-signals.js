@@ -216,8 +216,8 @@ function generateTradingSignal(data, aiPrediction, volumeAnalysis, mtfTrendFilte
         
         console.log(`BUY Confluence: ${confluence}/38 points | PO3: ${po3.phase} | AMD: ${amd.phase} | Sweep: ${liquiditySweep.bullish}`);
         
-        // Require minimum confluence (balanced)
-        if (confluence >= 5) {
+        // Require minimum confluence (raised for quality)
+        if (confluence >= 8) {
             // Stop below order block or recent low
             let stopLoss;
             if (orderBlocks.bullish.length > 0) {
@@ -228,10 +228,10 @@ function generateTradingSignal(data, aiPrediction, volumeAnalysis, mtfTrendFilte
                 stopLoss = Math.min(...recentLows) - (atr * 0.5);
             }
             
-            // Target next liquidity zone (realistic for crypto)
-            const takeProfit1 = currentPrice + (atr * 2.0);
-            const takeProfit2 = currentPrice + (atr * 3.5);
-            const takeProfit3 = currentPrice + (atr * 5.5);
+            // Target next liquidity zone (optimized for better RR)
+            const takeProfit1 = currentPrice + (atr * 2.5);
+            const takeProfit2 = currentPrice + (atr * 4.5);
+            const takeProfit3 = currentPrice + (atr * 7.0);
             
             const risk = entry - stopLoss;
             const reward1 = takeProfit1 - entry;
@@ -242,7 +242,7 @@ function generateTradingSignal(data, aiPrediction, volumeAnalysis, mtfTrendFilte
             const rr2 = reward2 / risk;
             const rr3 = reward3 / risk;
             
-            if (rr1 >= 1.1) {
+            if (rr1 >= 1.5) {
                 signal = {
                     type: 'BUY',
                     strength: signalStrength,
@@ -320,8 +320,8 @@ function generateTradingSignal(data, aiPrediction, volumeAnalysis, mtfTrendFilte
         
         console.log(`SELL Confluence: ${confluence}/38 points | PO3: ${po3.phase} | AMD: ${amd.phase} | Sweep: ${liquiditySweep.bearish}`);
         
-        // Require minimum confluence (balanced)
-        if (confluence >= 5) {
+        // Require minimum confluence (raised for quality)
+        if (confluence >= 8) {
             // Stop above order block or recent high
             let stopLoss;
             if (orderBlocks.bearish.length > 0) {
@@ -332,10 +332,10 @@ function generateTradingSignal(data, aiPrediction, volumeAnalysis, mtfTrendFilte
                 stopLoss = Math.max(...recentHighs) + (atr * 0.5);
             }
             
-            // Target next liquidity zone (realistic for crypto)
-            const takeProfit1 = currentPrice - (atr * 2.0);
-            const takeProfit2 = currentPrice - (atr * 3.5);
-            const takeProfit3 = currentPrice - (atr * 5.5);
+            // Target next liquidity zone (optimized for better RR)
+            const takeProfit1 = currentPrice - (atr * 2.5);
+            const takeProfit2 = currentPrice - (atr * 4.5);
+            const takeProfit3 = currentPrice - (atr * 7.0);
             
             const risk = stopLoss - entry;
             const reward1 = entry - takeProfit1;
@@ -346,7 +346,7 @@ function generateTradingSignal(data, aiPrediction, volumeAnalysis, mtfTrendFilte
             const rr2 = reward2 / risk;
             const rr3 = reward3 / risk;
             
-            if (rr1 >= 1.1) {
+            if (rr1 >= 1.5) {
                 signal = {
                     type: 'SELL',
                     strength: signalStrength,
