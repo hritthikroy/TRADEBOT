@@ -263,22 +263,10 @@ bullishConfluence = calculateConfluence(true)
 bearishConfluence = calculateConfluence(false)
 
 // BUY Signal - More Strict Conditions
-buySignal = bullishConfluence >= minConfluence and 
-            aiConfidence >= minAIConfidence and
-            upTrend and
-            cumulativeDelta > 0 and
-            volumeRatio > 1.0 and  // Require above average volume
-            rsi < 70 and  // Not overbought
-            close > sma20  // Above short-term MA
+buySignal = bullishConfluence >= minConfluence and aiConfidence >= minAIConfidence and upTrend and cumulativeDelta > 0 and volumeRatio > 1.0 and rsi < 70 and close > sma20
 
 // SELL Signal - More Strict Conditions
-sellSignal = bearishConfluence >= minConfluence and 
-             aiConfidence >= minAIConfidence and
-             downTrend and
-             cumulativeDelta < 0 and
-             volumeRatio > 1.0 and  // Require above average volume
-             rsi > 30 and  // Not oversold
-             close < sma20  // Below short-term MA
+sellSignal = bearishConfluence >= minConfluence and aiConfidence >= minAIConfidence and downTrend and cumulativeDelta < 0 and volumeRatio > 1.0 and rsi > 30 and close < sma20
 
 // ═══════════════════════════════════════════════════════════════════
 //  POSITION MANAGEMENT
