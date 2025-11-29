@@ -172,10 +172,8 @@ async function sendTelegramAlert(signal) {
 }
 
 // Save signal to tracker
-function saveSignalToTracker(signal) {
+async function saveSignalToTracker(signal) {
     try {
-        const signals = JSON.parse(localStorage.getItem('tradingSignals') || '[]');
-        
         const signalData = {
             id: Date.now() + Math.random(), // Ensure unique ID
             timestamp: Date.now(),
@@ -195,9 +193,32 @@ function saveSignalToTracker(signal) {
             livePrice: null
         };
         
+        // Save to localStorage
+        const signals = JSON.parse(localStorage.getItem('tradingSignals') || '[]');
         signals.unshift(signalData);
         localStorage.setItem('tradingSignals', JSON.stringify(signals));
-        console.log('💾 Signal saved to tracker:', signalData);
+        console.log('💾 Signal saved to localStorage:', signalData);
+        
+        // Save to Supabase if available
+        if (typeof SupabaseDB !== 'undefined') {
+            try {
+                await SupabaseDB.saveSignal({
+                    signal_id: signalData.id.toString(),
+                    signal_type: signalData.type,
+                    symbol: signalData.symbol,
+                    entry_price: signalData.entry,
+                    stop_loss: signalData.stopLoss,
+                    tp1: signalData.tp1,
+                    tp2: signalData.tp2,
+                    tp3: signalData.tp3,
+                    strength: signalData.strength,
+                    status: 'pending'
+                });
+                console.log('☁️ Signal saved to Supabase!');
+            } catch (error) {
+                console.warn('Supabase save failed (continuing with localStorage):', error);
+            }
+        }
         
         // Trigger storage event manually for same-window updates
         window.dispatchEvent(new StorageEvent('storage', {
