@@ -184,6 +184,36 @@
         button.secondary:hover {
             background: #1e53e5;
         }
+        button.refresh-btn {
+            background: #26a69a;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        button.refresh-btn:hover {
+            background: #2bbbad;
+            transform: scale(1.05);
+        }
+        button.refresh-btn.spinning {
+            pointer-events: none;
+            opacity: 0.7;
+        }
+        button.refresh-btn.spinning::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            margin: -10px 0 0 -10px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+        @keyframes spin-refresh {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
         select {
             background: #2a2e39;
             color: #d1d4dc;
@@ -326,6 +356,9 @@
         </div>
 
         <div class="controls">
+            <button onclick="manualRefresh()" class="refresh-btn" id="refreshBtn" title="Refresh live data">
+                🔄 Refresh
+            </button>
             <button onclick="addTestSignal()">➕ Add Test Signal</button>
             <button class="secondary" onclick="exportToCSV()">📥 Export CSV</button>
             <button class="secondary" onclick="showChart()">📊 Chart</button>
@@ -743,6 +776,52 @@
             }
         }
 
+        // Manual refresh function
+        async function manualRefresh() {
+            const refreshBtn = document.getElementById('refreshBtn');
+            
+            if (refreshBtn.classList.contains('spinning')) {
+                return; // Already refreshing
+            }
+            
+            try {
+                // Add spinning animation
+                refreshBtn.classList.add('spinning');
+                refreshBtn.textContent = '⏳ Refreshing...';
+                
+                console.log('🔄 Manual refresh triggered...');
+                
+                // Update pending signals
+                await updatePendingSignals();
+                
+                // Refresh display
+                requestAnimationFrame(() => {
+                    const filter = document.getElementById('filter').value;
+                    filterSignals();
+                    updateStats();
+                });
+                
+                console.log('✅ Refresh complete!');
+                
+                // Show success state briefly
+                refreshBtn.textContent = '✅ Updated!';
+                
+                setTimeout(() => {
+                    refreshBtn.classList.remove('spinning');
+                    refreshBtn.textContent = '🔄 Refresh';
+                }, 1000);
+                
+            } catch (error) {
+                console.error('❌ Refresh error:', error);
+                refreshBtn.classList.remove('spinning');
+                refreshBtn.textContent = '❌ Error';
+                
+                setTimeout(() => {
+                    refreshBtn.textContent = '🔄 Refresh';
+                }, 2000);
+            }
+        }
+        
         // Add test signal
         async function addTestSignal() {
             const isBuy = Math.random() > 0.5;
