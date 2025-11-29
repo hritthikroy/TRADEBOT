@@ -419,13 +419,13 @@
             </div>
             <div class="session-details">
                 <div class="session-detail">
-                    <span>🌏 Asian: 00:00-09:00 UTC</span>
+                    <span>🌏 Asian: <span id="asianCountdown">--:--:--</span></span>
                 </div>
                 <div class="session-detail">
-                    <span>🌍 London: 08:00-17:00 UTC</span>
+                    <span>🌍 London: <span id="londonCountdown">--:--:--</span></span>
                 </div>
                 <div class="session-detail">
-                    <span>🌎 New York: 13:00-22:00 UTC</span>
+                    <span>🌎 New York: <span id="nyCountdown">--:--:--</span></span>
                 </div>
             </div>
         </div>
@@ -585,6 +585,29 @@
             return { session, sessionClass, timeString };
         }
         
+        function getNextSessionTime(sessionStartHour) {
+            const now = new Date();
+            const utcHour = now.getUTCHours();
+            
+            let hoursUntil = sessionStartHour - utcHour;
+            if (hoursUntil <= 0) {
+                hoursUntil += 24; // Next day
+            }
+            
+            const minutesUntil = 60 - now.getUTCMinutes();
+            const secondsUntil = 60 - now.getUTCSeconds();
+            
+            let totalSeconds = (hoursUntil * 3600) + (minutesUntil * 60) + secondsUntil - 3600;
+            
+            if (totalSeconds < 0) totalSeconds += 86400;
+            
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            
+            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+        
         function updateSessionIndicator() {
             const { session, sessionClass, timeString } = getCurrentSession();
             const badge = document.getElementById('sessionBadge');
@@ -595,6 +618,40 @@
                 badge.className = `session-badge ${sessionClass}`;
                 name.textContent = session;
                 time.textContent = timeString;
+            }
+            
+            // Update countdowns
+            const now = new Date();
+            const utcHour = now.getUTCHours();
+            
+            // Asian session countdown
+            const asianEl = document.getElementById('asianCountdown');
+            if (utcHour >= 0 && utcHour < 9) {
+                asianEl.textContent = '🟢 Active Now';
+                asianEl.style.color = '#4caf50';
+            } else {
+                asianEl.textContent = getNextSessionTime(0);
+                asianEl.style.color = '#ffc107';
+            }
+            
+            // London session countdown
+            const londonEl = document.getElementById('londonCountdown');
+            if (utcHour >= 8 && utcHour < 17) {
+                londonEl.textContent = '🟢 Active Now';
+                londonEl.style.color = '#4caf50';
+            } else {
+                londonEl.textContent = getNextSessionTime(8);
+                londonEl.style.color = '#2196f3';
+            }
+            
+            // New York session countdown
+            const nyEl = document.getElementById('nyCountdown');
+            if (utcHour >= 13 && utcHour < 22) {
+                nyEl.textContent = '🟢 Active Now';
+                nyEl.style.color = '#4caf50';
+            } else {
+                nyEl.textContent = getNextSessionTime(13);
+                nyEl.style.color = '#4caf50';
             }
         }
         
