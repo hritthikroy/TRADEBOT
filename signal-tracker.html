@@ -419,10 +419,10 @@
             </div>
             <div class="session-details">
                 <div class="session-detail">
-                    <span>🔥 Asian Kill Zone (07:30-10:30 AM IST): <span id="asianKZ">--:--:--</span></span>
+                    <span>🔥 Asian Kill Zone (05:30-10:15 AM IST): <span id="asianKZ">--:--:--</span></span>
                 </div>
                 <div class="session-detail">
-                    <span>🔥 London Kill Zone (01:30-04:30 PM IST): <span id="londonKZ">--:--:--</span></span>
+                    <span>🔥 London Kill Zone (05:30-09:30 PM IST): <span id="londonKZ">--:--:--</span></span>
                 </div>
                 <div class="session-detail">
                     <span>🔥 New York Kill Zone (11:30 AM-03:15 PM IST): <span id="nyKZ">--:--:--</span></span>
@@ -624,33 +624,37 @@
             const now = new Date();
             const utcHour = now.getUTCHours();
             
-            // Asian Kill Zone (02:00-05:00 AM UTC)
+            // Asian Kill Zone (00:00-04:45 UTC / 5:30-10:15 AM IST)
             const asianKZEl = document.getElementById('asianKZ');
-            if (utcHour >= 2 && utcHour < 5) {
+            const utcMinute = now.getUTCMinutes();
+            const isAsianActive = (utcHour >= 0 && utcHour < 4) || (utcHour === 4 && utcMinute < 45);
+            
+            if (isAsianActive) {
                 asianKZEl.textContent = '🟢 ACTIVE NOW!';
                 asianKZEl.style.color = '#ff6b6b';
                 asianKZEl.style.fontWeight = 'bold';
             } else {
-                asianKZEl.textContent = getNextSessionTime(2);
+                asianKZEl.textContent = getNextSessionTime(0);
                 asianKZEl.style.color = '#ffc107';
                 asianKZEl.style.fontWeight = 'normal';
             }
             
-            // London Kill Zone (08:00-11:00 AM UTC)
+            // London Kill Zone (12:00-16:00 UTC / 5:30-9:30 PM IST)
             const londonKZEl = document.getElementById('londonKZ');
-            if (utcHour >= 8 && utcHour < 11) {
+            const isLondonActive = utcHour >= 12 && utcHour < 16;
+            
+            if (isLondonActive) {
                 londonKZEl.textContent = '🟢 ACTIVE NOW!';
                 londonKZEl.style.color = '#ff6b6b';
                 londonKZEl.style.fontWeight = 'bold';
             } else {
-                londonKZEl.textContent = getNextSessionTime(8);
+                londonKZEl.textContent = getNextSessionTime(12);
                 londonKZEl.style.color = '#2196f3';
                 londonKZEl.style.fontWeight = 'normal';
             }
             
-            // New York Kill Zone (06:00-09:45 AM UTC / 11:30 AM - 3:15 PM IST)
+            // New York Kill Zone (06:00-09:45 UTC / 11:30 AM - 3:15 PM IST)
             const nyKZEl = document.getElementById('nyKZ');
-            const utcMinute = now.getUTCMinutes();
             const isNYActive = (utcHour >= 6 && utcHour < 9) || (utcHour === 9 && utcMinute < 45);
             
             if (isNYActive) {
