@@ -425,7 +425,7 @@
                     <span>🔥 London Kill Zone (08:00-11:00 AM UTC): <span id="londonKZ">--:--:--</span></span>
                 </div>
                 <div class="session-detail">
-                    <span>🔥 New York Kill Zone (01:00-04:00 PM UTC): <span id="nyKZ">--:--:--</span></span>
+                    <span>🔥 New York Kill Zone (06:00-09:45 AM UTC): <span id="nyKZ">--:--:--</span></span>
                 </div>
             </div>
         </div>
@@ -648,14 +648,17 @@
                 londonKZEl.style.fontWeight = 'normal';
             }
             
-            // New York Kill Zone (13:00-16:00 PM UTC / 1:00-4:00 PM)
+            // New York Kill Zone (06:00-09:45 AM UTC / 11:30 AM - 3:15 PM IST)
             const nyKZEl = document.getElementById('nyKZ');
-            if (utcHour >= 13 && utcHour < 16) {
+            const utcMinute = now.getUTCMinutes();
+            const isNYActive = (utcHour >= 6 && utcHour < 9) || (utcHour === 9 && utcMinute < 45);
+            
+            if (isNYActive) {
                 nyKZEl.textContent = '🟢 ACTIVE NOW!';
                 nyKZEl.style.color = '#ff6b6b';
                 nyKZEl.style.fontWeight = 'bold';
             } else {
-                nyKZEl.textContent = getNextSessionTime(13);
+                nyKZEl.textContent = getNextSessionTime(6);
                 nyKZEl.style.color = '#4caf50';
                 nyKZEl.style.fontWeight = 'normal';
             }
