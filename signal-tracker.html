@@ -705,6 +705,7 @@
         // Add test signal
         function addTestSignal() {
             const testSignal = {
+                id: Date.now(),
                 timestamp: Date.now(),
                 type: Math.random() > 0.5 ? 'BUY' : 'SELL',
                 symbol: 'BTCUSDT',
@@ -714,13 +715,19 @@
                 tp2: 92500 + Math.random() * 500,
                 tp3: 93000 + Math.random() * 500,
                 strength: Math.floor(60 + Math.random() * 30),
-                status: 'pending'
+                status: 'pending',
+                exitPrice: null,
+                exitReason: null,
+                trailingStopPrice: null,
+                trailingStopActive: false
             };
             
             signals.unshift(testSignal);
             saveSignals();
             displaySignals(document.getElementById('filter').value);
             updateStats();
+            
+            console.log('✅ Test signal added:', testSignal);
         }
 
         // Export to CSV

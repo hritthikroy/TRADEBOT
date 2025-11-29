@@ -127,7 +127,15 @@ function showNotification(signal) {
 
 // Send Telegram alert
 async function sendTelegramAlert(signal) {
-    if (!TELEGRAM_ENABLED || !signal) return;
+    if (!signal) return;
+    
+    // Always save signal to tracker first
+    saveSignalToTracker(signal);
+    
+    if (!TELEGRAM_ENABLED) {
+        console.log('📊 Signal saved to tracker (Telegram disabled)');
+        return;
+    }
     
     try {
         const message = `🚨 *${signal.type} SIGNAL*\n\n` +
@@ -155,9 +163,6 @@ async function sendTelegramAlert(signal) {
         
         if (response.ok) {
             console.log('📱 Telegram alert sent successfully!');
-            
-            // Save signal to localStorage for tracker
-            saveSignalToTracker(signal);
         } else {
             console.error('❌ Telegram send failed:', await response.text());
         }
@@ -172,7 +177,7 @@ function saveSignalToTracker(signal) {
         const signals = JSON.parse(localStorage.getItem('tradingSignals') || '[]');
         
         const signalData = {
-            id: Date.now(),
+            id: Date.now() + Math.random(), // Ensure unique ID
             timestamp: Date.now(),
             type: signal.type,
             symbol: currentSymbol,
@@ -186,12 +191,20 @@ function saveSignalToTracker(signal) {
             exitPrice: null,
             exitReason: null,
             trailingStopPrice: null,
-            trailingStopActive: false
+            trailingStopActive: false,
+            livePrice: null
         };
         
         signals.unshift(signalData);
         localStorage.setItem('tradingSignals', JSON.stringify(signals));
-        console.log('💾 Signal saved to tracker');
+        console.log('💾 Signal saved to tracker:', signalData);
+        
+        // Trigger storage event manually for same-window updates
+        window.dispatchEvent(new StorageEvent('storage', {
+            key: 'tradingSignals',
+            newValue: JSON.stringify(signals),
+            url: window.location.href
+        }));
         
         // Start monitoring this signal
         monitorSignal(signalData);
