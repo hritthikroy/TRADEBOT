@@ -1,7 +1,6 @@
 // Supabase Configuration
-// Replace these with your actual Supabase credentials
-const SUPABASE_URL = 'YOUR_SUPABASE_URL'; // e.g., https://xxxxx.supabase.co
-const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY'; // Your anon/public key
+const SUPABASE_URL = 'https://xlxugbqxfrrwutxecwug.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhseHVnYnF4ZnJyd3V0eGVjd3VnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ0MTM0MDQsImV4cCI6MjA3OTk4OTQwNH0.LAQKcsWOOTOeAcKh9zRF9l740aDp0Ki1cws8oG3yQZU';
 
 // Initialize Supabase client
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);

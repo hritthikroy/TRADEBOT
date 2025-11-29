@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Table</title>
+    <style>
+        body { background: #131722; color: #d1d4dc; font-family: Arial; padding: 20px; }
+        table { width: 100%; border-collapse: collapse; background: #1e222d; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #2a2e39; }
+        th { background: #2a2e39; color: #787b86; }
+    </style>
+</head>
+<body>
+    <h1>Table Structure Test</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>#</th><th>Date/Time</th><th>Type</th><th>Symbol</th><th>Entry</th>
+                <th>Exit</th><th>Stop Loss</th><th>Trailing SL</th><th>TP1</th><th>TP2</th>
+                <th>TP3</th><th>Strength</th><th>Status</th><th>Progress</th><th>Result</th>
+            </tr>
+        </thead>
+        <tbody id="test-body">
+            <tr>
+                <td>1</td><td>2024-01-01 12:00</td><td>BUY</td><td>BTCUSDT</td><td>91500</td>
+                <td>92000</td><td>91000</td><td>91750</td><td>92000</td><td>92500</td>
+                <td>93000</td><td>85%</td><td>PENDING</td><td>50%</td><td>-</td>
+            </tr>
+        </tbody>
+    </table>
+    <button onclick="addRow()">Add Test Row</button>
+    <script>
+        function addRow() {
+            const tbody = document.getElementById('test-body');
+            const row = `<tr>
+                <td>2</td><td>${new Date().toLocaleString()}</td><td>SELL</td><td>ETHUSDT</td><td>3500</td>
+                <td>3450</td><td>3550</td><td>3475</td><td>3450</td><td>3400</td>
+                <td>3350</td><td>90%</td><td>WIN</td><td>100%</td><td>+1.5%</td>
+            </tr>`;
+            tbody.innerHTML += row;
+        }
+    </script>
+</body>
+</html>
