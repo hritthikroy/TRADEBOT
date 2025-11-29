@@ -536,16 +536,20 @@
             const utcHour = now.getUTCHours();
             
             // Get local system time for display
-            const localHour = now.getHours();
+            let localHour = now.getHours();
             const localMinute = now.getMinutes();
             const localSecond = now.getSeconds();
+            
+            // Convert to 12-hour format
+            const ampm = localHour >= 12 ? 'PM' : 'AM';
+            const displayHour = localHour % 12 || 12; // Convert 0 to 12 for midnight
             
             // Get timezone offset
             const timezoneOffset = -now.getTimezoneOffset() / 60;
             const timezoneString = timezoneOffset >= 0 ? `UTC+${timezoneOffset}` : `UTC${timezoneOffset}`;
             
-            // Format: HH:MM:SS (Local Time)
-            const timeString = `${String(localHour).padStart(2, '0')}:${String(localMinute).padStart(2, '0')}:${String(localSecond).padStart(2, '0')} (${timezoneString})`;
+            // Format: HH:MM:SS AM/PM (Timezone)
+            const timeString = `${String(displayHour).padStart(2, '0')}:${String(localMinute).padStart(2, '0')}:${String(localSecond).padStart(2, '0')} ${ampm} (${timezoneString})`;
             
             let session = '';
             let sessionClass = '';
