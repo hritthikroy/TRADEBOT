@@ -505,6 +505,11 @@
         function displayFilteredSignals(filteredSignals) {
             const tbody = document.getElementById('signals-table');
             
+            if (!tbody) {
+                console.error('Table body element not found!');
+                return;
+            }
+            
             if (filteredSignals.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="15" style="text-align: center; color: #787b86; padding: 40px;">No signals found.</td></tr>';
                 return;
@@ -517,11 +522,8 @@
                 console.log(`Showing 100 of ${filteredSignals.length} signals for performance`);
             }
             
-            // Use DocumentFragment for faster DOM manipulation
-            const fragment = document.createDocumentFragment();
-            const tempDiv = document.createElement('div');
-            
-            tempDiv.innerHTML = signalsToDisplay.map((signal) => {
+            try {
+                const rowsHTML = signalsToDisplay.map((signal) => {
                 const statusClass = signal.status === 'win' ? 'win' : signal.status === 'loss' ? 'loss' : 'pending';
                 const statusText = signal.status === 'win' ? '✅ WIN' : signal.status === 'loss' ? '❌ LOSS' : '⏳ PENDING';
                 
@@ -699,12 +701,16 @@
                         </td>
                     </tr>
                 `;
-            }).join('');
-            
-            // Use requestAnimationFrame for smooth rendering
-            requestAnimationFrame(() => {
-                tbody.innerHTML = tempDiv.innerHTML;
-            });
+                }).join('');
+                
+                // Update table body
+                tbody.innerHTML = rowsHTML;
+                console.log(`✅ Displayed ${signalsToDisplay.length} signals`);
+                
+            } catch (error) {
+                console.error('Error displaying signals:', error);
+                tbody.innerHTML = '<tr><td colspan="15" style="text-align: center; color: #ef5350; padding: 40px;">Error displaying signals. Check console.</td></tr>';
+            }
         }
 
         // Add test signal
