@@ -215,8 +215,14 @@
             position: sticky;
             top: 0;
         }
+        tr {
+            transition: background-color 0.2s ease;
+        }
         tr:hover {
             background: #2a2e39;
+        }
+        td {
+            transition: color 0.3s ease, background-color 0.3s ease;
         }
         .win {
             color: #26a69a;
@@ -452,13 +458,20 @@
 
         // Debounce filter to prevent excessive updates
         let filterTimeout;
+        let isFiltering = false;
         
-        // Filter signals
+        // Filter signals with optimized debouncing
         function filterSignals() {
             clearTimeout(filterTimeout);
             filterTimeout = setTimeout(() => {
-                filterSignalsNow();
-            }, 300);
+                if (!isFiltering) {
+                    isFiltering = true;
+                    requestAnimationFrame(() => {
+                        filterSignalsNow();
+                        isFiltering = false;
+                    });
+                }
+            }, 100);
         }
         
         function filterSignalsNow() {
@@ -717,9 +730,12 @@
                 `;
                 }).join('');
                 
-                // Update table body
-                tbody.innerHTML = rowsHTML;
-                console.log(`✅ Displayed ${signalsToDisplay.length} signals`);
+                // Use requestAnimationFrame for synchronized, lag-free updates
+                requestAnimationFrame(() => {
+                    // Batch DOM update for all fields simultaneously
+                    tbody.innerHTML = rowsHTML;
+                    console.log(`✅ Displayed ${signalsToDisplay.length} signals`);
+                });
                 
             } catch (error) {
                 console.error('Error displaying signals:', error);
@@ -943,7 +959,11 @@
                 }
             });
             
+            // Wait for all updates to complete, then save once
             await Promise.all(promises);
+            
+            // Save updated signals to localStorage in one batch
+            saveSignals();
         }
 
         // Auto-cleanup old signals (older than 30 days)
@@ -1022,17 +1042,20 @@
         // Start initialization
         initialize();
         
-        // Update pending signals every 15 seconds (reduced frequency for better performance)
+        // Update pending signals every 10 seconds with optimized rendering
         setInterval(() => {
             if (!isLoading) {
                 updatePendingSignals().then(() => {
-                    const filter = document.getElementById('filter').value;
-                    filterSignals();
+                    // Use requestAnimationFrame for smooth, synchronized updates
+                    requestAnimationFrame(() => {
+                        const filter = document.getElementById('filter').value;
+                        filterSignals();
+                    });
                 });
             }
-        }, 15000);
+        }, 10000);
 
-        // Listen for new signals from main app with debouncing
+        // Listen for new signals from main app with optimized updates
         let storageUpdateTimeout;
         window.addEventListener('storage', (e) => {
             if (e.key === 'tradingSignals') {
@@ -1040,24 +1063,27 @@
                 storageUpdateTimeout = setTimeout(() => {
                     const newSignals = JSON.parse(e.newValue || '[]');
                     
-                    // Check if there are actually new signals
-                    if (newSignals.length > signals.length) {
-                        console.log('🆕 New signal detected!');
-                        signals = newSignals;
-                        displaySignals(document.getElementById('filter').value);
-                        updateStats();
-                        
-                        // Flash notification
-                        document.title = '🔔 New Signal! - Signal Tracker';
-                        setTimeout(() => {
-                            document.title = 'Signal Tracker - Trading Signals';
-                        }, 3000);
-                    } else {
-                        signals = newSignals;
-                        displaySignals(document.getElementById('filter').value);
-                        updateStats();
-                    }
-                }, 100);
+                    // Use requestAnimationFrame for synchronized updates
+                    requestAnimationFrame(() => {
+                        // Check if there are actually new signals
+                        if (newSignals.length > signals.length) {
+                            console.log('🆕 New signal detected!');
+                            signals = newSignals;
+                            displaySignals(document.getElementById('filter').value);
+                            updateStats();
+                            
+                            // Flash notification
+                            document.title = '🔔 New Signal! - Signal Tracker';
+                            setTimeout(() => {
+                                document.title = 'Signal Tracker - Trading Signals';
+                            }, 3000);
+                        } else {
+                            signals = newSignals;
+                            displaySignals(document.getElementById('filter').value);
+                            updateStats();
+                        }
+                    });
+                }, 50);
             }
         });
     </script>
