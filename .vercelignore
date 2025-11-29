@@ -1,0 +1,10 @@
+node_modules
+.git
+.DS_Store
+*.md
+BACKTEST_RESULTS_v2.0.md
+OPTIMIZATION_LOG.md
+API_SETUP.md
+HOW_TO_USE.md
+signal-tracker.html.backup
+test_optimization.html
