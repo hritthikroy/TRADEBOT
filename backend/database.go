@@ -14,12 +14,15 @@ var DB *sql.DB
 func InitDB() {
 	var err error
 	
-	// Supabase connection string with proper format
-	// Format: postgres://postgres:[PASSWORD]@[HOST]:5432/postgres
+	// Get credentials from environment
+	host := os.Getenv("SUPABASE_HOST")
+	password := os.Getenv("SUPABASE_PASSWORD")
+	
+	// Build connection string using key=value format (safer for special characters)
 	connStr := fmt.Sprintf(
-		"postgres://postgres:%s@%s:5432/postgres?sslmode=require",
-		os.Getenv("SUPABASE_PASSWORD"),
-		os.Getenv("SUPABASE_HOST"),
+		"host=%s port=5432 user=postgres password=%s dbname=postgres sslmode=require",
+		host,
+		password,
 	)
 
 	DB, err = sql.Open("postgres", connStr)
@@ -31,10 +34,12 @@ func InitDB() {
 	DB.SetMaxOpenConns(10)
 	DB.SetMaxIdleConns(5)
 
-	// Test connection
+	// Test connection with timeout
 	err = DB.Ping()
 	if err != nil {
-		log.Fatal("Failed to ping database:", err)
+		log.Printf("Failed to ping database: %v", err)
+		log.Printf("Host: %s", host)
+		log.Fatal("Database connection failed")
 	}
 
 	log.Println("✅ Database connected successfully")
