@@ -669,11 +669,25 @@
                 // Trailing stop display - show calculated or saved value
                 let trailingStopDisplay = '-';
                 if (signal.status === 'pending') {
-                    // For pending signals, show calculated trailing stop
-                    if (signal.calculatedTrailingStop) {
-                        trailingStopDisplay = `<span style="color: #f7931a;">${signal.calculatedTrailingStop.toFixed(2)}</span><br><small style="color: #26a69a;">🔒 Active</small>`;
-                    } else if (signal.trailingStopPrice) {
-                        trailingStopDisplay = `<span style="color: #f7931a;">${signal.trailingStopPrice.toFixed(2)}</span><br><small style="color: #26a69a;">🔒 Active</small>`;
+                    // Calculate trailing stop on the fly if we have live price
+                    let calculatedTS = signal.calculatedTrailingStop || signal.trailingStopPrice;
+                    
+                    // If no saved trailing stop, calculate it now based on live price
+                    if (!calculatedTS && signal.livePrice) {
+                        if (signal.type === 'BUY' && signal.livePrice >= signal.tp1) {
+                            const profitDistance = signal.livePrice - signal.entry;
+                            calculatedTS = signal.entry + (profitDistance * 0.5);
+                        } else if (signal.type === 'SELL' && signal.livePrice <= signal.tp1) {
+                            const profitDistance = signal.entry - signal.livePrice;
+                            calculatedTS = signal.entry - (profitDistance * 0.5);
+                        }
+                    }
+                    
+                    if (calculatedTS) {
+                        trailingStopDisplay = `<span style="color: #f7931a;">${calculatedTS.toFixed(2)}</span><br><small style="color: #26a69a;">🔒 Active</small>`;
+                    } else {
+                        // Show that trailing stop will activate at TP1
+                        trailingStopDisplay = `<small style="color: #787b86;">Activates at TP1</small>`;
                     }
                 } else if (signal.trailingStopPrice) {
                     // For closed signals, show saved trailing stop
@@ -714,17 +728,20 @@
         }
 
         // Add test signal
-        function addTestSignal() {
+        async function addTestSignal() {
+            const isBuy = Math.random() > 0.5;
+            const entry = 91500 + Math.random() * 1000;
+            
             const testSignal = {
                 id: Date.now(),
                 timestamp: Date.now(),
-                type: Math.random() > 0.5 ? 'BUY' : 'SELL',
+                type: isBuy ? 'BUY' : 'SELL',
                 symbol: 'BTCUSDT',
-                entry: 91500 + Math.random() * 1000,
-                stopLoss: 91000 + Math.random() * 500,
-                tp1: 92000 + Math.random() * 500,
-                tp2: 92500 + Math.random() * 500,
-                tp3: 93000 + Math.random() * 500,
+                entry: entry,
+                stopLoss: isBuy ? entry - 500 : entry + 500,
+                tp1: isBuy ? entry + 500 : entry - 500,
+                tp2: isBuy ? entry + 1000 : entry - 1000,
+                tp3: isBuy ? entry + 1500 : entry - 1500,
                 strength: Math.floor(60 + Math.random() * 30),
                 status: 'pending',
                 exitPrice: null,
@@ -732,6 +749,28 @@
                 trailingStopPrice: null,
                 trailingStopActive: false
             };
+            
+            // Simulate live price that has reached TP1 to show trailing stop
+            const priceProgress = Math.random();
+            if (priceProgress > 0.5) {
+                // Price has moved past TP1
+                testSignal.livePrice = isBuy ? testSignal.tp1 + 200 : testSignal.tp1 - 200;
+                
+                // Calculate trailing stop
+                if (isBuy) {
+                    const profitDistance = testSignal.livePrice - testSignal.entry;
+                    testSignal.calculatedTrailingStop = testSignal.entry + (profitDistance * 0.5);
+                } else {
+                    const profitDistance = testSignal.entry - testSignal.livePrice;
+                    testSignal.calculatedTrailingStop = testSignal.entry - (profitDistance * 0.5);
+                }
+                testSignal.trailingStopActive = true;
+            } else {
+                // Price is between entry and TP1
+                testSignal.livePrice = isBuy ? 
+                    testSignal.entry + (testSignal.tp1 - testSignal.entry) * priceProgress :
+                    testSignal.entry - (testSignal.entry - testSignal.tp1) * priceProgress;
+            }
             
             signals.unshift(testSignal);
             saveSignals();
