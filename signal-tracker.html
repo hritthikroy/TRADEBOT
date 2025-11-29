@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signal Tracker - Trading Signals</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #131722;
+            color: #d1d4dc;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #26a69a;
+            margin-bottom: 20px;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: #1e222d;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .stat-value.profit {
+            color: #26a69a;
+        }
+        .stat-value.loss {
+            color: #ef5350;
+        }
+        .stat-label {
+            color: #787b86;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+        .controls {
+            background: #1e222d;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        button {
+            background: #26a69a;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #2bbbad;
+        }
+        button.secondary {
+            background: #2962ff;
+        }
+        button.secondary:hover {
+            background: #1e53e5;
+        }
+        select {
+            background: #2a2e39;
+            color: #d1d4dc;
+            border: 1px solid #434651;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .table-container {
+            background: #1e222d;
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #2a2e39;
+        }
+        th {
+            background: #2a2e39;
+            color: #787b86;
+            font-weight: normal;
+            font-size: 12px;
+            text-transform: uppercase;
+            position: sticky;
+            top: 0;
+        }
+        tr:hover {
+            background: #2a2e39;
+        }
+        .win {
+            color: #26a69a;
+            font-weight: bold;
+        }
+        .loss {
+            color: #ef5350;
+            font-weight: bold;
+        }
+        .pending {
+            color: #f7931a;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        .badge.buy {
+            background: rgba(38, 166, 154, 0.2);
+            color: #26a69a;
+        }
+        .badge.sell {
+            background: rgba(239, 83, 80, 0.2);
+            color: #ef5350;
+        }
+        .action-btn {
+            background: #2962ff;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+        .action-btn:hover {
+            background: #1e53e5;
+        }
+        .action-btn.win {
+            background: #26a69a;
+        }
+        .action-btn.loss {
+            background: #ef5350;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Signal Tracker</h1>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-label">Total Signals</div>
+                <div class="stat-value" id="total-signals">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Winning Trades</div>
+                <div class="stat-value profit" id="win-count">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Losing Trades</div>
+                <div class="stat-value loss" id="loss-count">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Win Rate</div>
+                <div class="stat-value" id="win-rate">0%</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Profit Factor</div>
+                <div class="stat-value" id="profit-factor">0.00</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Avg Win</div>
+                <div class="stat-value profit" id="avg-win">0%</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Avg Loss</div>
+                <div class="stat-value loss" id="avg-loss">0%</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Best Trade</div>
+                <div class="stat-value profit" id="best-trade">0%</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Worst Trade</div>
+                <div class="stat-value loss" id="worst-trade">0%</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Pending</div>
+                <div class="stat-value" style="color: #f7931a;" id="pending-count">0</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button onclick="addTestSignal()">➕ Add Test Signal</button>
+            <button class="secondary" onclick="exportToCSV()">📥 Export CSV</button>
+            <button class="secondary" onclick="showChart()">📊 Chart</button>
+            <button class="secondary" onclick="showStats()">📈 Statistics</button>
+            <button class="secondary" onclick="clearAllSignals()">🗑️ Clear All</button>
+            <select id="filter" onchange="filterSignals()">
+                <option value="all">All Signals</option>
+                <option value="win">Wins Only</option>
+                <option value="loss">Losses Only</option>
+                <option value="pending">Pending Only</option>
+                <option value="buy">BUY Only</option>
+                <option value="sell">SELL Only</option>
+                <option value="tp1">TP1 Exits</option>
+                <option value="tp2">TP2 Exits</option>
+                <option value="tp3">TP3 Exits</option>
+                <option value="trailing">Trailing Stop Exits</option>
+            </select>
+            <input type="date" id="date-from" onchange="filterSignals()" style="padding: 8px;">
+            <input type="date" id="date-to" onchange="filterSignals()" style="padding: 8px;">
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Date/Time</th>
+                        <th>Type</th>
+                        <th>Symbol</th>
+                        <th>Entry</th>
+                        <th>Exit</th>
+                        <th>Stop Loss</th>
+                        <th>Trailing SL</th>
+                        <th>TP1</th>
+                        <th>TP2</th>
+                        <th>TP3</th>
+                        <th>Strength</th>
+                        <th>Status</th>
+                        <th>Result</th>
+                    </tr>
+                </thead>
+                <tbody id="signals-table">
+                    <tr>
+                        <td colspan="14" style="text-align: center; color: #787b86; padding: 40px;">
+                            No signals yet. Signals will appear here when sent to Telegram.
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Load signals from localStorage
+        let signals = JSON.parse(localStorage.getItem('tradingSignals') || '[]');
+
+        // Display signals
+        function displaySignals(filter = 'all') {
+            filterSignals();
+        }
+
+        // Update statistics
+        function updateStats() {
+            const total = signals.length;
+            const wins = signals.filter(s => s.status === 'win').length;
+            const losses = signals.filter(s => s.status === 'loss').length;
+            const pending = signals.filter(s => s.status === 'pending').length;
+            const winRate = total > 0 ? ((wins / (wins + losses)) * 100).toFixed(1) : 0;
+            
+            // Calculate profit/loss percentages
+            const winTrades = signals.filter(s => s.status === 'win' && s.exitPrice);
+            const lossTrades = signals.filter(s => s.status === 'loss' && s.exitPrice);
+            
+            let totalWinPercent = 0;
+            let totalLossPercent = 0;
+            let bestTrade = 0;
+            let worstTrade = 0;
+            
+            winTrades.forEach(s => {
+                const profit = s.type === 'BUY' 
+                    ? ((s.exitPrice - s.entry) / s.entry) * 100
+                    : ((s.entry - s.exitPrice) / s.entry) * 100;
+                totalWinPercent += profit;
+                if (profit > bestTrade) bestTrade = profit;
+            });
+            
+            lossTrades.forEach(s => {
+                const loss = s.type === 'BUY' 
+                    ? ((s.exitPrice - s.entry) / s.entry) * 100
+                    : ((s.entry - s.exitPrice) / s.entry) * 100;
+                totalLossPercent += Math.abs(loss);
+                if (loss < worstTrade) worstTrade = loss;
+            });
+            
+            const avgWin = winTrades.length > 0 ? (totalWinPercent / winTrades.length).toFixed(2) : 0;
+            const avgLoss = lossTrades.length > 0 ? (totalLossPercent / lossTrades.length).toFixed(2) : 0;
+            const profitFactor = totalLossPercent > 0 ? (totalWinPercent / totalLossPercent).toFixed(2) : 0;
+            
+            document.getElementById('total-signals').textContent = total;
+            document.getElementById('win-count').textContent = wins;
+            document.getElementById('loss-count').textContent = losses;
+            document.getElementById('pending-count').textContent = pending;
+            document.getElementById('win-rate').textContent = winRate + '%';
+            document.getElementById('profit-factor').textContent = profitFactor;
+            document.getElementById('avg-win').textContent = '+' + avgWin + '%';
+            document.getElementById('avg-loss').textContent = '-' + avgLoss + '%';
+            document.getElementById('best-trade').textContent = '+' + bestTrade.toFixed(2) + '%';
+            document.getElementById('worst-trade').textContent = worstTrade.toFixed(2) + '%';
+        }
+
+        // Save signals to localStorage
+        function saveSignals() {
+            localStorage.setItem('tradingSignals', JSON.stringify(signals));
+        }
+
+        // Filter signals
+        function filterSignals() {
+            const filter = document.getElementById('filter').value;
+            const dateFrom = document.getElementById('date-from').value;
+            const dateTo = document.getElementById('date-to').value;
+            
+            let filtered = signals;
+            
+            // Filter by type/status
+            if (filter === 'win') {
+                filtered = filtered.filter(s => s.status === 'win');
+            } else if (filter === 'loss') {
+                filtered = filtered.filter(s => s.status === 'loss');
+            } else if (filter === 'pending') {
+                filtered = filtered.filter(s => s.status === 'pending');
+            } else if (filter === 'buy') {
+                filtered = filtered.filter(s => s.type === 'BUY');
+            } else if (filter === 'sell') {
+                filtered = filtered.filter(s => s.type === 'SELL');
+            } else if (filter === 'tp1') {
+                filtered = filtered.filter(s => s.exitReason === 'TP1');
+            } else if (filter === 'tp2') {
+                filtered = filtered.filter(s => s.exitReason === 'TP2');
+            } else if (filter === 'tp3') {
+                filtered = filtered.filter(s => s.exitReason === 'TP3');
+            } else if (filter === 'trailing') {
+                filtered = filtered.filter(s => s.exitReason === 'Trailing Stop');
+            }
+            
+            // Filter by date range
+            if (dateFrom) {
+                const fromTime = new Date(dateFrom).getTime();
+                filtered = filtered.filter(s => s.timestamp >= fromTime);
+            }
+            if (dateTo) {
+                const toTime = new Date(dateTo).getTime() + 86400000; // Add 1 day
+                filtered = filtered.filter(s => s.timestamp < toTime);
+            }
+            
+            displayFilteredSignals(filtered);
+        }
+        
+        function displayFilteredSignals(filteredSignals) {
+            const tbody = document.getElementById('signals-table');
+            
+            if (filteredSignals.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="14" style="text-align: center; color: #787b86; padding: 40px;">No signals found.</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = filteredSignals.map((signal) => {
+                const statusClass = signal.status === 'win' ? 'win' : signal.status === 'loss' ? 'loss' : 'pending';
+                const statusText = signal.status === 'win' ? '✅ WIN' : signal.status === 'loss' ? '❌ LOSS' : '⏳ PENDING';
+                
+                const profitPercent = signal.exitPrice ? (
+                    signal.type === 'BUY' 
+                        ? ((signal.exitPrice - signal.entry) / signal.entry) * 100
+                        : ((signal.entry - signal.exitPrice) / signal.entry) * 100
+                ) : 0;
+                
+                // For pending signals, show live progress with heatmap colors
+                let resultDisplay = '';
+                if (signal.status === 'pending' && signal.livePrice) {
+                    const currentProfit = signal.type === 'BUY'
+                        ? ((signal.livePrice - signal.entry) / signal.entry) * 100
+                        : ((signal.entry - signal.livePrice) / signal.entry) * 100;
+                    
+                    // Determine which target we're approaching and set color
+                    let progressColor = '#ef5350'; // Red (below entry)
+                    let targetText = 'Entry';
+                    let progressPercent = 0;
+                    
+                    if (signal.type === 'BUY') {
+                        if (signal.livePrice >= signal.tp2) {
+                            // Approaching TP3 - Hot Orange/Yellow
+                            progressColor = '#ff9800';
+                            targetText = 'TP3';
+                            const totalDistance = signal.tp3 - signal.tp2;
+                            const currentDistance = signal.livePrice - signal.tp2;
+                            progressPercent = (currentDistance / totalDistance) * 100;
+                        } else if (signal.livePrice >= signal.tp1) {
+                            // Approaching TP2 - Green
+                            progressColor = '#26a69a';
+                            targetText = 'TP2';
+                            const totalDistance = signal.tp2 - signal.tp1;
+                            const currentDistance = signal.livePrice - signal.tp1;
+                            progressPercent = (currentDistance / totalDistance) * 100;
+                        } else if (signal.livePrice >= signal.entry) {
+                            // Approaching TP1 - Light Green
+                            progressColor = '#4caf50';
+                            targetText = 'TP1';
+                            const totalDistance = signal.tp1 - signal.entry;
+                            const currentDistance = signal.livePrice - signal.entry;
+                            progressPercent = (currentDistance / totalDistance) * 100;
+                        } else {
+                            // Below entry - Red
+                            progressColor = '#ef5350';
+                            targetText = 'Entry';
+                            progressPercent = 0;
+                        }
+                    } else { // SELL
+                        if (signal.livePrice <= signal.tp2) {
+                            // Approaching TP3 - Hot Orange/Yellow
+                            progressColor = '#ff9800';
+                            targetText = 'TP3';
+                            const totalDistance = signal.tp2 - signal.tp3;
+                            const currentDistance = signal.tp2 - signal.livePrice;
+                            progressPercent = (currentDistance / totalDistance) * 100;
+                        } else if (signal.livePrice <= signal.tp1) {
+                            // Approaching TP2 - Green
+                            progressColor = '#26a69a';
+                            targetText = 'TP2';
+                            const totalDistance = signal.tp1 - signal.tp2;
+                            const currentDistance = signal.tp1 - signal.livePrice;
+                            progressPercent = (currentDistance / totalDistance) * 100;
+                        } else if (signal.livePrice <= signal.entry) {
+                            // Approaching TP1 - Light Green
+                            progressColor = '#4caf50';
+                            targetText = 'TP1';
+                            const totalDistance = signal.entry - signal.tp1;
+                            const currentDistance = signal.entry - signal.livePrice;
+                            progressPercent = (currentDistance / totalDistance) * 100;
+                        } else {
+                            // Above entry - Red
+                            progressColor = '#ef5350';
+                            targetText = 'Entry';
+                            progressPercent = 0;
+                        }
+                    }
+                    
+                    progressPercent = Math.max(0, Math.min(100, progressPercent));
+                    
+                    resultDisplay = `
+                        <div style="margin-bottom: 5px;">
+                            <small>Live: ${signal.livePrice.toFixed(2)}</small><br>
+                            <small class="${currentProfit > 0 ? 'profit' : 'loss'}">${currentProfit > 0 ? '+' : ''}${currentProfit.toFixed(2)}%</small>
+                        </div>
+                        <div style="background: #2a2e39; border-radius: 4px; height: 10px; overflow: hidden; margin: 5px 0; border: 1px solid ${progressColor};">
+                            <div style="background: ${progressColor}; height: 100%; width: ${progressPercent.toFixed(0)}%; transition: all 0.3s ease;"></div>
+                        </div>
+                        <small style="color: ${progressColor};">${progressPercent.toFixed(1)}% to ${targetText}</small><br>
+                        <small>ETA: ${signal.timeEstimate || '-'}</small>
+                    `;
+                } else if (signal.exitPrice) {
+                    resultDisplay = `
+                        ${profitPercent > 0 ? '+' : ''}${profitPercent.toFixed(2)}%
+                        ${signal.exitReason ? `<br><small>${signal.exitReason}</small>` : ''}
+                    `;
+                } else {
+                    resultDisplay = '-';
+                }
+                
+                // Trailing stop display - show calculated or saved value
+                let trailingStopDisplay = '-';
+                if (signal.status === 'pending') {
+                    // For pending signals, show calculated trailing stop
+                    if (signal.calculatedTrailingStop) {
+                        trailingStopDisplay = `<span style="color: #f7931a;">${signal.calculatedTrailingStop.toFixed(2)}</span><br><small style="color: #26a69a;">🔒 Active</small>`;
+                    } else if (signal.trailingStopPrice) {
+                        trailingStopDisplay = `<span style="color: #f7931a;">${signal.trailingStopPrice.toFixed(2)}</span><br><small style="color: #26a69a;">🔒 Active</small>`;
+                    }
+                } else if (signal.trailingStopPrice) {
+                    // For closed signals, show saved trailing stop
+                    trailingStopDisplay = `<span style="color: #787b86;">${signal.trailingStopPrice.toFixed(2)}</span>`;
+                }
+                
+                return `
+                    <tr>
+                        <td>${signals.indexOf(signal) + 1}</td>
+                        <td>${new Date(signal.timestamp).toLocaleString()}</td>
+                        <td><span class="badge ${signal.type.toLowerCase()}">${signal.type}</span></td>
+                        <td>${signal.symbol}</td>
+                        <td>${signal.entry.toFixed(2)}</td>
+                        <td>${signal.exitPrice ? signal.exitPrice.toFixed(2) : (signal.livePrice ? signal.livePrice.toFixed(2) : '-')}</td>
+                        <td>${signal.stopLoss.toFixed(2)}</td>
+                        <td>${trailingStopDisplay}</td>
+                        <td>${signal.tp1.toFixed(2)}</td>
+                        <td>${signal.tp2.toFixed(2)}</td>
+                        <td>${signal.tp3.toFixed(2)}</td>
+                        <td>${signal.strength}%</td>
+                        <td class="${statusClass}">${statusText}</td>
+                        <td class="${statusClass}">
+                            ${resultDisplay}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Add test signal
+        function addTestSignal() {
+            const testSignal = {
+                timestamp: Date.now(),
+                type: Math.random() > 0.5 ? 'BUY' : 'SELL',
+                symbol: 'BTCUSDT',
+                entry: 91500 + Math.random() * 1000,
+                stopLoss: 91000 + Math.random() * 500,
+                tp1: 92000 + Math.random() * 500,
+                tp2: 92500 + Math.random() * 500,
+                tp3: 93000 + Math.random() * 500,
+                strength: Math.floor(60 + Math.random() * 30),
+                status: 'pending'
+            };
+            
+            signals.unshift(testSignal);
+            saveSignals();
+            displaySignals(document.getElementById('filter').value);
+            updateStats();
+        }
+
+        // Export to CSV
+        function exportToCSV() {
+            const csv = [
+                ['#', 'Date/Time', 'Type', 'Symbol', 'Entry', 'Stop Loss', 'TP1', 'TP2', 'TP3', 'Strength', 'Status'],
+                ...signals.map((s, i) => [
+                    i + 1,
+                    new Date(s.timestamp).toLocaleString(),
+                    s.type,
+                    s.symbol,
+                    s.entry,
+                    s.stopLoss,
+                    s.tp1,
+                    s.tp2,
+                    s.tp3,
+                    s.strength + '%',
+                    s.status.toUpperCase()
+                ])
+            ].map(row => row.join(',')).join('\n');
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `trading-signals-${Date.now()}.csv`;
+            a.click();
+        }
+
+        // Clear all signals
+        function clearAllSignals() {
+            if (confirm('Are you sure you want to clear all signals?')) {
+                signals = [];
+                saveSignals();
+                displaySignals();
+                updateStats();
+            }
+        }
+        
+        // Show chart
+        function showChart() {
+            const wins = signals.filter(s => s.status === 'win').length;
+            const losses = signals.filter(s => s.status === 'loss').length;
+            const pending = signals.filter(s => s.status === 'pending').length;
+            
+            alert(`📊 Performance Chart\n\n` +
+                  `Wins: ${wins} (${((wins/(wins+losses))*100).toFixed(1)}%)\n` +
+                  `Losses: ${losses} (${((losses/(wins+losses))*100).toFixed(1)}%)\n` +
+                  `Pending: ${pending}\n\n` +
+                  `Chart visualization coming soon!`);
+        }
+        
+        // Show detailed statistics
+        function showStats() {
+            const winTrades = signals.filter(s => s.status === 'win' && s.exitPrice);
+            const lossTrades = signals.filter(s => s.status === 'loss' && s.exitPrice);
+            
+            const tp1Exits = signals.filter(s => s.exitReason === 'TP1').length;
+            const tp2Exits = signals.filter(s => s.exitReason === 'TP2').length;
+            const tp3Exits = signals.filter(s => s.exitReason === 'TP3').length;
+            const trailingExits = signals.filter(s => s.exitReason === 'Trailing Stop').length;
+            const slExits = signals.filter(s => s.exitReason === 'Stop Loss').length;
+            
+            const buySignals = signals.filter(s => s.type === 'BUY');
+            const sellSignals = signals.filter(s => s.type === 'SELL');
+            const buyWins = buySignals.filter(s => s.status === 'win').length;
+            const sellWins = sellSignals.filter(s => s.status === 'win').length;
+            
+            alert(`📈 Detailed Statistics\n\n` +
+                  `Exit Breakdown:\n` +
+                  `TP1: ${tp1Exits}\n` +
+                  `TP2: ${tp2Exits}\n` +
+                  `TP3: ${tp3Exits}\n` +
+                  `Trailing Stop: ${trailingExits}\n` +
+                  `Stop Loss: ${slExits}\n\n` +
+                  `Signal Type Performance:\n` +
+                  `BUY: ${buyWins}/${buySignals.length} (${buySignals.length > 0 ? ((buyWins/buySignals.length)*100).toFixed(1) : 0}%)\n` +
+                  `SELL: ${sellWins}/${sellSignals.length} (${sellSignals.length > 0 ? ((sellWins/sellSignals.length)*100).toFixed(1) : 0}%)`);
+        }
+
+        // Update pending signals with live price
+        async function updatePendingSignals() {
+            const pendingSignals = signals.filter(s => s.status === 'pending');
+            
+            if (pendingSignals.length === 0) return;
+            
+            const promises = pendingSignals.map(async (signal) => {
+                try {
+                    const response = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${signal.symbol}`);
+                    const data = await response.json();
+                    const currentPrice = parseFloat(data.price);
+                    
+                    // Calculate progress
+                    let progress = 0;
+                    let timeEstimate = '';
+                    
+                    if (signal.type === 'BUY') {
+                        const totalDistance = signal.tp1 - signal.entry;
+                        const currentDistance = currentPrice - signal.entry;
+                        progress = (currentDistance / totalDistance) * 100;
+                    } else {
+                        const totalDistance = signal.entry - signal.tp1;
+                        const currentDistance = signal.entry - currentPrice;
+                        progress = (currentDistance / totalDistance) * 100;
+                    }
+                    
+                    // Calculate trailing stop based on strategy
+                    let calculatedTrailingStop = null;
+                    let trailingActive = false;
+                    
+                    if (signal.type === 'BUY') {
+                        // Check if TP1 hit - activate trailing stop
+                        if (currentPrice >= signal.tp1) {
+                            trailingActive = true;
+                            // Lock in 50% of profit from entry to current price
+                            const profitDistance = currentPrice - signal.entry;
+                            calculatedTrailingStop = signal.entry + (profitDistance * 0.5);
+                        }
+                    } else { // SELL
+                        // Check if TP1 hit - activate trailing stop
+                        if (currentPrice <= signal.tp1) {
+                            trailingActive = true;
+                            // Lock in 50% of profit from entry to current price
+                            const profitDistance = signal.entry - currentPrice;
+                            calculatedTrailingStop = signal.entry - (profitDistance * 0.5);
+                        }
+                    }
+                    
+                    // Estimate time based on elapsed time and progress
+                    const elapsed = Date.now() - signal.timestamp;
+                    if (Math.abs(progress) > 5) {
+                        const estimatedTotal = (elapsed / Math.abs(progress)) * 100;
+                        const remaining = estimatedTotal - elapsed;
+                        const hours = Math.floor(remaining / 3600000);
+                        const minutes = Math.floor((remaining % 3600000) / 60000);
+                        
+                        if (hours > 0) {
+                            timeEstimate = `~${hours}h ${minutes}m`;
+                        } else if (minutes > 0) {
+                            timeEstimate = `~${minutes}m`;
+                        } else {
+                            timeEstimate = '< 1m';
+                        }
+                    } else {
+                        timeEstimate = 'Calculating...';
+                    }
+                    
+                    // Update signal with live data
+                    const index = signals.findIndex(s => s.id === signal.id);
+                    if (index !== -1) {
+                        signals[index].livePrice = currentPrice;
+                        signals[index].progress = progress;
+                        signals[index].timeEstimate = timeEstimate;
+                        
+                        // Update trailing stop if calculated
+                        if (trailingActive) {
+                            signals[index].calculatedTrailingStop = calculatedTrailingStop;
+                            signals[index].trailingStopActive = true;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error updating signal:', error);
+                }
+            });
+            
+            await Promise.all(promises);
+        }
+
+        // Auto-cleanup old signals (older than 30 days)
+        function cleanupOldSignals() {
+            const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+            const originalLength = signals.length;
+            signals = signals.filter(s => s.timestamp > thirtyDaysAgo);
+            
+            if (signals.length < originalLength) {
+                saveSignals();
+                console.log(`🗑️ Cleaned up ${originalLength - signals.length} old signals`);
+            }
+        }
+
+        // Initialize
+        cleanupOldSignals();
+        displaySignals();
+        updateStats();
+        
+        // Update pending signals every 10 seconds
+        setInterval(() => {
+            updatePendingSignals().then(() => {
+                const filter = document.getElementById('filter').value;
+                filterSignals();
+            });
+        }, 10000);
+        updatePendingSignals(); // Initial update
+
+        // Listen for new signals from main app
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'tradingSignals') {
+                signals = JSON.parse(e.newValue || '[]');
+                displaySignals(document.getElementById('filter').value);
+                updateStats();
+            }
+        });
+    </script>
+</body>
+</html>

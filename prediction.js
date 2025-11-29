@@ -155,11 +155,269 @@ async function sendTelegramAlert(signal) {
         
         if (response.ok) {
             console.log('📱 Telegram alert sent successfully!');
+            
+            // Save signal to localStorage for tracker
+            saveSignalToTracker(signal);
         } else {
             console.error('❌ Telegram send failed:', await response.text());
         }
     } catch (error) {
         console.error('Telegram error:', error);
+    }
+}
+
+// Save signal to tracker
+function saveSignalToTracker(signal) {
+    try {
+        const signals = JSON.parse(localStorage.getItem('tradingSignals') || '[]');
+        
+        const signalData = {
+            id: Date.now(),
+            timestamp: Date.now(),
+            type: signal.type,
+            symbol: currentSymbol,
+            entry: signal.entry,
+            stopLoss: signal.stopLoss,
+            tp1: signal.targets[0].price,
+            tp2: signal.targets[1].price,
+            tp3: signal.targets[2].price,
+            strength: signal.strength,
+            status: 'pending',
+            exitPrice: null,
+            exitReason: null,
+            trailingStopPrice: null,
+            trailingStopActive: false
+        };
+        
+        signals.unshift(signalData);
+        localStorage.setItem('tradingSignals', JSON.stringify(signals));
+        console.log('💾 Signal saved to tracker');
+        
+        // Start monitoring this signal
+        monitorSignal(signalData);
+    } catch (error) {
+        console.error('Error saving signal:', error);
+    }
+}
+
+// Update signal trailing stop in localStorage
+function updateSignalTrailingStop(signalId, trailingStopPrice) {
+    try {
+        const signals = JSON.parse(localStorage.getItem('tradingSignals') || '[]');
+        const index = signals.findIndex(s => s.id === signalId);
+        
+        if (index !== -1) {
+            signals[index].trailingStopPrice = trailingStopPrice;
+            signals[index].trailingStopActive = true;
+            localStorage.setItem('tradingSignals', JSON.stringify(signals));
+        }
+    } catch (error) {
+        console.error('Error updating trailing stop:', error);
+    }
+}
+
+// Monitor signal for automatic win/loss detection with trailing stop
+function monitorSignal(signal) {
+    let highestPrice = signal.entry; // Track highest price for BUY
+    let lowestPrice = signal.entry;  // Track lowest price for SELL
+    let trailingStopActive = false;
+    let trailingStopPrice = signal.stopLoss;
+    
+    const checkInterval = setInterval(async () => {
+        try {
+            // Get current price
+            const response = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${signal.symbol}`);
+            const data = await response.json();
+            const currentPrice = parseFloat(data.price);
+            
+            let shouldUpdate = false;
+            let newStatus = signal.status;
+            let exitPrice = null;
+            let exitReason = null;
+            
+            if (signal.type === 'BUY') {
+                // Update highest price
+                if (currentPrice > highestPrice) {
+                    highestPrice = currentPrice;
+                }
+                
+                // Activate trailing stop after TP1 is hit
+                if (currentPrice >= signal.tp1 && !trailingStopActive) {
+                    trailingStopActive = true;
+                    // Set trailing stop to lock in 50% of profit
+                    const profitDistance = signal.tp1 - signal.entry;
+                    trailingStopPrice = signal.entry + (profitDistance * 0.5);
+                    console.log(`🔒 Trailing stop activated at ${trailingStopPrice.toFixed(2)}`);
+                    
+                    // Update signal in localStorage with trailing stop
+                    updateSignalTrailingStop(signal.id, trailingStopPrice);
+                }
+                
+                // Update trailing stop (lock 50% of gains from highest point)
+                if (trailingStopActive) {
+                    const newTrailingStop = Math.max(trailingStopPrice, signal.entry + ((highestPrice - signal.entry) * 0.5));
+                    if (newTrailingStop > trailingStopPrice) {
+                        trailingStopPrice = newTrailingStop;
+                        updateSignalTrailingStop(signal.id, trailingStopPrice);
+                    }
+                }
+                
+                // Check if trailing stop hit
+                if (trailingStopActive && currentPrice <= trailingStopPrice) {
+                    newStatus = 'win';
+                    exitPrice = trailingStopPrice;
+                    exitReason = 'Trailing Stop';
+                    shouldUpdate = true;
+                }
+                // Check if stop loss hit
+                else if (currentPrice <= signal.stopLoss) {
+                    newStatus = 'loss';
+                    exitPrice = signal.stopLoss;
+                    exitReason = 'Stop Loss';
+                    shouldUpdate = true;
+                }
+                // Check if TP3 hit
+                else if (currentPrice >= signal.tp3) {
+                    newStatus = 'win';
+                    exitPrice = signal.tp3;
+                    exitReason = 'TP3';
+                    shouldUpdate = true;
+                }
+                // Check if TP2 hit (but continue for TP3)
+                else if (currentPrice >= signal.tp2 && !trailingStopActive) {
+                    // Just activate trailing stop, don't exit yet
+                    trailingStopActive = true;
+                    const profitDistance = currentPrice - signal.entry;
+                    trailingStopPrice = signal.entry + (profitDistance * 0.5);
+                    console.log(`🔒 Trailing stop activated at TP2: ${trailingStopPrice.toFixed(2)}`);
+                }
+            } else { // SELL
+                // Update lowest price
+                if (currentPrice < lowestPrice) {
+                    lowestPrice = currentPrice;
+                }
+                
+                // Activate trailing stop after TP1 is hit
+                if (currentPrice <= signal.tp1 && !trailingStopActive) {
+                    trailingStopActive = true;
+                    // Set trailing stop to lock in 50% of profit
+                    const profitDistance = signal.entry - signal.tp1;
+                    trailingStopPrice = signal.entry - (profitDistance * 0.5);
+                    console.log(`🔒 Trailing stop activated at ${trailingStopPrice.toFixed(2)}`);
+                    
+                    // Update signal in localStorage with trailing stop
+                    updateSignalTrailingStop(signal.id, trailingStopPrice);
+                }
+                
+                // Update trailing stop (lock 50% of gains from lowest point)
+                if (trailingStopActive) {
+                    const newTrailingStop = Math.min(trailingStopPrice, signal.entry - ((signal.entry - lowestPrice) * 0.5));
+                    if (newTrailingStop < trailingStopPrice) {
+                        trailingStopPrice = newTrailingStop;
+                        updateSignalTrailingStop(signal.id, trailingStopPrice);
+                    }
+                }
+                
+                // Check if trailing stop hit
+                if (trailingStopActive && currentPrice >= trailingStopPrice) {
+                    newStatus = 'win';
+                    exitPrice = trailingStopPrice;
+                    exitReason = 'Trailing Stop';
+                    shouldUpdate = true;
+                }
+                // Check if stop loss hit
+                else if (currentPrice >= signal.stopLoss) {
+                    newStatus = 'loss';
+                    exitPrice = signal.stopLoss;
+                    exitReason = 'Stop Loss';
+                    shouldUpdate = true;
+                }
+                // Check if TP3 hit
+                else if (currentPrice <= signal.tp3) {
+                    newStatus = 'win';
+                    exitPrice = signal.tp3;
+                    exitReason = 'TP3';
+                    shouldUpdate = true;
+                }
+                // Check if TP2 hit (but continue for TP3)
+                else if (currentPrice <= signal.tp2 && !trailingStopActive) {
+                    // Just activate trailing stop, don't exit yet
+                    trailingStopActive = true;
+                    const profitDistance = signal.entry - currentPrice;
+                    trailingStopPrice = signal.entry - (profitDistance * 0.5);
+                    console.log(`🔒 Trailing stop activated at TP2: ${trailingStopPrice.toFixed(2)}`);
+                }
+            }
+            
+            if (shouldUpdate) {
+                // Update signal in localStorage
+                const signals = JSON.parse(localStorage.getItem('tradingSignals') || '[]');
+                const index = signals.findIndex(s => s.id === signal.id);
+                
+                if (index !== -1) {
+                    signals[index].status = newStatus;
+                    signals[index].exitPrice = exitPrice;
+                    signals[index].exitReason = exitReason;
+                    localStorage.setItem('tradingSignals', JSON.stringify(signals));
+                    
+                    console.log(`✅ Signal auto-updated: ${newStatus.toUpperCase()} - ${exitReason} at ${exitPrice.toFixed(2)}`);
+                    
+                    // Send Telegram notification
+                    sendTradeResultToTelegram(signal, newStatus, exitPrice, exitReason);
+                }
+                
+                // Stop monitoring
+                clearInterval(checkInterval);
+            }
+            
+            // Stop monitoring after 24 hours
+            if (Date.now() - signal.timestamp > 24 * 60 * 60 * 1000) {
+                clearInterval(checkInterval);
+                console.log('⏱️ Signal monitoring stopped (24h timeout)');
+            }
+            
+        } catch (error) {
+            console.error('Error monitoring signal:', error);
+        }
+    }, 10000); // Check every 10 seconds
+}
+
+// Send trade result to Telegram
+async function sendTradeResultToTelegram(signal, status, exitPrice, exitReason) {
+    if (!TELEGRAM_ENABLED) return;
+    
+    try {
+        const emoji = status === 'win' ? '✅' : '❌';
+        const statusText = status === 'win' ? 'WIN' : 'LOSS';
+        
+        const profitPercent = signal.type === 'BUY' 
+            ? ((exitPrice - signal.entry) / signal.entry) * 100
+            : ((signal.entry - exitPrice) / signal.entry) * 100;
+        
+        const message = `${emoji} *TRADE ${statusText}*\n\n` +
+                       `📊 Symbol: ${signal.symbol}\n` +
+                       `📍 Type: ${signal.type}\n` +
+                       `💰 Entry: ${signal.entry.toFixed(2)}\n` +
+                       `🎯 Exit: ${exitPrice.toFixed(2)}\n` +
+                       `📈 Result: ${profitPercent > 0 ? '+' : ''}${profitPercent.toFixed(2)}%\n` +
+                       `🏁 Reason: ${exitReason}\n` +
+                       `⏰ Time: ${new Date().toLocaleString()}`;
+        
+        const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+        
+        await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: TELEGRAM_CHAT_ID,
+                text: message,
+                parse_mode: 'Markdown'
+            })
+        });
+        
+        console.log('📱 Trade result sent to Telegram');
+    } catch (error) {
+        console.error('Error sending trade result:', error);
     }
 }
 
@@ -743,6 +1001,10 @@ function drawChart() {
     if (historicalSignals.length > 0) {
         const startIndex = Math.max(0, currentData.length - realCandlesToShow);
         
+        const priceToYFunc = (price) => {
+            return topPadding + chartHeight - ((price - (minPrice - padding)) / (maxPrice + padding - (minPrice - padding))) * chartHeight;
+        };
+        
         historicalSignals.forEach(signal => {
             const signalIndex = signal.candleIndex - startIndex;
             
@@ -750,7 +1012,7 @@ function drawChart() {
             if (signalIndex >= 0 && signalIndex < realCandlesToShow) {
                 const x = leftPadding + (signalIndex + 0.5) * candleWidth;
                 const signalPrice = signal.entry;
-                const y = priceToY(signalPrice);
+                const y = priceToYFunc(signalPrice);
                 
                 // Draw small arrow
                 ctx.fillStyle = signal.type === 'BUY' ? '#26a69a' : '#ef5350';
