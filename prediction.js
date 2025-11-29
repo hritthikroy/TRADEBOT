@@ -202,7 +202,8 @@ async function saveSignalToTracker(signal) {
         // Save to Supabase if available
         if (typeof SupabaseDB !== 'undefined') {
             try {
-                await SupabaseDB.saveSignal({
+                console.log('🔄 Attempting to save to Supabase...');
+                const result = await SupabaseDB.saveSignal({
                     signal_id: signalData.id.toString(),
                     signal_type: signalData.type,
                     symbol: signalData.symbol,
@@ -214,10 +215,13 @@ async function saveSignalToTracker(signal) {
                     strength: signalData.strength,
                     status: 'pending'
                 });
-                console.log('☁️ Signal saved to Supabase!');
+                console.log('☁️ Signal saved to Supabase!', result);
             } catch (error) {
-                console.warn('Supabase save failed (continuing with localStorage):', error);
+                console.error('❌ Supabase save failed:', error);
+                console.error('Error details:', error.message, error.details);
             }
+        } else {
+            console.warn('⚠️ SupabaseDB not loaded');
         }
         
         // Trigger storage event manually for same-window updates
