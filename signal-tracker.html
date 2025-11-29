@@ -673,18 +673,47 @@
         }
         
         // Load signals asynchronously
-        function loadSignals() {
-            return new Promise((resolve) => {
-                try {
-                    signals = JSON.parse(localStorage.getItem('tradingSignals') || '[]');
-                    console.log(`📊 Loaded ${signals.length} signals from storage`);
-                    resolve();
-                } catch (error) {
-                    console.error('Error loading signals:', error);
-                    signals = [];
-                    resolve();
+        async function loadSignals() {
+            try {
+                // Try loading from Supabase first
+                if (typeof SupabaseDB !== 'undefined') {
+                    try {
+                        const supabaseSignals = await SupabaseDB.getAllSignals();
+                        if (supabaseSignals && supabaseSignals.length > 0) {
+                            // Convert Supabase format to local format
+                            signals = supabaseSignals.map(s => ({
+                                id: parseFloat(s.signal_id),
+                                timestamp: new Date(s.created_at).getTime(),
+                                type: s.signal_type,
+                                symbol: s.symbol,
+                                entry: s.entry_price,
+                                stopLoss: s.stop_loss,
+                                tp1: s.tp1,
+                                tp2: s.tp2,
+                                tp3: s.tp3,
+                                strength: s.strength,
+                                status: s.status,
+                                exitPrice: s.exit_price,
+                                exitReason: s.exit_reason,
+                                trailingStopPrice: s.trailing_stop_price,
+                                trailingStopActive: s.trailing_stop_active,
+                                livePrice: s.live_price
+                            }));
+                            console.log(`☁️ Loaded ${signals.length} signals from Supabase`);
+                            return;
+                        }
+                    } catch (error) {
+                        console.warn('Supabase load failed, falling back to localStorage:', error);
+                    }
                 }
-            });
+                
+                // Fallback to localStorage
+                signals = JSON.parse(localStorage.getItem('tradingSignals') || '[]');
+                console.log(`📊 Loaded ${signals.length} signals from localStorage`);
+            } catch (error) {
+                console.error('Error loading signals:', error);
+                signals = [];
+            }
         }
 
         // Display signals
