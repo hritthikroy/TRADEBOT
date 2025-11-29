@@ -299,18 +299,20 @@
             background: #ef5350;
         }
         .remove-btn {
-            background: #ef5350;
-            color: white;
-            border: none;
+            background: transparent;
+            color: #ef5350;
+            border: 1px solid #ef5350;
             padding: 6px 12px;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 16px;
             transition: all 0.2s ease;
         }
         .remove-btn:hover {
-            background: #d32f2f;
-            transform: scale(1.1);
+            background: rgba(239, 83, 80, 0.1);
+            color: #ff6b6b;
+            border-color: #ff6b6b;
+            transform: scale(1.15);
         }
     </style>
 </head>
@@ -776,7 +778,7 @@
                         </td>
                         <td>
                             ${signal.status === 'pending' ? 
-                                `<button class="remove-btn" onclick="removeSignal('${signal.id}')" title="Remove this signal">🗑️</button>` : 
+                                `<button class="remove-btn" data-signal-id="${signal.id}" title="Remove this signal">🗑️</button>` : 
                                 '-'}
                         </td>
                     </tr>
@@ -832,6 +834,16 @@
                 alert('Error removing signal. Please try again.');
             }
         }
+        
+        // Event delegation for remove buttons
+        document.addEventListener('click', function(e) {
+            if (e.target && e.target.classList.contains('remove-btn')) {
+                const signalId = e.target.getAttribute('data-signal-id');
+                if (signalId) {
+                    removeSignal(signalId);
+                }
+            }
+        });
         
         // Manual refresh function
         async function manualRefresh() {
