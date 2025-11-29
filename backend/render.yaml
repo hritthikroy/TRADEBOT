@@ -4,7 +4,7 @@ services:
     runtime: go
     region: singapore
     plan: free
-    buildCommand: go mod download && go build -o main
+    buildCommand: rm -f go.sum && go mod tidy && go build -o main
     startCommand: ./main
     envVars:
       - key: PORT
