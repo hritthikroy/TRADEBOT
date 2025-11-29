@@ -381,15 +381,10 @@
         // Load signals asynchronously
         function loadSignals() {
             return new Promise((resolve) => {
-                try {
+                setTimeout(() => {
                     signals = JSON.parse(localStorage.getItem('tradingSignals') || '[]');
-                    console.log(`📊 Loaded ${signals.length} signals from storage`);
                     resolve();
-                } catch (error) {
-                    console.error('Error loading signals:', error);
-                    signals = [];
-                    resolve();
-                }
+                }, 100);
             });
         }
 
@@ -915,63 +910,46 @@
 
         // Show loading complete animation
         function showLoadingComplete() {
-            try {
-                const overlay = document.getElementById('loadingOverlay');
-                const spinner = document.getElementById('spinner');
-                const checkmark = document.getElementById('successCheckmark');
-                const loadingText = document.getElementById('loadingText');
-                
-                if (!overlay || !spinner || !checkmark || !loadingText) {
-                    console.error('Loading elements not found');
-                    return;
-                }
-                
-                spinner.style.display = 'none';
-                checkmark.classList.add('show');
-                loadingText.textContent = 'Loaded successfully!';
-                
+            const overlay = document.getElementById('loadingOverlay');
+            const spinner = document.getElementById('spinner');
+            const checkmark = document.getElementById('successCheckmark');
+            const loadingText = document.getElementById('loadingText');
+            
+            spinner.style.display = 'none';
+            checkmark.classList.add('show');
+            loadingText.textContent = 'Loaded successfully!';
+            
+            setTimeout(() => {
+                overlay.classList.add('hidden');
                 setTimeout(() => {
-                    overlay.classList.add('hidden');
-                    setTimeout(() => {
-                        overlay.style.display = 'none';
-                    }, 500);
-                }, 800);
-            } catch (error) {
-                console.error('Error in showLoadingComplete:', error);
-            }
+                    overlay.style.display = 'none';
+                }, 500);
+            }, 1000);
         }
         
         // Initialize with fast loading
         async function initialize() {
-            try {
-                console.log('🚀 Initializing Signal Tracker...');
-                isLoading = true;
-                
-                // Load signals
-                await loadSignals();
-                
-                // Clean up old signals
-                cleanupOldSignals();
-                
-                // Display signals
-                displaySignals();
-                updateStats();
-                
-                // Show success animation
-                showLoadingComplete();
-                
-                isLoading = false;
-                console.log('✅ Initialization complete!');
-                
-                // Start monitoring after load
-                setTimeout(() => {
-                    updatePendingSignals();
-                }, 2000);
-            } catch (error) {
-                console.error('❌ Initialization error:', error);
-                isLoading = false;
-                showLoadingComplete();
-            }
+            isLoading = true;
+            
+            // Load signals
+            await loadSignals();
+            
+            // Clean up old signals
+            cleanupOldSignals();
+            
+            // Display signals
+            displaySignals();
+            updateStats();
+            
+            // Show success animation
+            showLoadingComplete();
+            
+            isLoading = false;
+            
+            // Start monitoring after load
+            setTimeout(() => {
+                updatePendingSignals();
+            }, 2000);
         }
         
         // Start initialization
