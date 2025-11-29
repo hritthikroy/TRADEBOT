@@ -1042,7 +1042,7 @@
         // Start initialization
         initialize();
         
-        // Update pending signals every 10 seconds with optimized rendering
+        // Update pending signals every 5 seconds with optimized rendering
         setInterval(() => {
             if (!isLoading) {
                 updatePendingSignals().then(() => {
@@ -1053,7 +1053,7 @@
                     });
                 });
             }
-        }, 10000);
+        }, 5000);
 
         // Listen for new signals from main app with optimized updates
         let storageUpdateTimeout;
