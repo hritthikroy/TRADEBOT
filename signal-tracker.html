@@ -797,21 +797,25 @@
 
         // Remove signal function
         function removeSignal(signalId) {
-            console.log('🗑️ Attempting to remove signal:', signalId);
-            console.log('Current signals:', signals.map(s => ({ id: s.id, type: s.type, symbol: s.symbol })));
+            console.log('🗑️ Attempting to remove signal ID:', signalId, 'Type:', typeof signalId);
+            console.log('Current signals IDs:', signals.map(s => ({ id: s.id, idType: typeof s.id, type: s.type, symbol: s.symbol })));
             
             if (!confirm('Are you sure you want to remove this pending signal?')) {
                 return;
             }
             
             try {
-                // Convert signalId to number if needed
-                const numericId = parseFloat(signalId);
+                // Try multiple comparison methods
+                let index = signals.findIndex(s => String(s.id) === String(signalId));
                 
-                // Find and remove the signal
-                const index = signals.findIndex(s => s.id == numericId || s.id == signalId);
+                console.log('Found index with string comparison:', index);
                 
-                console.log('Found index:', index);
+                if (index === -1) {
+                    // Try numeric comparison
+                    const numericId = parseFloat(signalId);
+                    index = signals.findIndex(s => s.id === numericId);
+                    console.log('Found index with numeric comparison:', index);
+                }
                 
                 if (index !== -1) {
                     const removedSignal = signals[index];
@@ -835,11 +839,13 @@
                     }, 2000);
                 } else {
                     console.error('❌ Signal not found with ID:', signalId);
-                    alert('Signal not found. Please refresh the page.');
+                    console.error('Available signal IDs:', signals.map(s => s.id));
+                    alert('Signal not found. The signal may have been already removed or updated. Refreshing...');
+                    location.reload();
                 }
             } catch (error) {
                 console.error('❌ Error removing signal:', error);
-                alert('Error removing signal. Please try again.');
+                alert('Error removing signal: ' + error.message);
             }
         }
         
@@ -915,7 +921,7 @@
             const entry = 91500 + Math.random() * 1000;
             
             const testSignal = {
-                id: Date.now(),
+                id: Date.now() + Math.random(), // Match prediction.js format
                 timestamp: Date.now(),
                 type: isBuy ? 'BUY' : 'SELL',
                 symbol: 'BTCUSDT',
