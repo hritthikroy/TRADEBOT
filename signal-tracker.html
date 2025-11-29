@@ -532,13 +532,20 @@
         function getCurrentSession() {
             const now = new Date();
             
-            // Get system UTC time
+            // Get system UTC time for session detection
             const utcHour = now.getUTCHours();
-            const utcMinute = now.getUTCMinutes();
-            const utcSecond = now.getUTCSeconds();
             
-            // Format: HH:MM:SS UTC (Day, DD Mon YYYY)
-            const timeString = `${String(utcHour).padStart(2, '0')}:${String(utcMinute).padStart(2, '0')}:${String(utcSecond).padStart(2, '0')} UTC`;
+            // Get local system time for display
+            const localHour = now.getHours();
+            const localMinute = now.getMinutes();
+            const localSecond = now.getSeconds();
+            
+            // Get timezone offset
+            const timezoneOffset = -now.getTimezoneOffset() / 60;
+            const timezoneString = timezoneOffset >= 0 ? `UTC+${timezoneOffset}` : `UTC${timezoneOffset}`;
+            
+            // Format: HH:MM:SS (Local Time)
+            const timeString = `${String(localHour).padStart(2, '0')}:${String(localMinute).padStart(2, '0')}:${String(localSecond).padStart(2, '0')} (${timezoneString})`;
             
             let session = '';
             let sessionClass = '';
