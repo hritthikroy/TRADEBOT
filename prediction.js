@@ -618,7 +618,7 @@ async function fetchMultiTimeframeData() {
         const higherTFs = getHigherTimeframes(currentInterval);
         const timeframes = [currentInterval, ...higherTFs];
         
-        // Fetch data for all timeframes in parallel (increased to 100 for better analysis)
+        // Fetch data for all timeframes in parallel
         const promises = timeframes.map(tf => 
             fetch(`https://api.binance.com/api/v3/klines?symbol=${currentSymbol}&interval=${tf}&limit=100`)
                 .then(res => res.json())
@@ -683,7 +683,7 @@ async function fetchRealMarketData() {
         // Fetch multi-timeframe data
         await fetchMultiTimeframeData();
         
-        // Get current timeframe data (increased to 200 for more history)
+        // Get current timeframe data
         const url = `https://api.binance.com/api/v3/klines?symbol=${currentSymbol}&interval=${currentInterval}&limit=200`;
         console.log('Fetching:', url);
         
@@ -827,6 +827,19 @@ function stopSimulation() {
 
 // Draw the chart with candles
 function drawChart() {
+    if (!ctx) return;
+    
+    // Performance optimization: Use requestAnimationFrame for smoother rendering
+    if (window.drawChartPending) return;
+    window.drawChartPending = true;
+    
+    requestAnimationFrame(() => {
+        window.drawChartPending = false;
+        drawChartInternal();
+    });
+}
+
+function drawChartInternal() {
     if (!ctx) return;
     
     // Clear canvas with TradingView-like background
