@@ -13,6 +13,11 @@ let currentInterval = '15m'; // Default interval
 let currentSymbol = 'BTCUSDT'; // Default symbol
 let candleCloseTime = null;
 
+// Telegram Configuration
+const TELEGRAM_ENABLED = true;
+const TELEGRAM_BOT_TOKEN = '8235652305:AAEE8i7XfvRJsPppegSu0pwbDSjFryh60Wk';
+const TELEGRAM_CHAT_ID = '8145172959';
+
 // Store historical signals for visualization
 let historicalSignals = [];
 window.historicalSignals = historicalSignals;
@@ -20,6 +25,16 @@ window.historicalSignals = historicalSignals;
 // Audio context for sound alerts
 let audioContext = null;
 let notificationsEnabled = false;
+
+// Track prediction accuracy
+let predictionHistory = [];
+let lastPredictions = null;
+
+// Drawing tools
+let drawings = [];
+let currentDrawingTool = null;
+let isDrawing = false;
+let drawingStart = null;
 
 // Request notification permission on page load
 function requestNotificationPermission() {
@@ -110,6 +125,44 @@ function showNotification(signal) {
     }
 }
 
+// Send Telegram alert
+async function sendTelegramAlert(signal) {
+    if (!TELEGRAM_ENABLED || !signal) return;
+    
+    try {
+        const message = `🚨 *${signal.type} SIGNAL*\n\n` +
+                       `📊 Symbol: ${currentSymbol}\n` +
+                       `💰 Entry: ${signal.entry.toFixed(2)}\n` +
+                       `🛑 Stop Loss: ${signal.stopLoss.toFixed(2)}\n\n` +
+                       `🎯 Targets:\n` +
+                       `TP1: ${signal.targets[0].price.toFixed(2)} (${signal.targets[0].rr.toFixed(1)}R)\n` +
+                       `TP2: ${signal.targets[1].price.toFixed(2)} (${signal.targets[1].rr.toFixed(1)}R)\n` +
+                       `TP3: ${signal.targets[2].price.toFixed(2)} (${signal.targets[2].rr.toFixed(1)}R)\n\n` +
+                       `💪 Strength: ${signal.strength}%\n` +
+                       `⏰ Time: ${new Date().toLocaleString()}`;
+        
+        const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+        
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: TELEGRAM_CHAT_ID,
+                text: message,
+                parse_mode: 'Markdown'
+            })
+        });
+        
+        if (response.ok) {
+            console.log('📱 Telegram alert sent successfully!');
+        } else {
+            console.error('❌ Telegram send failed:', await response.text());
+        }
+    } catch (error) {
+        console.error('Telegram error:', error);
+    }
+}
+
 // Initialize TradingView Advanced Chart
 function initChart() {
     widget = new TradingView.widget({
@@ -125,7 +178,7 @@ function initChart() {
         "container_id": "tradingview_chart",
         "hide_top_toolbar": false,
         "hide_legend": true,
-        "hide_side_toolbar": true,
+        "hide_side_toolbar": false,
         "hide_volume": true,
         "save_image": false,
         "studies": [],
@@ -143,13 +196,19 @@ function initChart() {
             "volume_force_overlay", 
             "display_market_status", 
             "header_volume",
-            "left_toolbar",
             "header_compare",
-            "header_undo_redo",
             "header_screenshot",
-            "header_saveload"
+            "header_saveload",
+            "header_symbol_search",
+            "symbol_search_hot_key",
+            "header_chart_type",
+            "header_settings",
+            "header_indicators",
+            "header_fullscreen_button"
         ],
-        "enabled_features": []
+        "enabled_features": [
+            "side_toolbar_in_fullscreen_mode"
+        ]
     });
     
     // Listen for chart changes (symbol and interval)
@@ -399,6 +458,9 @@ async function fetchRealMarketData() {
         }));
         
         console.log('Converted data:', currentData.length, 'candles');
+        
+        // Check prediction accuracy before generating new ones
+        checkPredictionAccuracy();
         
         // Calculate next candle close time
         const lastCandle = currentData[currentData.length - 1];
@@ -755,9 +817,18 @@ function drawCandle(candle, index, candleWidth, candleBodyWidth, leftPadding, to
     const isGreen = candle.close >= candle.open;
     
     // Colors - TradingView style
-    // Predicted candles use same colors as real candles (green/red)
-    const wickColor = isGreen ? '#26a69a' : '#ef5350';
-    const bodyColor = isGreen ? '#26a69a' : '#ef5350';
+    // Predicted candles use white color
+    let wickColor, bodyColor;
+    
+    if (isPredicted) {
+        // White color for predicted candles
+        wickColor = '#ffffff';
+        bodyColor = '#ffffff';
+    } else {
+        // Green/Red for real candles
+        wickColor = isGreen ? '#26a69a' : '#ef5350';
+        bodyColor = isGreen ? '#26a69a' : '#ef5350';
+    }
     
     // Draw wick (thin line) - always centered
     ctx.strokeStyle = wickColor;
@@ -778,11 +849,9 @@ function drawCandle(candle, index, candleWidth, candleBodyWidth, leftPadding, to
     ctx.fillStyle = bodyColor;
     ctx.fillRect(bodyLeft, bodyTop, exactBodyWidth, bodyHeight);
     
-    // Add orange border for predicted candles
+    // Add white border for predicted candles (no border, just white color)
     if (isPredicted) {
-        ctx.strokeStyle = '#ff9800';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(bodyLeft - 0.5, bodyTop - 0.5, exactBodyWidth + 1, bodyHeight + 1);
+        // No border needed - predicted candles are already white
     }
 }
 
@@ -926,6 +995,17 @@ async function autoPredictNextCandles() {
     
     console.log(`✅ Generated ${predictedCandles.length} predicted candles:`, predictedCandles.map(c => `${c.close.toFixed(2)}`).join(' → '));
     
+    // Store predictions for accuracy tracking
+    lastPredictions = {
+        time: currentCandle.time,
+        predictions: predictedCandles.map(c => ({
+            close: c.close,
+            high: c.high,
+            low: c.low
+        })),
+        trend: isUptrend ? 'UP' : 'DOWN'
+    };
+    
     const aiInfo = aiPrediction ? ` | AI: ${aiPrediction.signal} (${aiPrediction.confidence}%)` : '';
     const structureInfo = marketStructure ? ` | Structure: ${marketStructure.phase} @ ${marketStructure.keyLevel}` : '';
     const deltaInfo = ` | Delta: ${cumulativeDelta > 0 ? '+' : ''}${cumulativeDelta.toFixed(0)} ${deltaConfirmsTrend ? '✓' : '✗'}`;
@@ -977,9 +1057,8 @@ async function autoPredictNextCandles() {
             displayTradingSignal(tradingSignal);
             console.log('✅ New signal displayed and locked');
             
-            // Play sound and show notification
-            playAlertSound(tradingSignal.type);
-            showNotification(tradingSignal);
+            // Send Telegram alert only (browser alerts disabled)
+            sendTelegramAlert(tradingSignal);
             
             // Send WhatsApp/Telegram alert (if configured)
             if (window.sendWhatsAppAlert) {
@@ -1540,6 +1619,12 @@ function handleWheelZoom(event) {
     }
 }
 
+// Toggle minimize mode
+function toggleMinimize() {
+    const overlay = document.getElementById('prediction-overlay');
+    overlay.classList.toggle('minimized');
+}
+
 // Toggle fullscreen mode
 function toggleFullscreen() {
     const overlay = document.getElementById('prediction-overlay');
@@ -1560,6 +1645,9 @@ function toggleFullscreen() {
         drawChart();
     }, 100);
 }
+
+// Make toggleMinimize globally accessible
+window.toggleMinimize = toggleMinimize;
 
 // Change interval for both charts
 function changeInterval(interval) {
@@ -1598,12 +1686,76 @@ function changeInterval(interval) {
     }
 }
 
+// Check prediction accuracy
+function checkPredictionAccuracy() {
+    if (!lastPredictions || currentData.length < 3) return;
+    
+    // Get the last 3 actual candles
+    const actualCandles = currentData.slice(-3);
+    const predictions = lastPredictions.predictions;
+    
+    let correctDirection = 0;
+    let correctPrice = 0;
+    let totalError = 0;
+    
+    for (let i = 0; i < Math.min(3, predictions.length, actualCandles.length); i++) {
+        const predicted = predictions[i];
+        const actual = actualCandles[i];
+        
+        // Check direction accuracy (up/down)
+        const predictedTrend = lastPredictions.trend;
+        const actualTrend = actual.close > currentData[currentData.length - 4 - i].close ? 'UP' : 'DOWN';
+        if (predictedTrend === actualTrend) correctDirection++;
+        
+        // Check price accuracy (within 0.5%)
+        const priceError = Math.abs(predicted.close - actual.close) / actual.close;
+        totalError += priceError;
+        if (priceError < 0.005) correctPrice++; // Within 0.5%
+    }
+    
+    const directionAccuracy = (correctDirection / 3) * 100;
+    const priceAccuracy = (correctPrice / 3) * 100;
+    const avgError = (totalError / 3) * 100;
+    
+    // Store in history
+    predictionHistory.push({
+        time: Date.now(),
+        directionAccuracy,
+        priceAccuracy,
+        avgError
+    });
+    
+    // Keep only last 20 predictions
+    if (predictionHistory.length > 20) {
+        predictionHistory.shift();
+    }
+    
+    // Calculate overall accuracy
+    if (predictionHistory.length > 0) {
+        const avgDirectionAccuracy = predictionHistory.reduce((sum, p) => sum + p.directionAccuracy, 0) / predictionHistory.length;
+        const avgPriceAccuracy = predictionHistory.reduce((sum, p) => sum + p.priceAccuracy, 0) / predictionHistory.length;
+        const overallError = predictionHistory.reduce((sum, p) => sum + p.avgError, 0) / predictionHistory.length;
+        
+        console.log(`📊 3-Candle Prediction Accuracy (last ${predictionHistory.length} checks):`);
+        console.log(`   Direction: ${avgDirectionAccuracy.toFixed(1)}% | Price: ${avgPriceAccuracy.toFixed(1)}% | Avg Error: ${overallError.toFixed(2)}%`);
+        
+        // Update UI
+        const statusEl = document.getElementById('status');
+        if (statusEl) {
+            const accuracyText = ` | 📊 Prediction Accuracy: ${avgDirectionAccuracy.toFixed(0)}%`;
+            if (!statusEl.textContent.includes('Prediction Accuracy')) {
+                statusEl.textContent += accuracyText;
+            }
+        }
+    }
+}
+
 // Initialize chart on page load
 window.addEventListener('DOMContentLoaded', () => {
     console.log('=== DOM loaded, initializing... ===');
     
-    // Request notification permission
-    requestNotificationPermission();
+    // Browser notifications disabled - using Telegram only
+    // requestNotificationPermission();
     
     try {
         initChart();
@@ -1675,3 +1827,131 @@ function showZoomIndicator() {
         ind.style.display = 'none';
     }, 1500);
 }
+
+
+// Drawing Tools Functions
+function toggleDrawingTool(tool) {
+    if (currentDrawingTool === tool) {
+        currentDrawingTool = null;
+        document.getElementById(`draw-${tool}-btn`)?.classList.remove('active');
+    } else {
+        // Remove active from all drawing buttons
+        document.querySelectorAll('[id^="draw-"]').forEach(btn => btn.classList.remove('active'));
+        
+        currentDrawingTool = tool;
+        document.getElementById(`draw-${tool}-btn`)?.classList.add('active');
+    }
+    canvas.style.cursor = currentDrawingTool ? 'crosshair' : 'default';
+}
+
+function clearDrawings() {
+    drawings = [];
+    drawChart();
+}
+
+// Add mouse event listeners for drawing
+function initDrawingEvents() {
+    if (!canvas) return;
+    
+    canvas.addEventListener('mousedown', (e) => {
+        if (!currentDrawingTool) return;
+        
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        isDrawing = true;
+        drawingStart = { x, y };
+    });
+    
+    canvas.addEventListener('mousemove', (e) => {
+        if (!isDrawing || !drawingStart) return;
+        
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        // Redraw chart with temporary drawing
+        drawChart();
+        drawTemporaryShape(drawingStart.x, drawingStart.y, x, y);
+    });
+    
+    canvas.addEventListener('mouseup', (e) => {
+        if (!isDrawing || !drawingStart) return;
+        
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        // Save the drawing
+        drawings.push({
+            type: currentDrawingTool,
+            x1: drawingStart.x,
+            y1: drawingStart.y,
+            x2: x,
+            y2: y
+        });
+        
+        isDrawing = false;
+        drawingStart = null;
+        drawChart();
+    });
+    
+    canvas.addEventListener('mouseleave', () => {
+        if (isDrawing) {
+            isDrawing = false;
+            drawingStart = null;
+            drawChart();
+        }
+    });
+}
+
+function drawTemporaryShape(x1, y1, x2, y2) {
+    if (!ctx || !currentDrawingTool) return;
+    
+    ctx.strokeStyle = '#2962ff';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 5]);
+    
+    ctx.beginPath();
+    
+    if (currentDrawingTool === 'line') {
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+    } else if (currentDrawingTool === 'hline') {
+        ctx.moveTo(0, y1);
+        ctx.lineTo(canvas.width, y1);
+    } else if (currentDrawingTool === 'rect') {
+        ctx.rect(x1, y1, x2 - x1, y2 - y1);
+    }
+    
+    ctx.stroke();
+    ctx.setLineDash([]);
+}
+
+function drawSavedDrawings() {
+    if (!ctx || drawings.length === 0) return;
+    
+    drawings.forEach(drawing => {
+        ctx.strokeStyle = '#2962ff';
+        ctx.lineWidth = 2;
+        
+        ctx.beginPath();
+        
+        if (drawing.type === 'line') {
+            ctx.moveTo(drawing.x1, drawing.y1);
+            ctx.lineTo(drawing.x2, drawing.y2);
+        } else if (drawing.type === 'hline') {
+            ctx.moveTo(0, drawing.y1);
+            ctx.lineTo(canvas.width, drawing.y1);
+        } else if (drawing.type === 'rect') {
+            ctx.strokeRect(drawing.x1, drawing.y1, drawing.x2 - drawing.x1, drawing.y2 - drawing.y1);
+        }
+        
+        ctx.stroke();
+    });
+}
+
+// Make functions globally accessible
+window.toggleDrawingTool = toggleDrawingTool;
+window.clearDrawings = clearDrawings;

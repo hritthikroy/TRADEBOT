@@ -530,7 +530,8 @@ function calculateBacktestStats() {
 // Display backtest results
 function displayBacktestResults() {
     console.log('\n📊 ===== BACKTEST RESULTS =====');
-    console.log(`Period: Last 30 days on ${currentInterval || '15m'}`);
+    const interval = (typeof currentInterval !== 'undefined') ? currentInterval : '15m';
+    console.log(`Period: Last 30 days on ${interval}`);
     console.log(`Total Trades: ${backtestResults.totalTrades}`);
     console.log(`Winning Trades: ${backtestResults.winningTrades} (${backtestResults.winRate.toFixed(1)}%)`);
     console.log(`Losing Trades: ${backtestResults.losingTrades}`);
