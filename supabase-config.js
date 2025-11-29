@@ -10,24 +10,24 @@ const SupabaseDB = {
     // Save a new signal
     async saveSignal(signal) {
         try {
-            const { data, error } = await supabase
+            const { data, error} = await supabase
                 .from('trading_signals')
                 .insert([{
-                    signal_id: signal.id.toString(),
-                    signal_type: signal.type,
+                    signal_id: signal.signal_id || signal.id?.toString(),
+                    signal_type: signal.signal_type || signal.type,
                     symbol: signal.symbol,
-                    entry_price: signal.entry,
-                    stop_loss: signal.stopLoss,
+                    entry_price: signal.entry_price || signal.entry,
+                    stop_loss: signal.stop_loss || signal.stopLoss,
                     tp1: signal.tp1,
                     tp2: signal.tp2,
                     tp3: signal.tp3,
                     strength: signal.strength,
-                    pattern_type: signal.patternType || null,
-                    pattern_confidence: signal.patternConfidence || null,
-                    kill_zone: signal.killZone || null,
-                    session_type: signal.sessionType || null,
+                    pattern_type: signal.pattern_type || signal.patternType || null,
+                    pattern_confidence: signal.pattern_confidence || signal.patternConfidence || null,
+                    kill_zone: signal.kill_zone || signal.killZone || null,
+                    session_type: signal.session_type || signal.sessionType || null,
                     status: signal.status || 'pending',
-                    trailing_stop_active: signal.trailingStopActive || false
+                    trailing_stop_active: signal.trailing_stop_active || signal.trailingStopActive || false
                 }])
                 .select();
 
@@ -35,7 +35,7 @@ const SupabaseDB = {
             console.log('✅ Signal saved to Supabase:', data);
             return data[0];
         } catch (error) {
-            console.error('❌ Error saving signal:', error);
+            console.error('❌ Error saving signal to Supabase:', error);
             throw error;
         }
     },
