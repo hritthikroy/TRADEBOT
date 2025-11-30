@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Migrate Signals to Supabase</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #131722;
+            color: #d1d4dc;
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #26a69a;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .card {
+            background: #1e222d;
+            border-radius: 8px;
+            padding: 30px;
+            margin-bottom: 20px;
+            border: 1px solid #2a2e39;
+        }
+        .info {
+            background: rgba(38, 166, 154, 0.1);
+            border-left: 4px solid #26a69a;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .warning {
+            background: rgba(255, 193, 7, 0.1);
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-box {
+            background: #2a2e39;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #26a69a;
+            margin: 10px 0;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #787b86;
+            text-transform: uppercase;
+        }
+        button {
+            background: #26a69a;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            width: 100%;
+            margin: 10px 0;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            background: #2bbbad;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(38, 166, 154, 0.3);
+        }
+        button:disabled {
+            background: #434651;
+            cursor: not-allowed;
+            transform: none;
+        }
+        button.secondary {
+            background: #2962ff;
+        }
+        button.secondary:hover {
+            background: #1e53e5;
+        }
+        button.danger {
+            background: #ef5350;
+        }
+        button.danger:hover {
+            background: #ff6b6b;
+        }
+        .log {
+            background: #0d1117;
+            border: 1px solid #2a2e39;
+            border-radius: 6px;
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            margin-top: 20px;
+        }
+        .log-entry {
+            padding: 5px 0;
+            border-bottom: 1px solid #1e222d;
+        }
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+        .log-success {
+            color: #26a69a;
+        }
+        .log-error {
+            color: #ef5350;
+        }
+        .log-info {
+            color: #2962ff;
+        }
+        .log-warning {
+            color: #ffc107;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #2a2e39;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #26a69a, #2bbbad);
+            width: 0%;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+        }
+    </style>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>📤 Migrate Signals to Supabase</h1>
+        
+        <div class="card">
+            <div class="info">
+                <strong>ℹ️ What This Does:</strong><br>
+                This tool migrates all signals from localStorage to Supabase database.
+                Your signals will be safely backed up in the cloud and accessible from any device.
+            </div>
+            
+            <div class="stats">
+                <div class="stat-box">
+                    <div class="stat-label">LocalStorage</div>
+                    <div class="stat-value" id="localCount">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Supabase</div>
+                    <div class="stat-value" id="supabaseCount">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">To Migrate</div>
+                    <div class="stat-value" id="toMigrateCount">0</div>
+                </div>
+            </div>
+            
+            <div class="progress-bar" id="progressBar" style="display: none;">
+                <div class="progress-fill" id="progressFill">0%</div>
+            </div>
+            
+            <button id="checkBtn" onclick="checkSignals()">
+                🔍 Check Signals
+            </button>
+            
+            <button id="migrateBtn" onclick="migrateSignals()" disabled>
+                📤 Migrate to Supabase
+            </button>
+            
+            <button class="secondary" onclick="window.open('signal-tracker.html', '_blank')">
+                📊 Open Signal Tracker
+            </button>
+            
+            <div class="warning" id="warningBox" style="display: none;">
+                <strong>⚠️ Warning:</strong><br>
+                <span id="warningText"></span>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h3 style="margin-bottom: 15px;">📋 Migration Log</h3>
+            <div class="log" id="logContainer">
+                <div class="log-entry log-info">Ready to migrate signals...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let localSignals = [];
+        let supabaseSignals = [];
+        let signalsToMigrate = [];
+        
+        // Add log entry
+        function addLog(message, type = 'info') {
+            const logContainer = document.getElementById('logContainer');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            const timestamp = new Date().toLocaleTimeString();
+            entry.textContent = `[${timestamp}] ${message}`;
+            logContainer.appendChild(entry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+        
+        // Update progress bar
+        function updateProgress(current, total) {
+            const progressBar = document.getElementById('progressBar');
+            const progressFill = document.getElementById('progressFill');
+            progressBar.style.display = 'block';
+            const percent = Math.round((current / total) * 100);
+            progressFill.style.width = percent + '%';
+            progressFill.textContent = `${current}/${total} (${percent}%)`;
+        }
+        
+        // Check signals in localStorage and Supabase
+        async function checkSignals() {
+            const checkBtn = document.getElementById('checkBtn');
+            checkBtn.disabled = true;
+            checkBtn.textContent = '�� Checking...';
+            
+            addLog('Starting signal check...', 'info');
+            
+            try {
+                // Get signals from localStorage
+                const localData = localStorage.getItem('tradingSignals');
+                localSignals = localData ? JSON.parse(localData) : [];
+                addLog(`Found ${localSignals.length} signals in localStorage`, 'success');
+                document.getElementById('localCount').textContent = localSignals.length;
+                
+                // Check Supabase connection
+                if (typeof SupabaseDB === 'undefined') {
+                    addLog('Supabase not configured. Please setup supabase-config.js', 'error');
+                    document.getElementById('warningBox').style.display = 'block';
+                    document.getElementById('warningText').textContent = 'Supabase is not configured. Please setup your Supabase credentials first.';
+                    checkBtn.disabled = false;
+                    checkBtn.textContent = '🔍 Check Signals';
+                    return;
+                }
+                
+                // Get signals from Supabase
+                addLog('Fetching signals from Supabase...', 'info');
+                supabaseSignals = await SupabaseDB.getAllSignals();
+                addLog(`Found ${supabaseSignals.length} signals in Supabase`, 'success');
+                document.getElementById('supabaseCount').textContent = supabaseSignals.length;
+                
+                // Find signals that need to be migrated
+                const supabaseIds = new Set(supabaseSignals.map(s => s.signal_id.toString()));
+                signalsToMigrate = localSignals.filter(s => !supabaseIds.has(s.id.toString()));
+                
+                addLog(`${signalsToMigrate.length} signals need to be migrated`, 'warning');
+                document.getElementById('toMigrateCount').textContent = signalsToMigrate.length;
+                
+                if (signalsToMigrate.length > 0) {
+                    document.getElementById('migrateBtn').disabled = false;
+                    addLog('Ready to migrate! Click "Migrate to Supabase" button', 'success');
+                } else {
+                    addLog('All signals are already in Supabase! ✅', 'success');
+                }
+                
+            } catch (error) {
+                addLog(`Error: ${error.message}`, 'error');
+                console.error('Check error:', error);
+            }
+            
+            checkBtn.disabled = false;
+            checkBtn.textContent = '🔍 Check Signals';
+        }
+        
+        // Migrate signals to Supabase
+        async function migrateSignals() {
+            if (signalsToMigrate.length === 0) {
+                addLog('No signals to migrate', 'warning');
+                return;
+            }
+            
+            const migrateBtn = document.getElementById('migrateBtn');
+            migrateBtn.disabled = true;
+            migrateBtn.textContent = '⏳ Migrating...';
+            
+            addLog(`Starting migration of ${signalsToMigrate.length} signals...`, 'info');
+            
+            let successCount = 0;
+            let errorCount = 0;
+            
+            for (let i = 0; i < signalsToMigrate.length; i++) {
+                const signal = signalsToMigrate[i];
+                updateProgress(i + 1, signalsToMigrate.length);
+                
+                try {
+                    // Convert localStorage format to Supabase format
+                    const supabaseSignal = {
+                        signal_id: signal.id.toString(),
+                        signal_type: signal.type,
+                        symbol: signal.symbol,
+                        entry_price: signal.entry,
+                        stop_loss: signal.stopLoss,
+                        tp1: signal.tp1,
+                        tp2: signal.tp2,
+                        tp3: signal.tp3,
+                        strength: signal.strength,
+                        status: signal.status || 'pending',
+                        exit_price: signal.exitPrice || null,
+                        exit_reason: signal.exitReason || null,
+                        profit_percent: signal.profitPercent || null,
+                        kill_zone: signal.killZone || null,
+                        session_type: signal.sessionType || null,
+                        pattern_type: signal.patternType || null,
+                        trailing_stop_price: signal.trailingStopPrice || null,
+                        trailing_stop_active: signal.trailingStopActive || false,
+                        live_price: signal.livePrice || null,
+                        created_at: signal.timestamp ? new Date(signal.timestamp).toISOString() : new Date().toISOString()
+                    };
+                    
+                    await SupabaseDB.saveSignal(supabaseSignal);
+                    successCount++;
+                    addLog(`✅ Migrated signal ${signal.id} (${signal.type} ${signal.symbol})`, 'success');
+                    
+                    // Small delay to avoid rate limiting
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    
+                } catch (error) {
+                    errorCount++;
+                    addLog(`❌ Failed to migrate signal ${signal.id}: ${error.message}`, 'error');
+                    console.error('Migration error:', error);
+                }
+            }
+            
+            addLog(`Migration complete! ✅ ${successCount} success, ❌ ${errorCount} errors`, 'success');
+            
+            // Refresh counts
+            await checkSignals();
+            
+            migrateBtn.textContent = '✅ Migration Complete';
+            
+            // Show success message
+            if (successCount > 0) {
+                setTimeout(() => {
+                    if (confirm(`Successfully migrated ${successCount} signals!\n\nWould you like to open Signal Tracker to view them?`)) {
+                        window.open('signal-tracker.html', '_blank');
+                    }
+                }, 500);
+            }
+        }
+        
+        // Auto-check on load
+        window.addEventListener('load', () => {
+            setTimeout(checkSignals, 500);
+        });
+    </script>
+</body>
+</html>
