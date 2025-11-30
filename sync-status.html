@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sync Service Status</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a1a;
+            color: #fff;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #667eea;
+        }
+        .status-card {
+            background: #2a2a2a;
+            padding: 25px;
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .status-indicator.running {
+            background: #4CAF50;
+            box-shadow: 0 0 10px #4CAF50;
+        }
+        .status-indicator.stopped {
+            background: #f44336;
+        }
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .metric:last-child {
+            border-bottom: none;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            margin: 5px;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: scale(1.05);
+        }
+        button.danger {
+            background: #f44336;
+        }
+        button.success {
+            background: #4CAF50;
+        }
+        .log {
+            background: #1a1a1a;
+            padding: 15px;
+            border-radius: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+        .log-entry {
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Sync Service Status</h1>
+        
+        <div class="status-card">
+            <h2>
+                <span class="status-indicator" id="statusIndicator"></span>
+                <span id="statusText">Checking...</span>
+            </h2>
+            
+            <div class="metric">
+                <span>Service Status</span>
+                <span id="serviceStatus">-</span>
+            </div>
+            <div class="metric">
+                <span>Last Sync</span>
+                <span id="lastSync">-</span>
+            </div>
+            <div class="metric">
+                <span>Sync Interval</span>
+                <span id="syncInterval">-</span>
+            </div>
+            <div class="metric">
+                <span>Signals in localStorage</span>
+                <span id="localCount">-</span>
+            </div>
+            <div class="metric">
+                <span>Signals in Supabase</span>
+                <span id="supabaseCount">-</span>
+            </div>
+            
+            <div style="margin-top: 20px;">
+                <button class="success" onclick="startSync()">▶️ Start Sync</button>
+                <button class="danger" onclick="stopSync()">⏹️ Stop Sync</button>
+                <button onclick="manualSync()">🔄 Sync Now</button>
+                <button onclick="refreshStatus()">🔃 Refresh</button>
+            </div>
+        </div>
+        
+        <div class="status-card">
+            <h2>📊 Sync Statistics</h2>
+            <div id="stats"></div>
+        </div>
+        
+        <div class="status-card">
+            <h2>📝 Recent Activity</h2>
+            <div class="log" id="log"></div>
+        </div>
+    </div>
+
+    <!-- Supabase Integration -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <script src="sync-service.js"></script>
+
+    <script>
+        let logs = [];
+        
+        // Override console.log to capture logs
+        const originalLog = console.log;
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            const message = args.join(' ');
+            if (message.includes('Sync') || message.includes('✅') || message.includes('❌')) {
+                addLog(message);
+            }
+        };
+        
+        function addLog(message) {
+            logs.unshift({
+                time: new Date().toLocaleTimeString(),
+                message: message
+            });
+            
+            if (logs.length > 50) logs.pop();
+            
+            updateLogDisplay();
+        }
+        
+        function updateLogDisplay() {
+            const logDiv = document.getElementById('log');
+            logDiv.innerHTML = logs.map(log => `
+                <div class="log-entry">
+                    <span style="color: #667eea;">[${log.time}]</span> ${log.message}
+                </div>
+            `).join('');
+        }
+        
+        async function refreshStatus() {
+            if (typeof window.syncService === 'undefined') {
+                document.getElementById('statusText').textContent = 'Service Not Loaded';
+                return;
+            }
+            
+            const status = window.syncService.getStatus();
+            const indicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            
+            if (status.isRunning) {
+                indicator.className = 'status-indicator running';
+                statusText.textContent = 'Running';
+                document.getElementById('serviceStatus').textContent = '✅ Active';
+            } else {
+                indicator.className = 'status-indicator stopped';
+                statusText.textContent = 'Stopped';
+                document.getElementById('serviceStatus').textContent = '⏹️ Inactive';
+            }
+            
+            document.getElementById('lastSync').textContent = status.lastSync 
+                ? status.lastSync.toLocaleString() 
+                : 'Never';
+            
+            document.getElementById('syncInterval').textContent = (status.syncInterval / 1000) + ' seconds';
+            
+            // Get signal counts
+            const localSignals = JSON.parse(localStorage.getItem('tradingSignals') || '[]');
+            document.getElementById('localCount').textContent = localSignals.length;
+            
+            if (typeof supabase !== 'undefined') {
+                try {
+                    const { data, error } = await supabase
+                        .from('trading_signals')
+                        .select('signal_id', { count: 'exact' });
+                    
+                    document.getElementById('supabaseCount').textContent = data ? data.length : '0';
+                    
+                    // Update stats
+                    updateStats(localSignals, data || []);
+                } catch (error) {
+                    document.getElementById('supabaseCount').textContent = 'Error';
+                }
+            }
+        }
+        
+        function updateStats(localSignals, supabaseSignals) {
+            const supabaseIds = new Set(supabaseSignals.map(s => s.signal_id));
+            const missing = localSignals.filter(s => !supabaseIds.has(s.id?.toString()));
+            
+            const statsDiv = document.getElementById('stats');
+            statsDiv.innerHTML = `
+                <div class="metric">
+                    <span>Total Local Signals</span>
+                    <span>${localSignals.length}</span>
+                </div>
+                <div class="metric">
+                    <span>Total Supabase Signals</span>
+                    <span>${supabaseSignals.length}</span>
+                </div>
+                <div class="metric">
+                    <span>Missing in Supabase</span>
+                    <span style="color: ${missing.length > 0 ? '#ff9800' : '#4CAF50'}">${missing.length}</span>
+                </div>
+                <div class="metric">
+                    <span>Sync Status</span>
+                    <span>${missing.length === 0 ? '✅ Fully Synced' : '⚠️ Needs Sync'}</span>
+                </div>
+            `;
+        }
+        
+        function startSync() {
+            if (window.syncService) {
+                window.syncService.start();
+                addLog('🚀 Sync service started');
+                setTimeout(refreshStatus, 500);
+            }
+        }
+        
+        function stopSync() {
+            if (window.syncService) {
+                window.syncService.stop();
+                addLog('⏹️ Sync service stopped');
+                setTimeout(refreshStatus, 500);
+            }
+        }
+        
+        async function manualSync() {
+            if (window.syncService) {
+                addLog('🔄 Manual sync triggered');
+                await window.syncService.performSync();
+                setTimeout(refreshStatus, 1000);
+            }
+        }
+        
+        // Auto-refresh every 5 seconds
+        setInterval(refreshStatus, 5000);
+        
+        // Initial load
+        window.addEventListener('load', () => {
+            setTimeout(refreshStatus, 1000);
+        });
+    </script>
+</body>
+</html>

@@ -172,6 +172,18 @@ async function sendTelegramAlert(signal) {
 }
 
 // Save signal to tracker
+// Debug function to check Supabase status
+window.checkSupabaseStatus = function() {
+    console.log('=== Supabase Status Check ===');
+    console.log('SupabaseDB loaded:', typeof SupabaseDB !== 'undefined');
+    console.log('window.supabase loaded:', typeof window.supabase !== 'undefined');
+    console.log('SupabaseDB object:', SupabaseDB);
+    if (typeof SupabaseDB !== 'undefined') {
+        console.log('SupabaseDB.saveSignal:', typeof SupabaseDB.saveSignal);
+    }
+    console.log('============================');
+};
+
 async function saveSignalToTracker(signal) {
     try {
         const signalData = {
@@ -200,9 +212,22 @@ async function saveSignalToTracker(signal) {
         console.log('💾 Signal saved to localStorage:', signalData);
         
         // Save to Supabase if available
-        if (typeof SupabaseDB !== 'undefined') {
+        if (typeof SupabaseDB !== 'undefined' && typeof window.supabase !== 'undefined') {
             try {
                 console.log('🔄 Attempting to save to Supabase...');
+                console.log('Signal data to save:', {
+                    signal_id: signalData.id.toString(),
+                    signal_type: signalData.type,
+                    symbol: signalData.symbol,
+                    entry_price: signalData.entry,
+                    stop_loss: signalData.stopLoss,
+                    tp1: signalData.tp1,
+                    tp2: signalData.tp2,
+                    tp3: signalData.tp3,
+                    strength: signalData.strength,
+                    status: 'pending'
+                });
+                
                 const result = await SupabaseDB.saveSignal({
                     signal_id: signalData.id.toString(),
                     signal_type: signalData.type,
@@ -218,10 +243,12 @@ async function saveSignalToTracker(signal) {
                 console.log('☁️ Signal saved to Supabase!', result);
             } catch (error) {
                 console.error('❌ Supabase save failed:', error);
-                console.error('Error details:', error.message, error.details);
+                console.error('Error message:', error.message);
+                console.error('Error code:', error.code);
+                console.error('Full error:', JSON.stringify(error, null, 2));
             }
         } else {
-            console.warn('⚠️ SupabaseDB not loaded');
+            console.warn('⚠️ SupabaseDB not loaded. SupabaseDB exists:', typeof SupabaseDB !== 'undefined', 'supabase exists:', typeof window.supabase !== 'undefined');
         }
         
         // Trigger storage event manually for same-window updates

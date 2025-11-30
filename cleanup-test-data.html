@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cleanup Test Data</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a1a;
+            color: #fff;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #667eea;
+        }
+        .card {
+            background: #2a2a2a;
+            padding: 25px;
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            margin: 5px;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: scale(1.05);
+        }
+        button.danger {
+            background: #f44336;
+        }
+        .status {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+        }
+        .success {
+            background: #4CAF50;
+        }
+        .error {
+            background: #f44336;
+        }
+        .warning {
+            background: #ff9800;
+        }
+        .info {
+            background: #2196F3;
+        }
+        .test-signal {
+            background: #1a1a1a;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #ff9800;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 Cleanup Test Data</h1>
+        
+        <div class="card">
+            <h2>⚠️ Warning</h2>
+            <p>This will remove all test signals from Supabase. Only real trading signals will remain.</p>
+            <p><strong>Test signals are identified by:</strong></p>
+            <ul>
+                <li>Signal ID starting with "test_" or "perm_test_"</li>
+                <li>Symbol containing "TEST"</li>
+                <li>Entry price = 1 or 50000 (common test values)</li>
+            </ul>
+        </div>
+        
+        <div class="card">
+            <h2>📊 Current Status</h2>
+            <div id="status">Loading...</div>
+        </div>
+        
+        <div class="card">
+            <h2>🗑️ Actions</h2>
+            <button class="danger" onclick="deleteTestSignals()">Delete Test Signals</button>
+            <button class="danger" onclick="deleteAllSignals()" style="background: #d32f2f;">⚠️ Delete ALL Signals</button>
+            <button onclick="scanForTests()">Scan for Test Data</button>
+            <button onclick="refreshStatus()">Refresh</button>
+        </div>
+        
+        <div class="card">
+            <h2>🔍 Test Signals Found</h2>
+            <div id="testSignals"></div>
+        </div>
+    </div>
+
+    <!-- Supabase Integration -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+
+    <script>
+        let testSignals = [];
+        
+        async function refreshStatus() {
+            try {
+                const { data: allSignals, error } = await supabase
+                    .from('trading_signals')
+                    .select('*');
+                
+                if (error) throw error;
+                
+                // Identify test signals
+                testSignals = allSignals.filter(isTestSignal);
+                const realSignals = allSignals.filter(s => !isTestSignal(s));
+                
+                document.getElementById('status').innerHTML = `
+                    <div class="status info">
+                        <strong>Total Signals:</strong> ${allSignals.length}<br>
+                        <strong>Real Signals:</strong> ${realSignals.length}<br>
+                        <strong>Test Signals:</strong> ${testSignals.length}
+                    </div>
+                    ${testSignals.length > 0 ? 
+                        '<div class="status warning">⚠️ Test signals found! Click "Delete Test Signals" to remove them.</div>' :
+                        '<div class="status success">✅ No test signals found. Database is clean!</div>'
+                    }
+                `;
+                
+                displayTestSignals();
+                
+            } catch (error) {
+                document.getElementById('status').innerHTML = `
+                    <div class="status error">❌ Error: ${error.message}</div>
+                `;
+            }
+        }
+        
+        function isTestSignal(signal) {
+            // Check signal_id
+            if (signal.signal_id && (
+                signal.signal_id.startsWith('test_') ||
+                signal.signal_id.startsWith('perm_test_')
+            )) {
+                return true;
+            }
+            
+            // Check symbol
+            if (signal.symbol && signal.symbol.includes('TEST')) {
+                return true;
+            }
+            
+            // Check for common test values
+            if (signal.entry_price === 1 || signal.entry_price === 50000) {
+                if (signal.stop_loss === 0.9 || signal.stop_loss === 49000) {
+                    return true;
+                }
+            }
+            
+            // Check for AI-generated test signals (auto-completed with random win/loss)
+            // These have exit_reason = 'Manual completion' and were created in bulk
+            if (signal.exit_reason === 'Manual completion') {
+                return true;
+            }
+            
+            // Check for signals with exactly 60 minute holding time (test pattern)
+            if (signal.holding_time_minutes === 60 && signal.exit_reason === 'Manual completion') {
+                return true;
+            }
+            
+            return false;
+        }
+        
+        function displayTestSignals() {
+            const div = document.getElementById('testSignals');
+            
+            if (testSignals.length === 0) {
+                div.innerHTML = '<div class="status success">✅ No test signals found</div>';
+                return;
+            }
+            
+            div.innerHTML = testSignals.map(signal => `
+                <div class="test-signal">
+                    <strong>ID:</strong> ${signal.signal_id}<br>
+                    <strong>Symbol:</strong> ${signal.symbol}<br>
+                    <strong>Type:</strong> ${signal.signal_type}<br>
+                    <strong>Entry:</strong> ${signal.entry_price}<br>
+                    <strong>Created:</strong> ${new Date(signal.created_at).toLocaleString()}
+                </div>
+            `).join('');
+        }
+        
+        async function scanForTests() {
+            document.getElementById('testSignals').innerHTML = '<div class="status info">🔍 Scanning...</div>';
+            await refreshStatus();
+        }
+        
+        async function deleteTestSignals() {
+            if (testSignals.length === 0) {
+                alert('No test signals to delete!');
+                return;
+            }
+            
+            if (!confirm(`Delete ${testSignals.length} test signals? This cannot be undone!`)) {
+                return;
+            }
+            
+            try {
+                document.getElementById('status').innerHTML = '<div class="status info">🗑️ Deleting test signals...</div>';
+                
+                for (const signal of testSignals) {
+                    const { error } = await supabase
+                        .from('trading_signals')
+                        .delete()
+                        .eq('signal_id', signal.signal_id);
+                    
+                    if (error) throw error;
+                }
+                
+                document.getElementById('status').innerHTML = `
+                    <div class="status success">
+                        ✅ Successfully deleted ${testSignals.length} test signals!
+                    </div>
+                `;
+                
+                // Also clear localStorage
+                localStorage.removeItem('tradingSignals');
+                
+                setTimeout(refreshStatus, 1000);
+                
+            } catch (error) {
+                document.getElementById('status').innerHTML = `
+                    <div class="status error">❌ Error deleting: ${error.message}</div>
+                `;
+            }
+        }
+        
+        async function deleteAllSignals() {
+            const confirmed = confirm('⚠️ WARNING: This will delete ALL signals from Supabase and localStorage!\n\nThis includes:\n- All test signals\n- All real signals\n- All trading history\n\nThis action CANNOT be undone!\n\nAre you absolutely sure?');
+            
+            if (!confirmed) return;
+            
+            const doubleConfirm = confirm('⚠️ FINAL WARNING: You are about to delete EVERYTHING!\n\nType YES in the next prompt to confirm.');
+            
+            if (!doubleConfirm) return;
+            
+            const finalConfirm = prompt('Type "DELETE ALL" to confirm (case sensitive):');
+            
+            if (finalConfirm !== 'DELETE ALL') {
+                alert('Deletion cancelled. Text did not match.');
+                return;
+            }
+            
+            try {
+                document.getElementById('status').innerHTML = '<div class="status info">🗑️ Deleting ALL signals...</div>';
+                
+                // Delete all from Supabase
+                const { data: allSignals, error: fetchError } = await supabase
+                    .from('trading_signals')
+                    .select('signal_id');
+                
+                if (fetchError) throw fetchError;
+                
+                for (const signal of allSignals) {
+                    const { error } = await supabase
+                        .from('trading_signals')
+                        .delete()
+                        .eq('signal_id', signal.signal_id);
+                    
+                    if (error) throw error;
+                }
+                
+                // Clear localStorage
+                localStorage.removeItem('tradingSignals');
+                
+                document.getElementById('status').innerHTML = `
+                    <div class="status success">
+                        ✅ Successfully deleted ALL ${allSignals.length} signals!
+                        <br><br>
+                        Database is now empty. Start fresh with real trading signals.
+                    </div>
+                `;
+                
+                setTimeout(refreshStatus, 1000);
+                
+            } catch (error) {
+                document.getElementById('status').innerHTML = `
+                    <div class="status error">❌ Error deleting: ${error.message}</div>
+                `;
+            }
+        }
+        
+        // Auto-load on page load
+        window.addEventListener('load', refreshStatus);
+    </script>
+</body>
+</html>
