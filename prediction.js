@@ -274,7 +274,7 @@ function updateSignalTrailingStop(signalId, trailingStopPrice) {
         if (index !== -1) {
             signals[index].trailingStopPrice = trailingStopPrice;
             signals[index].trailingStopActive = true;
-            localStorage.setItem('tradingSignals', JSON.stringify(signals));
+            // Update in Supabase via sync service (no localStorage)
         }
     } catch (error) {
         console.error('Error updating trailing stop:', error);
@@ -423,7 +423,7 @@ function monitorSignal(signal) {
                     signals[index].status = newStatus;
                     signals[index].exitPrice = exitPrice;
                     signals[index].exitReason = exitReason;
-                    localStorage.setItem('tradingSignals', JSON.stringify(signals));
+                    // Update in Supabase via sync service (no localStorage)
                     
                     console.log(`✅ Signal auto-updated: ${newStatus.toUpperCase()} - ${exitReason} at ${exitPrice.toFixed(2)}`);
                     

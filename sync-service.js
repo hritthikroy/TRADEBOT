@@ -66,49 +66,11 @@ class SyncService {
         }
     }
 
-    // Sync missing signals from localStorage to Supabase (silent mode)
+    // No longer needed - signals saved directly to Supabase
     async syncMissingSignals() {
-        if (typeof SupabaseDB === 'undefined') {
-            return; // Silent fail if Supabase not configured
-        }
-
-        try {
-            // Get all signals from localStorage
-            const localSignals = JSON.parse(localStorage.getItem('tradingSignals') || '[]');
-            
-            if (localSignals.length === 0) {
-                return; // Silent - no signals to sync
-            }
-
-            // Get all signals from Supabase
-            const { data: supabaseSignals, error } = await supabase
-                .from('trading_signals')
-                .select('signal_id');
-
-            if (error) throw error;
-
-            const supabaseIds = new Set(supabaseSignals.map(s => s.signal_id));
-            
-            // Find missing signals
-            const missingSignals = localSignals.filter(s => 
-                !supabaseIds.has(s.id?.toString())
-            );
-
-            if (missingSignals.length === 0) {
-                return; // Silent - all synced
-            }
-
-            // Sync each missing signal
-            for (const signal of missingSignals) {
-                await this.saveSignalToSupabase(signal);
-            }
-
-            // Log only if signals were synced
-            this.lastSyncHadChanges = `Synced ${missingSignals.length} signals`;
-
-        } catch (error) {
-            // Silent error handling
-        }
+        // Deprecated: All signals now saved directly to cloud
+        // No localStorage usage for better performance with big data
+        return;
     }
 
     // Save signal to Supabase with enriched data
