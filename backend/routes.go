@@ -31,4 +31,11 @@ func SetupRoutes(app *fiber.App) {
 	analytics.Get("/performance", GetPerformanceStats)
 	analytics.Get("/by-killzone", GetStatsByKillZone)
 	analytics.Get("/by-pattern", GetStatsByPattern)
+	analytics.Get("/ai", GetAIAnalytics) // AI-powered analytics
+	
+	// Trade filtering routes
+	filters := api.Group("/filters")
+	filters.Get("/opportunities", GetBestTradeOpportunities) // Best trade opportunities
+	filters.Get("/rules", GetTradeRules)                     // Trading rules
+	filters.Get("/smart", GetSmartSignalFilter)              // Smart filter criteria
 }

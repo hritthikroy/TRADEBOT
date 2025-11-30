@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 	"os"
 
@@ -14,31 +13,28 @@ var DB *sql.DB
 func InitDB() {
 	var err error
 	
-	// Get credentials from environment
-	host := os.Getenv("SUPABASE_HOST")
-	password := os.Getenv("SUPABASE_PASSWORD")
+	// Get DATABASE_URL from environment
+	databaseURL := os.Getenv("DATABASE_URL")
 	
-	// Build connection string using key=value format (safer for special characters)
-	connStr := fmt.Sprintf(
-		"host=%s port=5432 user=postgres password=%s dbname=postgres sslmode=require",
-		host,
-		password,
-	)
+	if databaseURL == "" {
+		log.Fatal("❌ DATABASE_URL environment variable is not set")
+	}
 
-	DB, err = sql.Open("postgres", connStr)
+	// Connect using the full connection string
+	DB, err = sql.Open("postgres", databaseURL)
 	if err != nil {
-		log.Fatal("Failed to connect to database:", err)
+		log.Fatal("❌ Failed to connect to database:", err)
 	}
 
 	// Set connection pool settings
 	DB.SetMaxOpenConns(10)
 	DB.SetMaxIdleConns(5)
 
-	// Test connection with timeout
+	// Test connection
 	err = DB.Ping()
 	if err != nil {
-		log.Printf("Failed to ping database: %v", err)
-		log.Printf("Host: %s", host)
+		log.Printf("❌ Failed to ping database: %v", err)
+		log.Printf("Connection string format: postgresql://user:password@host:port/database")
 		log.Fatal("Database connection failed")
 	}
 
