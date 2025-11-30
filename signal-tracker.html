@@ -410,12 +410,7 @@
     </div>
 
     <div class="container">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h1>📊 Signal Tracker</h1>
-            <button onclick="cleanupSignals()" style="background: #ef5350; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 14px; font-weight: bold;">
-                🧹 Cleanup Test Signals
-            </button>
-        </div>
+        <h1 style="margin-bottom: 20px;">📊 Signal Tracker</h1>
         
         <!-- Session Indicator -->
         <div class="session-indicator">
@@ -1550,72 +1545,7 @@
             }
         });
         
-        // Cleanup function
-        async function cleanupSignals() {
-            const confirmed = confirm('🧹 Cleanup Options:\n\n1. Remove test signals (test_, perm_test_, TEST symbols)\n2. Remove AI-generated test signals\n3. Keep only real trading signals\n\nProceed with cleanup?');
-            
-            if (!confirmed) return;
-            
-            try {
-                // Get all signals
-                const allSignals = JSON.parse(localStorage.getItem('tradingSignals') || '[]');
-                
-                // Filter out test signals
-                const realSignals = allSignals.filter(signal => {
-                    // Check for test patterns
-                    const isTest = 
-                        (signal.id && (signal.id.toString().startsWith('test_') || signal.id.toString().startsWith('perm_test_'))) ||
-                        (signal.symbol && signal.symbol.includes('TEST')) ||
-                        (signal.entry === 1 || signal.entry === 50000) ||
-                        (signal.exitReason === 'Manual completion');
-                    
-                    return !isTest;
-                });
-                
-                const removedCount = allSignals.length - realSignals.length;
-                
-                if (removedCount === 0) {
-                    alert('✅ No test signals found! Database is clean.');
-                    return;
-                }
-                
-                // Update localStorage
-                localStorage.setItem('tradingSignals', JSON.stringify(realSignals));
-                
-                // Delete from Supabase if available
-                if (typeof supabase !== 'undefined') {
-                    for (const signal of allSignals) {
-                        const isTest = 
-                            (signal.id && (signal.id.toString().startsWith('test_') || signal.id.toString().startsWith('perm_test_'))) ||
-                            (signal.symbol && signal.symbol.includes('TEST')) ||
-                            (signal.entry === 1 || signal.entry === 50000) ||
-                            (signal.exitReason === 'Manual completion');
-                        
-                        if (isTest && signal.id) {
-                            try {
-                                await supabase
-                                    .from('trading_signals')
-                                    .delete()
-                                    .eq('signal_id', signal.id.toString());
-                            } catch (error) {
-                                console.error('Error deleting from Supabase:', error);
-                            }
-                        }
-                    }
-                }
-                
-                // Reload signals
-                signals = realSignals;
-                displaySignals(document.getElementById('filter').value);
-                updateStats();
-                
-                alert(`✅ Cleanup complete!\n\nRemoved: ${removedCount} test signals\nRemaining: ${realSignals.length} real signals`);
-                
-            } catch (error) {
-                console.error('Cleanup error:', error);
-                alert('❌ Error during cleanup: ' + error.message);
-            }
-        }
+        // Cleanup function removed - using cloud-only storage now
     </script>
     <script src="sync-service.js"></script>
 </body>
