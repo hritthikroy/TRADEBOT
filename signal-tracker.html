@@ -496,7 +496,8 @@
             <button class="secondary" onclick="exportToCSV()">📥 Export CSV</button>
             <button class="secondary" onclick="showChart()">📊 Chart</button>
             <button class="secondary" onclick="showStats()">📈 Statistics</button>
-            <button class="secondary" onclick="clearAllSignals()">🗑️ Clear All</button>
+            <button class="secondary" onclick="clearAllSignals()">🗑️ Clear Supabase</button>
+            <button class="secondary" onclick="clearLocalStorage()" style="background: #ff6b6b;">🧹 Clear Browser</button>
             <select id="filter" onchange="filterSignals()">
                 <option value="all">All Signals</option>
                 <option value="win">Wins Only</option>
@@ -773,18 +774,19 @@
                             return;
                         }
                     } catch (error) {
-                        console.warn('Supabase load failed, falling back to localStorage:', error);
+                        console.warn('Supabase load failed:', error);
+                        // Don't fall back to localStorage - only use Supabase
+                        console.log('⚠️ No Supabase connection - showing empty signals');
+                        signals = [];
+                        return;
                     }
                 }
                 
-                // Fallback to localStorage
-                signals = JSON.parse(localStorage.getItem('tradingSignals') || '[]');
-                // Ensure all signals have timeframe property
-                signals = signals.map(s => ({
-                    ...s,
-                    timeframe: s.timeframe || '15m'
-                }));
-                console.log(`📊 Loaded ${signals.length} signals from localStorage`);
+                // No localStorage fallback - signals only from Supabase
+                // Clear any old localStorage data
+                localStorage.removeItem('tradingSignals');
+                signals = [];
+                console.log('📊 No signals loaded (Supabase only mode)');
             } catch (error) {
                 console.error('Error loading signals:', error);
                 signals = [];
@@ -1642,6 +1644,23 @@
             a.click();
         }
 
+        // Clear browser localStorage only
+        function clearLocalStorage() {
+            const localCount = JSON.parse(localStorage.getItem('tradingSignals') || '[]').length;
+            
+            if (!confirm(`Clear ${localCount} signals from browser localStorage?\n\nThis will NOT affect Supabase database.`)) {
+                return;
+            }
+            
+            localStorage.removeItem('tradingSignals');
+            signals = [];
+            filterSignals();
+            updateStats();
+            
+            alert(`✅ Cleared ${localCount} signals from browser localStorage!`);
+            console.log('🧹 LocalStorage cleared');
+        }
+        
         // Clear all signals (localStorage AND Supabase)
         async function clearAllSignals() {
             // First check how many signals are in Supabase
