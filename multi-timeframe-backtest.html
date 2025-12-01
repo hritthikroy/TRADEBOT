@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Timeframe Backtest</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #131722;
+            color: #d1d4dc;
+            padding: 20px;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        h1 { color: #26a69a; margin-bottom: 20px; }
+        
+        .controls {
+            background: #1e222d;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        select, input, button {
+            padding: 10px 15px;
+            border-radius: 5px;
+            border: 1px solid #363a45;
+            background: #2a2e39;
+            color: #d1d4dc;
+            font-size: 14px;
+        }
+        
+        button {
+            background: #26a69a;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover { background: #2bbbad; }
+        
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: #1e222d;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 28px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .stat-value.profit { color: #26a69a; }
+        .stat-value.loss { color: #ef5350; }
+        .stat-label { color: #787b86; font-size: 12px; text-transform: uppercase; }
+        
+        .timeframe-results {
+            background: #1e222d;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .tf-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .tf-card {
+            background: #2a2e39;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border-left: 4px solid #26a69a;
+        }
+        
+        .tf-name { font-weight: bold; font-size: 18px; margin-bottom: 10px; }
+        .tf-stat { font-size: 12px; color: #787b86; margin: 5px 0; }
+        .tf-winrate { font-size: 24px; font-weight: bold; }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #1e222d;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #2a2e39;
+        }
+        th { background: #2a2e39; color: #787b86; font-size: 12px; text-transform: uppercase; }
+        .win { color: #26a69a; }
+        .loss { color: #ef5350; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Multi-Timeframe Backtest</h1>
+        
+        <div class="controls">
+            <div>
+                <label>Symbol:</label>
+                <select id="symbol">
+                    <option value="BTCUSDT">BTCUSDT</option>
+                    <option value="ETHUSDT">ETHUSDT</option>
+                </select>
+            </div>
+            <div>
+                <label>Period:</label>
+                <select id="period">
+                    <option value="7">Last 7 Days</option>
+                    <option value="30" selected>Last 30 Days</option>
+                    <option value="90">Last 90 Days</option>
+                    <option value="all">All Time</option>
+                </select>
+            </div>
+            <button onclick="runBacktest()">🚀 Run Backtest</button>
+            <button onclick="exportResults()" style="background: #2962ff;">📥 Export</button>
+        </div>
+        
+        <div class="results-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Trades</div>
+                <div class="stat-value" id="total-trades">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Win Rate</div>
+                <div class="stat-value profit" id="win-rate">0%</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Profit Factor</div>
+                <div class="stat-value" id="profit-factor">0.00</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Net P/L</div>
+                <div class="stat-value profit" id="net-pnl">$0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Best Trade</div>
+                <div class="stat-value profit" id="best-trade">0%</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Worst Trade</div>
+                <div class="stat-value loss" id="worst-trade">0%</div>
+            </div>
+        </div>
+        
+        <div class="timeframe-results">
+            <h3 style="color: #26a69a; margin-bottom: 15px;">📈 Performance by Timeframe</h3>
+            <div class="tf-grid" id="tf-results"></div>
+        </div>
+        
+        <div style="background: #1e222d; border-radius: 8px; padding: 20px;">
+            <h3 style="color: #26a69a; margin-bottom: 15px;">📋 Trade History</h3>
+            <table id="trades-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>TF</th>
+                        <th>Type</th>
+                        <th>Entry</th>
+                        <th>Exit</th>
+                        <th>P/L %</th>
+                        <th>Result</th>
+                    </tr>
+                </thead>
+                <tbody id="trades-body">
+                    <tr><td colspan="7" style="text-align: center; color: #787b86;">Click "Run Backtest" to see results</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const tfColors = {
+            '1m': '#ff6b6b', '3m': '#ffa657', '5m': '#ffd93d',
+            '15m': '#58a6ff', '1h': '#a371f7', '2h': '#f85149', '4h': '#3fb950'
+        };
+        
+        async function runBacktest() {
+            const period = document.getElementById('period').value;
+            
+            try {
+                let query = supabase.from('trading_signals').select('*');
+                
+                if (period !== 'all') {
+                    const daysAgo = new Date();
+                    daysAgo.setDate(daysAgo.getDate() - parseInt(period));
+                    query = query.gte('created_at', daysAgo.toISOString());
+                }
+                
+                const { data: signals, error } = await query.order('created_at', { ascending: false });
+                
+                if (error) throw error;
+                
+                if (!signals || signals.length === 0) {
+                    alert('No signals found for the selected period');
+                    return;
+                }
+                
+                // Calculate stats
+                const wins = signals.filter(s => s.status === 'win');
+                const losses = signals.filter(s => s.status === 'loss');
+                const totalTrades = wins.length + losses.length;
+                const winRate = totalTrades > 0 ? ((wins.length / totalTrades) * 100).toFixed(1) : 0;
+                
+                let totalProfit = 0, totalLoss = 0, bestTrade = 0, worstTrade = 0;
+                
+                wins.forEach(s => {
+                    const pnl = s.profit_percent || 0;
+                    totalProfit += pnl;
+                    if (pnl > bestTrade) bestTrade = pnl;
+                });
+                
+                losses.forEach(s => {
+                    const pnl = Math.abs(s.profit_percent || 0);
+                    totalLoss += pnl;
+                    if (-pnl < worstTrade) worstTrade = -pnl;
+                });
+                
+                const profitFactor = totalLoss > 0 ? (totalProfit / totalLoss).toFixed(2) : '∞';
+                const netPnL = totalProfit - totalLoss;
+                
+                // Update UI
+                document.getElementById('total-trades').textContent = totalTrades;
+                document.getElementById('win-rate').textContent = winRate + '%';
+                document.getElementById('profit-factor').textContent = profitFactor;
+                document.getElementById('net-pnl').textContent = (netPnL >= 0 ? '+' : '') + netPnL.toFixed(2) + '%';
+                document.getElementById('best-trade').textContent = '+' + bestTrade.toFixed(2) + '%';
+                document.getElementById('worst-trade').textContent = worstTrade.toFixed(2) + '%';
+                
+                // Timeframe breakdown
+                const timeframes = ['1m', '3m', '5m', '15m', '1h', '2h', '4h'];
+                let tfHtml = '';
+                
+                timeframes.forEach(tf => {
+                    const tfSignals = signals.filter(s => (s.timeframe || '15m') === tf);
+                    const tfWins = tfSignals.filter(s => s.status === 'win').length;
+                    const tfLosses = tfSignals.filter(s => s.status === 'loss').length;
+                    const tfTotal = tfWins + tfLosses;
+                    const tfWinRate = tfTotal > 0 ? ((tfWins / tfTotal) * 100).toFixed(0) : '-';
+                    
+                    tfHtml += `
+                        <div class="tf-card" style="border-left-color: ${tfColors[tf]}">
+                            <div class="tf-name" style="color: ${tfColors[tf]}">${tf.toUpperCase()}</div>
+                            <div class="tf-winrate" style="color: ${parseFloat(tfWinRate) >= 50 ? '#26a69a' : '#ef5350'}">${tfWinRate}%</div>
+                            <div class="tf-stat">${tfSignals.length} signals</div>
+                            <div class="tf-stat">${tfWins}W / ${tfLosses}L</div>
+                        </div>
+                    `;
+                });
+                
+                document.getElementById('tf-results').innerHTML = tfHtml;
+                
+                // Trade history
+                const closedTrades = signals.filter(s => s.status === 'win' || s.status === 'loss').slice(0, 50);
+                let tradesHtml = '';
+                
+                closedTrades.forEach(s => {
+                    const pnl = s.profit_percent || 0;
+                    tradesHtml += `
+                        <tr>
+                            <td>${new Date(s.created_at).toLocaleDateString()}</td>
+                            <td style="color: ${tfColors[s.timeframe || '15m']}">${(s.timeframe || '15m').toUpperCase()}</td>
+                            <td class="${s.signal_type === 'BUY' ? 'win' : 'loss'}">${s.signal_type}</td>
+                            <td>${parseFloat(s.entry_price).toFixed(2)}</td>
+                            <td>${s.exit_price ? parseFloat(s.exit_price).toFixed(2) : '-'}</td>
+                            <td class="${pnl >= 0 ? 'win' : 'loss'}">${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}%</td>
+                            <td class="${s.status}">${s.status === 'win' ? '✅ WIN' : '❌ LOSS'}</td>
+                        </tr>
+                    `;
+                });
+                
+                document.getElementById('trades-body').innerHTML = tradesHtml || '<tr><td colspan="7" style="text-align: center;">No closed trades</td></tr>';
+                
+            } catch (error) {
+                console.error('Backtest error:', error);
+                alert('Error running backtest: ' + error.message);
+            }
+        }
+        
+        function exportResults() {
+            alert('Export feature coming soon!');
+        }
+        
+        // Auto-run on load
+        window.onload = () => runBacktest();
+    </script>
+</body>
+</html>

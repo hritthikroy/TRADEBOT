@@ -156,7 +156,8 @@ function generateTradingSignal(data, aiPrediction, volumeAnalysis, mtfTrendFilte
     // 11. ADVANCED: AMD (Accumulation, Manipulation, Distribution)
     const amd = detectAMD(data, atr);
     
-    console.log(`ICT Check: ${isBullish ? 'BULLISH' : 'BEARISH'} | Strength: ${signalStrength}% | Delta: ${deltaInfo.delta > 0 ? '+' : ''}${deltaInfo.delta.toFixed(0)} | PO3: ${po3.phase} | AMD: ${amd.phase} | Sweep: ${liquiditySweep.bullish ? 'BULL' : liquiditySweep.bearish ? 'BEAR' : 'NONE'} | Breaker: ${breakerBlocks.bullish.length}/${breakerBlocks.bearish.length}`);
+    const currentTF = window.currentInterval || '15m';
+    console.log(`[${currentTF.toUpperCase()}] ICT Check: ${isBullish ? 'BULLISH' : 'BEARISH'} | Strength: ${signalStrength}% | Delta: ${deltaInfo.delta > 0 ? '+' : ''}${deltaInfo.delta.toFixed(0)} | PO3: ${po3.phase} | AMD: ${amd.phase} | Sweep: ${liquiditySweep.bullish ? 'BULL' : liquiditySweep.bearish ? 'BEAR' : 'NONE'} | Breaker: ${breakerBlocks.bullish.length}/${breakerBlocks.bearish.length}`);
     
     // ICT/SMC BUY SETUP
     if (isBullish && signalStrength >= 55) {
@@ -214,10 +215,15 @@ function generateTradingSignal(data, aiPrediction, volumeAnalysis, mtfTrendFilte
         // Key level retest (strong)
         if (atKeyLevel.type === 'SUPPORT') confluence += 3;
         
-        console.log(`BUY Confluence: ${confluence}/38 points | PO3: ${po3.phase} | AMD: ${amd.phase} | Sweep: ${liquiditySweep.bullish}`);
+        console.log(`[${currentTF.toUpperCase()}] BUY Confluence: ${confluence}/38 points | PO3: ${po3.phase} | AMD: ${amd.phase} | Sweep: ${liquiditySweep.bullish}`);
         
-        // Require minimum confluence (raised for quality)
-        if (confluence >= 8) {
+        // Require minimum confluence (increased to 10 for better signal quality)
+        // Also require at least one strong confirmation (sweep, breaker, or PO3)
+        const hasStrongConfirmation = liquiditySweep.bullish || 
+            breakerBlocks.bearish.length > 0 || 
+            (po3.phase === 'DISTRIBUTION' && po3.direction === 'BULLISH');
+        
+        if (confluence >= 10 || (confluence >= 8 && hasStrongConfirmation)) {
             // Stop below order block or recent low
             let stopLoss;
             if (orderBlocks.bullish.length > 0) {
@@ -229,9 +235,10 @@ function generateTradingSignal(data, aiPrediction, volumeAnalysis, mtfTrendFilte
             }
             
             // Target next liquidity zone (optimized for better RR)
+            // TP3 made more conservative (5.5x ATR instead of 7.0x) for higher hit rate
             const takeProfit1 = currentPrice + (atr * 2.5);
-            const takeProfit2 = currentPrice + (atr * 4.5);
-            const takeProfit3 = currentPrice + (atr * 7.0);
+            const takeProfit2 = currentPrice + (atr * 4.0);
+            const takeProfit3 = currentPrice + (atr * 5.5);
             
             const risk = entry - stopLoss;
             const reward1 = takeProfit1 - entry;
@@ -258,7 +265,9 @@ function generateTradingSignal(data, aiPrediction, volumeAnalysis, mtfTrendFilte
                     bestRR: Math.max(rr1, rr2, rr3),
                     atr: atr,
                     support: srLevels.support[0],
-                    resistance: srLevels.resistance[0]
+                    resistance: srLevels.resistance[0],
+                    confluence: confluence,  // Add confluence for position sizing
+                    timeframe: window.currentInterval || '15m'  // Add timeframe tag
                 };
             }
         }
@@ -318,10 +327,15 @@ function generateTradingSignal(data, aiPrediction, volumeAnalysis, mtfTrendFilte
         // Key level retest (strong)
         if (atKeyLevel.type === 'RESISTANCE') confluence += 3;
         
-        console.log(`SELL Confluence: ${confluence}/38 points | PO3: ${po3.phase} | AMD: ${amd.phase} | Sweep: ${liquiditySweep.bearish}`);
+        console.log(`[${currentTF.toUpperCase()}] SELL Confluence: ${confluence}/38 points | PO3: ${po3.phase} | AMD: ${amd.phase} | Sweep: ${liquiditySweep.bearish}`);
         
-        // Require minimum confluence (raised for quality)
-        if (confluence >= 8) {
+        // Require minimum confluence (increased to 10 for better signal quality)
+        // Also require at least one strong confirmation (sweep, breaker, or PO3)
+        const hasStrongConfirmation = liquiditySweep.bearish || 
+            breakerBlocks.bullish.length > 0 || 
+            (po3.phase === 'DISTRIBUTION' && po3.direction === 'BEARISH');
+        
+        if (confluence >= 10 || (confluence >= 8 && hasStrongConfirmation)) {
             // Stop above order block or recent high
             let stopLoss;
             if (orderBlocks.bearish.length > 0) {
@@ -333,9 +347,10 @@ function generateTradingSignal(data, aiPrediction, volumeAnalysis, mtfTrendFilte
             }
             
             // Target next liquidity zone (optimized for better RR)
+            // TP3 made more conservative (5.5x ATR instead of 7.0x) for higher hit rate
             const takeProfit1 = currentPrice - (atr * 2.5);
-            const takeProfit2 = currentPrice - (atr * 4.5);
-            const takeProfit3 = currentPrice - (atr * 7.0);
+            const takeProfit2 = currentPrice - (atr * 4.0);
+            const takeProfit3 = currentPrice - (atr * 5.5);
             
             const risk = stopLoss - entry;
             const reward1 = entry - takeProfit1;
@@ -362,7 +377,9 @@ function generateTradingSignal(data, aiPrediction, volumeAnalysis, mtfTrendFilte
                     bestRR: Math.max(rr1, rr2, rr3),
                     atr: atr,
                     support: srLevels.support[0],
-                    resistance: srLevels.resistance[0]
+                    resistance: srLevels.resistance[0],
+                    confluence: confluence,  // Add confluence for position sizing
+                    timeframe: window.currentInterval || '15m'  // Add timeframe tag
                 };
             }
         }
@@ -395,6 +412,21 @@ function drawTradingSignalOnChart(signal, leftPadding, topPadding, chartHeight, 
     ctx.lineTo(leftPadding + chartWidth, entryY);
     ctx.stroke();
     ctx.setLineDash([]);
+    
+    // Timeframe badge (top left)
+    const timeframe = signal.timeframe || '15m';
+    const tfBadgeX = leftPadding + 10;
+    const tfBadgeY = topPadding + 10;
+    
+    // Badge background
+    ctx.fillStyle = color;
+    ctx.fillRect(tfBadgeX, tfBadgeY, 50, 24);
+    
+    // Badge text
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 14px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(timeframe.toUpperCase(), tfBadgeX + 25, tfBadgeY + 17);
     
     // Entry price label (highlighted)
     ctx.fillStyle = color;

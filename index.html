@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Market Prediction Simulator</title>
+    <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -24,6 +25,7 @@
             height: 700px;
             width: 100%;
             position: relative;
+            background: #131722;
         }
         .prediction-overlay {
             position: absolute;
@@ -53,7 +55,7 @@
         #prediction-chart {
             width: 100%;
             height: 380px;
-            background: transparent;
+            background: #1e222d;
         }
         button {
             background: #2962ff;
@@ -172,17 +174,18 @@
                 <div class="prediction-header">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                         <div style="display: flex; gap: 5px; align-items: center; flex-wrap: wrap;">
+                            <button class="time-btn" onclick="changeInterval('1s')">1s</button>
                             <button class="time-btn" onclick="changeInterval('1m')">1m</button>
                             <button class="time-btn" onclick="changeInterval('3m')">3m</button>
-                            <button class="time-btn" onclick="changeInterval('5m')">5m</button>
                             <button class="time-btn active" onclick="changeInterval('15m')">15m</button>
-                            <button class="time-btn" onclick="changeInterval('30m')">30m</button>
                             <button class="time-btn" onclick="changeInterval('1h')">1h</button>
+                            <button class="time-btn" onclick="changeInterval('2h')" style="background: #f85149; color: white; font-weight: bold;" title="Best performer - 1475% return">2h ⭐</button>
                             <button class="time-btn" onclick="changeInterval('4h')">4h</button>
                         </div>
                         <div style="display: flex; gap: 5px; align-items: center;">
                             <button class="time-btn" id="backtest-btn" title="Run 30-day backtest">📊 Backtest</button>
                             <button class="time-btn" onclick="window.open('signal-tracker.html', '_blank')" title="View all signals">📋 Signals</button>
+                            <button class="time-btn" onclick="window.open('best-entry.html', '_blank')" title="Best entry positions" style="background: #f7931a; color: white; font-weight: bold;">🎯 Best Entry</button>
                             <span style="color: #787b86; font-size: 11px; margin: 0 5px;">Scroll to zoom</span>
                             <button class="icon-btn" onclick="toggleMinimize()" title="Minimize">−</button>
                             <button class="icon-btn" onclick="toggleFullscreen()" title="Fullscreen">⛶</button>
@@ -193,7 +196,7 @@
                         <span id="countdown-timer" style="color: #2962ff; font-size: 14px; font-weight: bold; font-family: monospace;">--:--</span>
                     </div>
                 </div>
-                <canvas id="prediction-chart"></canvas>
+                <div id="prediction-chart" style="width: 100%; height: 380px;"></div>
                 <div id="trading-signal-display" style="display: none;">
                     <!-- Hidden - signals drawn on chart -->
                 </div>
@@ -215,12 +218,12 @@
         </div>
     </div>
 
-    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
     <script src="pattern-recognition.js"></script>
     <script src="ai-prediction.js"></script>
     <script src="trading-signals.js"></script>
     <script src="backtest.js"></script>
     <script src="prediction.js"></script>
+    <!-- Background Sync Service - Runs automatically -->
     <script src="sync-service.js"></script>
 </body>
 </html>

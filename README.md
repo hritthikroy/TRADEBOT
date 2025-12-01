@@ -33,9 +33,10 @@ open index.html
 ## ✨ Features
 
 ### Core Trading System
+- ✅ **Automatic Signal Generation** - 24/7 Go backend service
 - ✅ **ICT/SMC Analysis** - 38 confluence factors
 - ✅ **AI Predictions** - Ensemble learning system
-- ✅ **Multi-Timeframe** - 15m, 30m, 1h, 4h analysis
+- ✅ **Multi-Timeframe** - 15m, 1h, 2h, 4h analysis
 - ✅ **Risk Management** - Trailing stops, multiple TPs
 - ✅ **Real-Time Data** - Binance API integration
 - ✅ **TradingView Charts** - Professional charting
