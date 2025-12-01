@@ -32,6 +32,11 @@ func main() {
 	// Routes
 	SetupRoutes(app)
 
+	// Start automatic signal generator
+	signalGenerator := NewSignalGenerator()
+	signalGenerator.Start()
+	log.Println("✅ Automatic signal generator started")
+
 	// Start server
 	port := os.Getenv("PORT")
 	if port == "" {

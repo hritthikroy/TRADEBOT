@@ -27,7 +27,8 @@ const SupabaseDB = {
                     kill_zone: signal.kill_zone || signal.killZone || null,
                     session_type: signal.session_type || signal.sessionType || null,
                     status: signal.status || 'pending',
-                    trailing_stop_active: signal.trailing_stop_active || signal.trailingStopActive || false
+                    trailing_stop_active: signal.trailing_stop_active || signal.trailingStopActive || false,
+                    timeframe: signal.timeframe || '15m'  // Add timeframe field
                 }])
                 .select();
 
@@ -154,6 +155,66 @@ const SupabaseDB = {
             return true;
         } catch (error) {
             console.error('❌ Error deleting signal:', error);
+            throw error;
+        }
+    },
+
+    // Delete ALL signals from database
+    async deleteAllSignals() {
+        try {
+            console.log('🗑️ Deleting all signals from Supabase...');
+            
+            // First, get count of signals
+            const { data: allSignals, error: countError } = await supabase
+                .from('trading_signals')
+                .select('id');
+            
+            if (countError) {
+                console.error('Error counting signals:', countError);
+                throw countError;
+            }
+            
+            const totalCount = allSignals ? allSignals.length : 0;
+            console.log(`Found ${totalCount} signals to delete`);
+            
+            if (totalCount === 0) {
+                return { deleted: 0, success: true };
+            }
+            
+            // Delete using multiple conditions to ensure it works
+            // Try 1: Delete where id > 0 (all valid rows)
+            const { error: deleteError } = await supabase
+                .from('trading_signals')
+                .delete()
+                .gt('id', 0);
+            
+            if (deleteError) {
+                console.error('Delete error (method 1):', deleteError);
+                
+                // Try 2: Delete by each ID individually
+                console.log('Trying individual deletes...');
+                let deletedCount = 0;
+                
+                for (const signal of allSignals) {
+                    const { error: singleError } = await supabase
+                        .from('trading_signals')
+                        .delete()
+                        .eq('id', signal.id);
+                    
+                    if (!singleError) {
+                        deletedCount++;
+                    }
+                }
+                
+                console.log(`✅ Deleted ${deletedCount}/${totalCount} signals individually`);
+                return { deleted: deletedCount, success: deletedCount > 0 };
+            }
+            
+            console.log(`✅ All ${totalCount} signals deleted successfully`);
+            return { deleted: totalCount, success: true };
+            
+        } catch (error) {
+            console.error('❌ Error deleting all signals:', error);
             throw error;
         }
     },
