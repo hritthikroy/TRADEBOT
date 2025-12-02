@@ -40,6 +40,8 @@ func SetupRoutes(app *fiber.App) {
 	backtest := api.Group("/backtest")
 	backtest.Post("/run", HandleBacktestRunFiber)
 	backtest.Post("/export", HandleBacktestExportFiber)
+	backtest.Post("/comprehensive", HandleComprehensiveBacktest) // Test all strategies
+	backtest.Post("/all-timeframes", HandleAllTimeframesBacktest) // Test all timeframes
 	
 	// External Signal API routes (FREE)
 	externalSignals := api.Group("/external-signals")
