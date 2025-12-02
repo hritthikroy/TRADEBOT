@@ -263,7 +263,6 @@
                 <div class="form-group">
                     <label>🎯 Trading Strategy</label>
                     <select id="strategy">
-                        <option value="default">Default Strategy</option>
                         <option value="liquidity_hunter">🥇 Liquidity Hunter (49% WR, 15m) - BEST!</option>
                         <option value="breakout_master">🥈 Breakout Master (51% WR, 15m) - HIGHEST WR!</option>
                         <option value="session_trader">🥉 Session Trader (48% WR, 15m) - HIGHEST PF!</option>
@@ -403,100 +402,62 @@
             
             document.getElementById('results').classList.add('hidden');
             
-            // If a specific strategy is selected (not default), use the proper strategy testing
-            if (strategy && strategy !== 'default') {
-                showStatus(`Testing ${strategy} strategy with full logic...`, 'info');
+            // All strategies use the proper strategy testing
+            showStatus(`Testing ${strategy} strategy with full logic...`, 'info');
+            
+            try {
+                // Use test-all-strategies endpoint but filter for selected strategy
+                const response = await fetch(`${API_URL}/backtest/test-all-strategies`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        symbol,
+                        startBalance: balance
+                    })
+                });
                 
-                try {
-                    // Use test-all-strategies endpoint but filter for selected strategy
-                    const response = await fetch(`${API_URL}/backtest/test-all-strategies`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            symbol,
-                            startBalance: balance
-                        })
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error('Strategy test failed');
-                    }
-                    
-                    const data = await response.json();
-                    
-                    // Find the selected strategy in results
-                    const selectedStrategy = data.results.find(s => s.strategyName === strategy);
-                    
-                    if (selectedStrategy) {
-                        // Convert strategy result to backtest result format
-                        currentResults = {
-                            totalTrades: selectedStrategy.totalTrades,
-                            winningTrades: selectedStrategy.winningTrades,
-                            losingTrades: selectedStrategy.losingTrades,
-                            winRate: selectedStrategy.winRate,
-                            profitFactor: selectedStrategy.profitFactor,
-                            returnPercent: selectedStrategy.returnPercent,
-                            finalBalance: selectedStrategy.finalBalance,
-                            startBalance: balance,
-                            maxDrawdown: selectedStrategy.maxDrawdown,
-                            trades: selectedStrategy.trades || [] // Use trades from strategy result
-                        };
-                        
-                        displayResults(currentResults);
-                        showStatus(`✅ ${strategy}: ${selectedStrategy.winRate.toFixed(1)}% WR, ${selectedStrategy.returnPercent.toFixed(0)}% return`, 'success');
-                    } else {
-                        throw new Error('Strategy not found in results');
-                    }
-                    
-                    exportBtn.disabled = false;
-                    
-                } catch (error) {
-                    showStatus('Error: ' + error.message, 'error');
-                    console.error('Strategy test error:', error);
-                } finally {
-                    runBtn.disabled = false;
-                    runBtn.textContent = 'Run Backtest';
+                if (!response.ok) {
+                    throw new Error('Strategy test failed');
                 }
-            } else {
-                // Default strategy - use regular backtest
-                const strategyText = strategy !== 'default' ? ` with ${strategy} strategy` : '';
-                showStatus(`Fetching data and running backtest${strategyText}...`, 'info');
                 
-                try {
-                    const response = await fetch(`${API_URL}/backtest/run`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            symbol,
-                            interval,
-                            days,
-                            startBalance: balance,
-                            riskPercent: risk,
-                            strategy: strategy
-                        })
-                    });
+                const data = await response.json();
+                
+                // Find the selected strategy in results
+                const selectedStrategy = data.results.find(s => s.strategyName === strategy);
+                
+                if (selectedStrategy) {
+                    // Convert strategy result to backtest result format
+                    currentResults = {
+                        totalTrades: selectedStrategy.totalTrades,
+                        winningTrades: selectedStrategy.winningTrades,
+                        losingTrades: selectedStrategy.losingTrades,
+                        winRate: selectedStrategy.winRate,
+                        profitFactor: selectedStrategy.profitFactor,
+                        returnPercent: selectedStrategy.returnPercent,
+                        finalBalance: selectedStrategy.finalBalance,
+                        startBalance: balance,
+                        maxDrawdown: selectedStrategy.maxDrawdown,
+                        trades: selectedStrategy.trades || [] // Use trades from strategy result
+                    };
                     
-                    if (!response.ok) {
-                        throw new Error('Backtest failed');
-                    }
-                    
-                    currentResults = await response.json();
                     displayResults(currentResults);
-                    showStatus('Backtest completed successfully!', 'success');
-                    exportBtn.disabled = false;
-                    
-                } catch (error) {
-                    showStatus('Error: ' + error.message, 'error');
-                    console.error('Backtest error:', error);
-                } finally {
-                    runBtn.disabled = false;
-                    runBtn.textContent = 'Run Backtest';
+                    showStatus(`✅ ${strategy}: ${selectedStrategy.winRate.toFixed(1)}% WR, ${selectedStrategy.returnPercent.toFixed(0)}% return`, 'success');
+                } else {
+                    throw new Error('Strategy not found in results');
                 }
+                
+                exportBtn.disabled = false;
+                
+            } catch (error) {
+                showStatus('Error: ' + error.message, 'error');
+                console.error('Strategy test error:', error);
+            } finally {
+                runBtn.disabled = false;
+                runBtn.textContent = 'Run Backtest';
             }
+
         }
         
         async function testAllStrategies() {
@@ -646,7 +607,7 @@
                             <div style="font-size: 1.2em; margin-bottom: 15px;">📊 Individual Trade Details Not Available</div>
                             <div style="margin-bottom: 10px;">Summary statistics are shown above.</div>
                             <div style="font-size: 0.9em; color: #888; margin-top: 15px;">
-                                💡 Tip: Select "Default Strategy" for detailed trade-by-trade analysis.
+                                💡 All strategies now show complete trade details!
                             </div>
                         </td>
                     </tr>
