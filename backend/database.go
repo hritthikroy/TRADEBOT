@@ -17,13 +17,16 @@ func InitDB() {
 	databaseURL := os.Getenv("DATABASE_URL")
 	
 	if databaseURL == "" {
-		log.Fatal("❌ DATABASE_URL environment variable is not set")
+		log.Println("⚠️  DATABASE_URL not set - running in backtest-only mode")
+		return
 	}
 
 	// Connect using the full connection string
 	DB, err = sql.Open("postgres", databaseURL)
 	if err != nil {
-		log.Fatal("❌ Failed to connect to database:", err)
+		log.Printf("❌ Failed to connect to database: %v", err)
+		log.Println("⚠️  Running in backtest-only mode")
+		return
 	}
 
 	// Set connection pool settings
@@ -35,7 +38,9 @@ func InitDB() {
 	if err != nil {
 		log.Printf("❌ Failed to ping database: %v", err)
 		log.Printf("Connection string format: postgresql://user:password@host:port/database")
-		log.Fatal("Database connection failed")
+		log.Println("⚠️  Running in backtest-only mode")
+		DB = nil
+		return
 	}
 
 	log.Println("✅ Database connected successfully")

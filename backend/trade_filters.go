@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -558,4 +560,47 @@ type SmartFilter struct {
 	AllowedKillZones  []string `json:"allowed_kill_zones"`
 	AllowedPatterns   []string `json:"allowed_patterns"`
 	BestHours         []int    `json:"best_hours"`
+}
+
+
+// calculateConfidence calculates confidence based on sample size and win rate
+func calculateConfidence(sampleSize int, winRate float64) float64 {
+	// Base confidence on sample size
+	sizeConfidence := 0.0
+	if sampleSize >= 50 {
+		sizeConfidence = 100.0
+	} else if sampleSize >= 20 {
+		sizeConfidence = 80.0
+	} else if sampleSize >= 10 {
+		sizeConfidence = 60.0
+	} else if sampleSize >= 5 {
+		sizeConfidence = 40.0
+	} else {
+		sizeConfidence = 20.0
+	}
+	
+	// Adjust by win rate deviation from 50%
+	winRateDeviation := (winRate - 50.0) / 50.0
+	adjustment := winRateDeviation * 20.0
+	
+	confidence := sizeConfidence + adjustment
+	
+	// Clamp between 0 and 100
+	if confidence > 100 {
+		confidence = 100
+	} else if confidence < 0 {
+		confidence = 0
+	}
+	
+	return confidence
+}
+
+// formatFloat formats float to string with 2 decimals
+func formatFloat(f float64) string {
+	return fmt.Sprintf("%.2f", f)
+}
+
+// formatInt formats int to string
+func formatInt(i int) string {
+	return fmt.Sprintf("%d", i)
 }

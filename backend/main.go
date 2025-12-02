@@ -26,16 +26,35 @@ func main() {
 		AllowHeaders: "Origin, Content-Type, Accept",
 	}))
 
+	// Serve static files from public directory
+	app.Static("/", "../public")
+
 	// Initialize database
 	InitDB()
+
+	// Start WebSocket hub
+	go hub.Run()
+	log.Println("✅ WebSocket hub started")
+
+	// Start signal broadcaster (demo)
+	StartSignalBroadcaster()
+	log.Println("✅ Signal broadcaster started")
 
 	// Routes
 	SetupRoutes(app)
 
-	// Start automatic signal generator
-	signalGenerator := NewSignalGenerator()
-	signalGenerator.Start()
-	log.Println("✅ Automatic signal generator started")
+	// Start AI-enhanced signal generator (only if DB is available)
+	if DB != nil {
+		aiSignalGenerator := NewAIEnhancedSignalGenerator()
+		aiSignalGenerator.Start()
+		log.Println("✅ AI-Enhanced signal generator started")
+		
+		// Make it globally accessible for API endpoints
+		app.Use(func(c *fiber.Ctx) error {
+			c.Locals("aiGenerator", aiSignalGenerator)
+			return c.Next()
+		})
+	}
 
 	// Start server
 	port := os.Getenv("PORT")

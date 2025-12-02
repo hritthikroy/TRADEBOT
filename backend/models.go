@@ -4,6 +4,23 @@ import (
 	"time"
 )
 
+// Candle represents processed candlestick data
+type Candle struct {
+	Timestamp int64
+	Open      float64
+	High      float64
+	Low       float64
+	Close     float64
+	Volume    float64
+}
+
+// LiquiditySweepResult represents a liquidity sweep detection
+type LiquiditySweepResult struct {
+	Type       string  // "buyside" or "sellside"
+	SweepPrice float64
+	Confirmed  bool
+}
+
 type TradingSignal struct {
 	ID                   int64     `json:"id"`
 	SignalID             string    `json:"signal_id"`

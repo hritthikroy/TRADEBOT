@@ -21,15 +21,7 @@ type BinanceKline struct {
 	CloseTime int64
 }
 
-// Candle represents processed candlestick data
-type Candle struct {
-	Timestamp int64
-	Open      float64
-	High      float64
-	Low       float64
-	Close     float64
-	Volume    float64
-}
+// Candle type is now defined in models.go
 
 // SignalGenerator handles automatic signal generation
 type SignalGenerator struct {

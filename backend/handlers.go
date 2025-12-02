@@ -45,6 +45,10 @@ func CreateSignal(c *fiber.Ctx) error {
 
 // GetAllSignals retrieves all signals
 func GetAllSignals(c *fiber.Ctx) error {
+	if DB == nil {
+		return c.JSON([]TradingSignal{})
+	}
+
 	query := `
 		SELECT * FROM trading_signals 
 		ORDER BY created_at DESC
@@ -80,6 +84,10 @@ func GetAllSignals(c *fiber.Ctx) error {
 
 // GetPendingSignals retrieves only pending signals
 func GetPendingSignals(c *fiber.Ctx) error {
+	if DB == nil {
+		return c.JSON([]TradingSignal{})
+	}
+
 	query := `
 		SELECT * FROM trading_signals 
 		WHERE status = 'pending'
@@ -225,6 +233,10 @@ func DeleteSignal(c *fiber.Ctx) error {
 
 // GetAnalytics retrieves analytics data
 func GetAnalytics(c *fiber.Ctx) error {
+	if DB == nil {
+		return c.JSON([]SignalAnalytics{})
+	}
+
 	query := `SELECT * FROM signal_analytics`
 
 	rows, err := DB.Query(query)
@@ -252,6 +264,18 @@ func GetAnalytics(c *fiber.Ctx) error {
 
 // GetPerformanceStats retrieves overall performance statistics
 func GetPerformanceStats(c *fiber.Ctx) error {
+	// Check if DB is available
+	if DB == nil {
+		return c.JSON(fiber.Map{
+			"total_signals": 0,
+			"wins":          0,
+			"losses":        0,
+			"pending":       0,
+			"avg_profit":    nil,
+			"win_rate":      nil,
+		})
+	}
+
 	query := `
 		SELECT 
 			COUNT(*) as total_signals,

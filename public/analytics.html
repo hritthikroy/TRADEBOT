@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics - Go Backend</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .card h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+        }
+        
+        .stat-item {
+            padding: 16px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .stat-item h3 {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        
+        .stat-item p {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+        }
+        
+        .table th, .table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .table th {
+            background: #f5f5f5;
+            font-weight: 600;
+        }
+        
+        .table tr:hover {
+            background: #f9f9f9;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+        }
+        
+        .profit {
+            color: #4CAF50;
+            font-weight: 600;
+        }
+        
+        .loss {
+            color: #f44336;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Performance Analytics</h1>
+            <p>Powered by Go Backend</p>
+        </div>
+        
+        <div class="card">
+            <h2>Overall Performance</h2>
+            <div id="overallStats" class="loading">Loading...</div>
+        </div>
+        
+        <div class="card">
+            <h2>Performance by Kill Zone</h2>
+            <div id="killZoneStats" class="loading">Loading...</div>
+        </div>
+        
+        <div class="card">
+            <h2>Performance by Pattern</h2>
+            <div id="patternStats" class="loading">Loading...</div>
+        </div>
+        
+        <div class="card">
+            <h2>Best Trading Opportunities</h2>
+            <div id="opportunities" class="loading">Loading...</div>
+        </div>
+    </div>
+    
+    <script>
+        const API_URL = 'http://localhost:8080/api/v1';
+        
+        async function loadAnalytics() {
+            try {
+                // Load overall performance
+                const perfResponse = await fetch(`${API_URL}/analytics/performance`);
+                if (perfResponse.ok) {
+                    const perfData = await perfResponse.json();
+                    displayOverallStats(perfData);
+                }
+                
+                // Load kill zone stats
+                const kzResponse = await fetch(`${API_URL}/analytics/by-killzone`);
+                if (kzResponse.ok) {
+                    const kzData = await kzResponse.json();
+                    displayKillZoneStats(kzData);
+                }
+                
+                // Load pattern stats
+                const patternResponse = await fetch(`${API_URL}/analytics/by-pattern`);
+                if (patternResponse.ok) {
+                    const patternData = await patternResponse.json();
+                    displayPatternStats(patternData);
+                }
+                
+                // Load opportunities
+                const oppResponse = await fetch(`${API_URL}/filters/opportunities`);
+                if (oppResponse.ok) {
+                    const oppData = await oppResponse.json();
+                    displayOpportunities(oppData);
+                }
+                
+            } catch (error) {
+                console.error('Error loading analytics:', error);
+                document.getElementById('overallStats').innerHTML = `
+                    <p style="color: #f44336;">Unable to connect to backend. Make sure the Go server is running.</p>
+                `;
+            }
+        }
+        
+        function displayOverallStats(data) {
+            const container = document.getElementById('overallStats');
+            
+            if (!data || data.length === 0) {
+                container.innerHTML = '<p>No data available</p>';
+                return;
+            }
+            
+            const stats = data[0]; // First row contains overall stats
+            
+            container.innerHTML = `
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <h3>Total Signals</h3>
+                        <p>${stats.total_signals || 0}</p>
+                    </div>
+                    <div class="stat-item">
+                        <h3>Win Rate</h3>
+                        <p class="${(stats.win_rate || 0) >= 50 ? 'profit' : 'loss'}">${(stats.win_rate || 0).toFixed(1)}%</p>
+                    </div>
+                    <div class="stat-item">
+                        <h3>Avg Profit</h3>
+                        <p class="${(stats.avg_profit_percent || 0) >= 0 ? 'profit' : 'loss'}">${(stats.avg_profit_percent || 0).toFixed(2)}%</p>
+                    </div>
+                    <div class="stat-item">
+                        <h3>Avg Win</h3>
+                        <p class="profit">${(stats.avg_win_percent || 0).toFixed(2)}%</p>
+                    </div>
+                    <div class="stat-item">
+                        <h3>Avg Loss</h3>
+                        <p class="loss">${(stats.avg_loss_percent || 0).toFixed(2)}%</p>
+                    </div>
+                    <div class="stat-item">
+                        <h3>Avg Hold Time</h3>
+                        <p>${Math.round(stats.avg_holding_minutes || 0)} min</p>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function displayKillZoneStats(data) {
+            const container = document.getElementById('killZoneStats');
+            
+            if (!data || data.length === 0) {
+                container.innerHTML = '<p>No kill zone data available</p>';
+                return;
+            }
+            
+            container.innerHTML = `
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Kill Zone</th>
+                            <th>Total Signals</th>
+                            <th>Wins</th>
+                            <th>Losses</th>
+                            <th>Win Rate</th>
+                            <th>Avg Profit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.map(kz => `
+                            <tr>
+                                <td><strong>${kz.kill_zone || 'Unknown'}</strong></td>
+                                <td>${kz.total_signals}</td>
+                                <td class="profit">${kz.wins}</td>
+                                <td class="loss">${kz.losses}</td>
+                                <td class="${(kz.win_rate || 0) >= 50 ? 'profit' : 'loss'}">${(kz.win_rate || 0).toFixed(1)}%</td>
+                                <td class="${(kz.avg_profit_percent || 0) >= 0 ? 'profit' : 'loss'}">${(kz.avg_profit_percent || 0).toFixed(2)}%</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+        
+        function displayPatternStats(data) {
+            const container = document.getElementById('patternStats');
+            
+            if (!data || data.length === 0) {
+                container.innerHTML = '<p>No pattern data available</p>';
+                return;
+            }
+            
+            container.innerHTML = `
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Pattern</th>
+                            <th>Total Signals</th>
+                            <th>Wins</th>
+                            <th>Losses</th>
+                            <th>Win Rate</th>
+                            <th>Avg Profit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.map(pattern => `
+                            <tr>
+                                <td><strong>${pattern.pattern_type || 'Unknown'}</strong></td>
+                                <td>${pattern.total_signals}</td>
+                                <td class="profit">${pattern.wins}</td>
+                                <td class="loss">${pattern.losses}</td>
+                                <td class="${(pattern.win_rate || 0) >= 50 ? 'profit' : 'loss'}">${(pattern.win_rate || 0).toFixed(1)}%</td>
+                                <td class="${(pattern.avg_profit_percent || 0) >= 0 ? 'profit' : 'loss'}">${(pattern.avg_profit_percent || 0).toFixed(2)}%</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+        
+        function displayOpportunities(data) {
+            const container = document.getElementById('opportunities');
+            
+            if (!data || !data.opportunities || data.opportunities.length === 0) {
+                container.innerHTML = '<p>No opportunities data available</p>';
+                return;
+            }
+            
+            container.innerHTML = `
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Condition</th>
+                            <th>Win Rate</th>
+                            <th>Avg Profit</th>
+                            <th>Profit Factor</th>
+                            <th>Total Trades</th>
+                            <th>Score</th>
+                            <th>Recommendation</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.opportunities.map(opp => `
+                            <tr>
+                                <td><strong>${opp.type}</strong></td>
+                                <td>${opp.condition}</td>
+                                <td class="${opp.win_rate >= 50 ? 'profit' : 'loss'}">${opp.win_rate.toFixed(1)}%</td>
+                                <td class="${opp.avg_profit >= 0 ? 'profit' : 'loss'}">${opp.avg_profit.toFixed(2)}%</td>
+                                <td>${opp.profit_factor.toFixed(2)}</td>
+                                <td>${opp.total_trades}</td>
+                                <td><strong>${opp.score.toFixed(1)}</strong></td>
+                                <td>${opp.recommendation}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                ${data.recommendation ? `
+                    <div style="margin-top: 20px; padding: 16px; background: #e3f2fd; border-radius: 8px;">
+                        <strong>💡 Recommendation:</strong> ${data.recommendation}
+                    </div>
+                ` : ''}
+            `;
+        }
+        
+        // Load analytics on page load
+        loadAnalytics();
+        
+        // Refresh every 30 seconds
+        setInterval(loadAnalytics, 30000);
+    </script>
+</body>
+</html>

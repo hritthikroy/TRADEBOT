@@ -177,13 +177,29 @@
                             <button class="time-btn" onclick="changeInterval('1s')">1s</button>
                             <button class="time-btn" onclick="changeInterval('1m')">1m</button>
                             <button class="time-btn" onclick="changeInterval('3m')">3m</button>
+                            <button class="time-btn" onclick="changeInterval('5m')">5m</button>
                             <button class="time-btn active" onclick="changeInterval('15m')">15m</button>
+                            <button class="time-btn" onclick="changeInterval('30m')">30m</button>
                             <button class="time-btn" onclick="changeInterval('1h')">1h</button>
                             <button class="time-btn" onclick="changeInterval('2h')" style="background: #f85149; color: white; font-weight: bold;" title="Best performer - 1475% return">2h ⭐</button>
                             <button class="time-btn" onclick="changeInterval('4h')">4h</button>
+                            <button class="time-btn" onclick="changeInterval('6h')">6h</button>
+                            <button class="time-btn" onclick="changeInterval('8h')">8h</button>
+                            <button class="time-btn" onclick="changeInterval('12h')">12h</button>
+                            <button class="time-btn" onclick="changeInterval('1d')">1D</button>
+                            <button class="time-btn" onclick="changeInterval('3d')">3D</button>
+                            <button class="time-btn" onclick="changeInterval('1w')">1W</button>
                         </div>
                         <div style="display: flex; gap: 5px; align-items: center;">
-                            <button class="time-btn" id="backtest-btn" title="Run 30-day backtest">📊 Backtest</button>
+                            <select id="backtest-period" style="background: #2a2e39; color: #d1d4dc; border: 1px solid #363a45; padding: 6px 8px; border-radius: 4px; font-size: 12px; cursor: pointer;">
+                                <option value="7">7 days</option>
+                                <option value="30" selected>30 days</option>
+                                <option value="60">60 days</option>
+                                <option value="90">90 days</option>
+                                <option value="180">180 days</option>
+                            </select>
+                            <button class="time-btn" id="backtest-btn" onclick="runBacktestWithPeriod()" title="Run backtest with selected period">📊 Backtest</button>
+                            <button class="time-btn" onclick="downloadBacktestReport()" title="Download detailed backtest report" style="background: #a855f7; color: white;">📥 Report</button>
                             <button class="time-btn" onclick="window.open('signal-tracker.html', '_blank')" title="View all signals">📋 Signals</button>
                             <button class="time-btn" onclick="window.open('best-entry.html', '_blank')" title="Best entry positions" style="background: #f7931a; color: white; font-weight: bold;">🎯 Best Entry</button>
                             <span style="color: #787b86; font-size: 11px; margin: 0 5px;">Scroll to zoom</span>
