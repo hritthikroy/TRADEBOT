@@ -95,26 +95,26 @@ func GetOptimizedStrategy(timeframe string) TimeframeStrategy {
 			MaxVolatility:      2.5,
 		},
 		
-		// Intraday - 15m (Sweet spot for day trading)
+		// Intraday - 15m (OPTIMIZED - Sweet spot for day trading)
 		"15m": {
 			Timeframe:          "15m",
-			MinConfluence:      4,
-			MinRR:              2.0,
-			StopLossATR:        1.0,
-			TakeProfitATR:      []float64{2.0, 3.0, 4.0},
-			TrailingStopATR:    0.8,
-			RequireSession:     true,
-			AllowedSessions:    []string{"London", "NewYork", "Asian"},
+			MinConfluence:      5, // Increased from 4 for better filtering
+			MinRR:              2.5, // Increased from 2.0 for better RR
+			StopLossATR:        1.2, // Increased from 1.0 for less whipsaws
+			TakeProfitATR:      []float64{3.0, 4.5, 6.0}, // Better targets
+			TrailingStopATR:    1.0, // Increased from 0.8
+			RequireSession:     true, // STRICT: Only kill zones
+			AllowedSessions:    []string{"London", "NewYork"}, // Removed Asian
 			RequireVolume:      true,
-			VolumeMultiplier:   1.3,
-			RequireTrend:       false, // Can trade ranges
+			VolumeMultiplier:   1.5, // Increased from 1.3
+			RequireTrend:       true, // CHANGED: Require trend
 			MaxRiskPercent:     2.0,
-			RequirePatterns:    []string{"Order Block", "FVG", "Liquidity Sweep"},
+			RequirePatterns:    []string{"Order Block", "FVG", "Liquidity Sweep", "Engulfing"},
 			RequireICT:         true,
 			UseSmartMoney:      true,
-			FilterByVolatility: false,
-			MinVolatility:      0.0,
-			MaxVolatility:      10.0,
+			FilterByVolatility: true, // ADDED: Filter volatility
+			MinVolatility:      0.2,
+			MaxVolatility:      2.5,
 		},
 		
 		// Intraday - 30m (Balanced intraday)
@@ -139,21 +139,21 @@ func GetOptimizedStrategy(timeframe string) TimeframeStrategy {
 			MaxVolatility:      10.0,
 		},
 		
-		// Swing - 1h (High probability swing trades)
+		// Swing - 1h (OPTIMIZED - High probability swing trades)
 		"1h": {
 			Timeframe:          "1h",
-			MinConfluence:      3,
-			MinRR:              2.5,
-			StopLossATR:        1.5,
-			TakeProfitATR:      []float64{3.5, 5.0, 7.0},
-			TrailingStopATR:    1.2,
-			RequireSession:     false,
-			AllowedSessions:    []string{},
-			RequireVolume:      false,
-			VolumeMultiplier:   1.0,
-			RequireTrend:       false,
+			MinConfluence:      4, // Increased from 3 for better filtering
+			MinRR:              2.8, // Increased from 2.5 for better RR
+			StopLossATR:        1.8, // Increased from 1.5 for less whipsaws
+			TakeProfitATR:      []float64{5.0, 7.0, 10.0}, // Better targets
+			TrailingStopATR:    1.5, // Increased from 1.2
+			RequireSession:     true, // ADDED: Session filter
+			AllowedSessions:    []string{"London", "NewYork"}, // Kill zones only
+			RequireVolume:      true, // ADDED: Volume filter
+			VolumeMultiplier:   1.3, // Require above average volume
+			RequireTrend:       true, // CHANGED: Require trend
 			MaxRiskPercent:     2.0,
-			RequirePatterns:    []string{"Order Block", "FVG", "BOS"},
+			RequirePatterns:    []string{"Order Block", "FVG", "BOS", "Liquidity Sweep"},
 			RequireICT:         true,
 			UseSmartMoney:      true,
 			FilterByVolatility: false,

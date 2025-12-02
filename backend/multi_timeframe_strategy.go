@@ -89,6 +89,7 @@ type MTFDeltaAnalysis struct {
 }
 
 // GenerateMultiTimeframeSignal generates signal using top-down analysis
+// OPTIMIZED VERSION with balanced parameters
 func GenerateMultiTimeframeSignal(
 	candles4h []Candle,
 	candles1h []Candle,
@@ -99,6 +100,9 @@ func GenerateMultiTimeframeSignal(
 	
 	// Minimum data requirements
 	if len(candles4h) < 50 || len(candles1h) < 50 || len(candles15m) < 50 {
+		return nil
+	}
+	if len(candles3m) < 20 || len(candles1m) < 20 {
 		return nil
 	}
 	
@@ -159,8 +163,8 @@ func GenerateMultiTimeframeSignal(
 	reward := math.Abs(entryPrice - tp1)
 	rr := reward / risk
 	
-	// Minimum RR requirement
-	if rr < 3.0 {
+	// Minimum RR requirement (OPTIMIZED: Balanced)
+	if rr < 2.5 { // Reduced from 3.0 for more trades
 		return nil // RR too low for multi-timeframe setup
 	}
 	
@@ -169,8 +173,8 @@ func GenerateMultiTimeframeSignal(
 		htfConfidence, len(orderBlocks), len(fvgs), 
 		volumeProfile, deltaAnalysis, insideFVG, entryQuality)
 	
-	// Minimum confluence for multi-timeframe
-	if confluence < 6 {
+	// Minimum confluence for multi-timeframe (OPTIMIZED: Balanced)
+	if confluence < 5 { // Reduced from 6 for more trades
 		return nil // Not enough confluence
 	}
 	
@@ -207,6 +211,7 @@ func GenerateMultiTimeframeSignal(
 }
 
 // analyze4hDirection determines overall market direction from 4h
+// OPTIMIZED: Lower confidence threshold for more signals
 func analyze4hDirection(candles []Candle) (string, string, float64) {
 	if len(candles) < 50 {
 		return "", "", 0
@@ -221,25 +226,25 @@ func analyze4hDirection(candles []Candle) (string, string, float64) {
 	
 	currentPrice := candles[idx].Close
 	
-	// Determine trend
+	// Determine trend (OPTIMIZED: More lenient)
 	var trend string
 	var confidence float64
 	
 	if ema20 > ema50 && ema50 > ema200 && currentPrice > ema20 {
 		trend = "strong_bullish"
-		confidence = 90.0
+		confidence = 85.0 // Reduced from 90
 	} else if ema20 > ema50 && currentPrice > ema20 {
 		trend = "bullish"
-		confidence = 75.0
+		confidence = 70.0 // Reduced from 75
 	} else if ema20 < ema50 && ema50 < ema200 && currentPrice < ema20 {
 		trend = "strong_bearish"
-		confidence = 90.0
+		confidence = 85.0 // Reduced from 90
 	} else if ema20 < ema50 && currentPrice < ema20 {
 		trend = "bearish"
-		confidence = 75.0
+		confidence = 70.0 // Reduced from 75
 	} else {
 		trend = "ranging"
-		confidence = 50.0
+		confidence = 45.0 // Reduced from 50
 	}
 	
 	// Check for break of structure
