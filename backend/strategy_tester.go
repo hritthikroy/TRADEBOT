@@ -23,6 +23,7 @@ type StrategyTestResult struct {
 	Score          float64 `json:"score"`
 	TargetWinRate  float64 `json:"targetWinRate"`
 	TargetPF       float64 `json:"targetProfitFactor"`
+	Trades         []Trade `json:"trades"` // Add individual trades
 }
 
 // TestAllStrategies tests all advanced strategies
@@ -97,6 +98,7 @@ func TestAllStrategies(symbol string, startBalance float64) ([]StrategyTestResul
 func simulateAdvancedTrades(signals []AdvancedSignal, candles []Candle, startBalance float64, strategy AdvancedStrategy) StrategyTestResult {
 	result := StrategyTestResult{
 		FinalBalance: startBalance,
+		Trades:       []Trade{}, // Initialize trades slice
 	}
 	
 	balance := startBalance
@@ -122,43 +124,70 @@ func simulateAdvancedTrades(signals []AdvancedSignal, candles []Candle, startBal
 		// Find exit
 		exitFound := false
 		var profit float64
+		var exitPrice float64
+		var exitReason string
+		var candlesHeld int
 		
 		for i := 0; i < len(candles); i++ {
 			if signal.Type == "BUY" {
 				if candles[i].Low <= signal.StopLoss {
 					profit = (signal.StopLoss - signal.Entry) * positionSize
+					exitPrice = signal.StopLoss
+					exitReason = "Stop Loss"
+					candlesHeld = i + 1
 					exitFound = true
 					break
 				}
 				if candles[i].High >= signal.TP3 {
 					profit = (signal.TP3 - signal.Entry) * positionSize
+					exitPrice = signal.TP3
+					exitReason = "Target 3"
+					candlesHeld = i + 1
 					exitFound = true
 					break
 				} else if candles[i].High >= signal.TP2 {
 					profit = (signal.TP2 - signal.Entry) * positionSize
+					exitPrice = signal.TP2
+					exitReason = "Target 2"
+					candlesHeld = i + 1
 					exitFound = true
 					break
 				} else if candles[i].High >= signal.TP1 {
 					profit = (signal.TP1 - signal.Entry) * positionSize
+					exitPrice = signal.TP1
+					exitReason = "Target 1"
+					candlesHeld = i + 1
 					exitFound = true
 					break
 				}
 			} else {
 				if candles[i].High >= signal.StopLoss {
 					profit = (signal.Entry - signal.StopLoss) * positionSize
+					exitPrice = signal.StopLoss
+					exitReason = "Stop Loss"
+					candlesHeld = i + 1
 					exitFound = true
 					break
 				}
 				if candles[i].Low <= signal.TP3 {
 					profit = (signal.Entry - signal.TP3) * positionSize
+					exitPrice = signal.TP3
+					exitReason = "Target 3"
+					candlesHeld = i + 1
 					exitFound = true
 					break
 				} else if candles[i].Low <= signal.TP2 {
 					profit = (signal.Entry - signal.TP2) * positionSize
+					exitPrice = signal.TP2
+					exitReason = "Target 2"
+					candlesHeld = i + 1
 					exitFound = true
 					break
 				} else if candles[i].Low <= signal.TP1 {
 					profit = (signal.Entry - signal.TP1) * positionSize
+					exitPrice = signal.TP1
+					exitReason = "Target 1"
+					candlesHeld = i + 1
 					exitFound = true
 					break
 				}
@@ -174,7 +203,32 @@ func simulateAdvancedTrades(signals []AdvancedSignal, candles []Candle, startBal
 			maxBalance = balance
 		}
 		
+		// Calculate RR ratio
+		rr := 0.0
+		if riskPerUnit != 0 {
+			rr = math.Abs(exitPrice-signal.Entry) / riskPerUnit
+			if profit < 0 {
+				rr = -rr
+			}
+		}
+		
+		// Create trade record
+		trade := Trade{
+			Type:          signal.Type,
+			Entry:         signal.Entry,
+			Exit:          exitPrice,
+			StopLoss:      signal.StopLoss,
+			ExitReason:    exitReason,
+			CandlesHeld:   candlesHeld,
+			Profit:        profit,
+			ProfitPercent: (profit / riskAmount) * 100,
+			RR:            rr,
+			BalanceAfter:  balance,
+		}
+		
+		result.Trades = append(result.Trades, trade)
 		result.TotalTrades++
+		
 		if profit > 0 {
 			result.WinningTrades++
 			totalProfit += profit

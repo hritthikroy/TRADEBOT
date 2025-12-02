@@ -927,3 +927,109 @@ function downloadBacktestReport() {
 
 // Export function globally
 window.downloadBacktestReport = downloadBacktestReport;
+
+// Run backtest with selected period and strategy
+async function runBacktestWithPeriod() {
+    const periodSelect = document.getElementById('backtest-period');
+    const strategySelect = document.getElementById('backtest-strategy');
+    const days = parseInt(periodSelect?.value || 30);
+    const strategy = strategySelect?.value || 'default';
+    
+    console.log(`🚀 Running backtest: ${strategy} strategy for ${days} days`);
+    
+    const btn = document.getElementById('backtest-btn');
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = '⏳ Running...';
+    }
+    
+    try {
+        // Get current symbol and interval
+        const symbol = window.currentSymbol || 'BTCUSDT';
+        const interval = window.currentInterval || '15m';
+        
+        // If strategy is selected, use API endpoint
+        if (strategy !== 'default') {
+            await runStrategyBacktest(symbol, interval, days, strategy);
+        } else {
+            // Use default backtest
+            await runBacktest(symbol, interval, days);
+        }
+    } catch (error) {
+        console.error('❌ Backtest error:', error);
+        alert('Backtest failed: ' + error.message);
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = '📊 Backtest';
+        }
+    }
+}
+
+// Run backtest with specific strategy via API
+async function runStrategyBacktest(symbol, interval, days, strategyName) {
+    console.log(`🔬 Testing ${strategyName} strategy...`);
+    
+    try {
+        const response = await fetch('http://localhost:8080/api/v1/backtest/run', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                symbol: symbol,
+                interval: interval,
+                days: days,
+                startBalance: 500,
+                strategy: strategyName
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`API error: ${response.statusText}`);
+        }
+        
+        const result = await response.json();
+        
+        // Display results
+        displayStrategyResults(result, strategyName);
+        
+        console.log('✅ Strategy backtest complete!');
+        updateStatus(`${strategyName}: ${result.winRate?.toFixed(1)}% WR, ${result.returnPercent?.toFixed(1)}% return`);
+        
+    } catch (error) {
+        console.error('❌ Strategy backtest error:', error);
+        throw error;
+    }
+}
+
+// Display strategy backtest results
+function displayStrategyResults(result, strategyName) {
+    console.log('\n📊 ===== STRATEGY BACKTEST RESULTS =====');
+    console.log(`Strategy: ${strategyName}`);
+    console.log(`Total Trades: ${result.totalTrades || 0}`);
+    console.log(`Win Rate: ${(result.winRate || 0).toFixed(1)}%`);
+    console.log(`Profit Factor: ${(result.profitFactor || 0).toFixed(2)}`);
+    console.log(`Return: ${(result.returnPercent || 0).toFixed(2)}%`);
+    console.log(`Final Balance: $${(result.finalBalance || 0).toFixed(2)}`);
+    console.log(`Max Drawdown: ${(result.maxDrawdown || 0).toFixed(2)}%`);
+    console.log('==============================\n');
+    
+    // Update global results for report generation
+    window.backtestResults = {
+        ...backtestResults,
+        totalTrades: result.totalTrades || 0,
+        winningTrades: result.winningTrades || 0,
+        losingTrades: result.losingTrades || 0,
+        winRate: result.winRate || 0,
+        profitFactor: result.profitFactor || 0,
+        returnPercent: result.returnPercent || 0,
+        currentBalance: result.finalBalance || 500,
+        startingBalance: result.startBalance || 500,
+        maxDrawdown: (result.maxDrawdown || 0) / 100,
+        trades: result.trades || []
+    };
+}
+
+// Export function
+window.runBacktestWithPeriod = runBacktestWithPeriod;

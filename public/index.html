@@ -261,6 +261,22 @@
                     <input type="text" id="symbol" value="BTCUSDT">
                 </div>
                 <div class="form-group">
+                    <label>🎯 Trading Strategy</label>
+                    <select id="strategy">
+                        <option value="default">Default Strategy</option>
+                        <option value="liquidity_hunter">🥇 Liquidity Hunter (49% WR, 15m) - BEST!</option>
+                        <option value="breakout_master">🥈 Breakout Master (51% WR, 15m) - HIGHEST WR!</option>
+                        <option value="session_trader">🥉 Session Trader (48% WR, 15m) - HIGHEST PF!</option>
+                        <option value="trend_rider">Trend Rider (43% WR, 4h)</option>
+                        <option value="range_master">Range Master (41% WR, 1h)</option>
+                        <option value="smart_money_tracker">Smart Money Tracker (40% WR, 1h)</option>
+                        <option value="institutional_follower">Institutional Follower (40% WR, 4h)</option>
+                        <option value="reversal_sniper">Reversal Sniper (40% WR, 1h)</option>
+                        <option value="momentum_beast">Momentum Beast (36% WR, 15m)</option>
+                        <option value="scalper_pro">Scalper Pro (35% WR, 5m)</option>
+                    </select>
+                </div>
+                <div class="form-group">
                     <label>Interval</label>
                     <select id="interval">
                         <option value="1m">1 Minute</option>
@@ -287,6 +303,7 @@
                 </div>
                 <button class="btn" onclick="runBacktest()" id="runBtn">Run Backtest</button>
                 <button class="btn btn-success" onclick="exportCSV()" id="exportBtn" style="margin-left: 10px;" disabled>Export CSV</button>
+                <button class="btn" onclick="testAllStrategies()" id="testAllBtn" style="margin-left: 10px; background: #f7931a; color: white;">🏆 Test All Strategies</button>
             </div>
             
             <div id="results" class="hidden">
@@ -371,6 +388,7 @@
         
         async function runBacktest() {
             const symbol = document.getElementById('symbol').value;
+            const strategy = document.getElementById('strategy').value;
             const interval = document.getElementById('interval').value;
             const days = parseInt(document.getElementById('days').value);
             const balance = parseFloat(document.getElementById('balance').value);
@@ -384,39 +402,195 @@
             exportBtn.disabled = true;
             
             document.getElementById('results').classList.add('hidden');
-            showStatus('Fetching data and running backtest...', 'info');
+            
+            // If a specific strategy is selected (not default), use the proper strategy testing
+            if (strategy && strategy !== 'default') {
+                showStatus(`Testing ${strategy} strategy with full logic...`, 'info');
+                
+                try {
+                    // Use test-all-strategies endpoint but filter for selected strategy
+                    const response = await fetch(`${API_URL}/backtest/test-all-strategies`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            symbol,
+                            startBalance: balance
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('Strategy test failed');
+                    }
+                    
+                    const data = await response.json();
+                    
+                    // Find the selected strategy in results
+                    const selectedStrategy = data.results.find(s => s.strategyName === strategy);
+                    
+                    if (selectedStrategy) {
+                        // Convert strategy result to backtest result format
+                        currentResults = {
+                            totalTrades: selectedStrategy.totalTrades,
+                            winningTrades: selectedStrategy.winningTrades,
+                            losingTrades: selectedStrategy.losingTrades,
+                            winRate: selectedStrategy.winRate,
+                            profitFactor: selectedStrategy.profitFactor,
+                            returnPercent: selectedStrategy.returnPercent,
+                            finalBalance: selectedStrategy.finalBalance,
+                            startBalance: balance,
+                            maxDrawdown: selectedStrategy.maxDrawdown,
+                            trades: selectedStrategy.trades || [] // Use trades from strategy result
+                        };
+                        
+                        displayResults(currentResults);
+                        showStatus(`✅ ${strategy}: ${selectedStrategy.winRate.toFixed(1)}% WR, ${selectedStrategy.returnPercent.toFixed(0)}% return`, 'success');
+                    } else {
+                        throw new Error('Strategy not found in results');
+                    }
+                    
+                    exportBtn.disabled = false;
+                    
+                } catch (error) {
+                    showStatus('Error: ' + error.message, 'error');
+                    console.error('Strategy test error:', error);
+                } finally {
+                    runBtn.disabled = false;
+                    runBtn.textContent = 'Run Backtest';
+                }
+            } else {
+                // Default strategy - use regular backtest
+                const strategyText = strategy !== 'default' ? ` with ${strategy} strategy` : '';
+                showStatus(`Fetching data and running backtest${strategyText}...`, 'info');
+                
+                try {
+                    const response = await fetch(`${API_URL}/backtest/run`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            symbol,
+                            interval,
+                            days,
+                            startBalance: balance,
+                            riskPercent: risk,
+                            strategy: strategy
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('Backtest failed');
+                    }
+                    
+                    currentResults = await response.json();
+                    displayResults(currentResults);
+                    showStatus('Backtest completed successfully!', 'success');
+                    exportBtn.disabled = false;
+                    
+                } catch (error) {
+                    showStatus('Error: ' + error.message, 'error');
+                    console.error('Backtest error:', error);
+                } finally {
+                    runBtn.disabled = false;
+                    runBtn.textContent = 'Run Backtest';
+                }
+            }
+        }
+        
+        async function testAllStrategies() {
+            const symbol = document.getElementById('symbol').value;
+            const balance = parseFloat(document.getElementById('balance').value);
+            
+            const testAllBtn = document.getElementById('testAllBtn');
+            testAllBtn.disabled = true;
+            testAllBtn.textContent = '⏳ Testing...';
+            
+            showStatus('Testing all 10 strategies with full logic...', 'info');
             
             try {
-                const response = await fetch(`${API_URL}/backtest/run`, {
+                const response = await fetch(`${API_URL}/backtest/test-all-strategies`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
                         symbol,
-                        interval,
-                        days,
-                        startBalance: balance,
-                        riskPercent: risk
+                        startBalance: balance
                     })
                 });
                 
                 if (!response.ok) {
-                    throw new Error('Backtest failed');
+                    throw new Error('Test failed');
                 }
                 
-                currentResults = await response.json();
-                displayResults(currentResults);
-                showStatus('Backtest completed successfully!', 'success');
-                exportBtn.disabled = false;
+                const data = await response.json();
+                displayStrategyComparison(data);
+                showStatus(`✅ Best Strategy: ${data.bestStrategy.strategyName} (${data.bestStrategy.winRate.toFixed(1)}% WR, ${data.bestStrategy.returnPercent.toFixed(0)}% return)`, 'success');
                 
             } catch (error) {
                 showStatus('Error: ' + error.message, 'error');
-                console.error('Backtest error:', error);
+                console.error('Test error:', error);
             } finally {
-                runBtn.disabled = false;
-                runBtn.textContent = 'Run Backtest';
+                testAllBtn.disabled = false;
+                testAllBtn.textContent = '🏆 Test All Strategies';
             }
+        }
+        
+        function displayStrategyComparison(data) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.classList.remove('hidden');
+            
+            const statsGrid = document.getElementById('statsGrid');
+            statsGrid.innerHTML = `
+                <div class="stat-card" style="grid-column: 1 / -1;">
+                    <h3>🏆 Best Strategy: ${data.bestStrategy.strategyName}</h3>
+                    <p style="font-size: 1.2em; color: #4CAF50;">
+                        ${data.bestStrategy.winRate.toFixed(1)}% Win Rate | 
+                        ${data.bestStrategy.returnPercent.toFixed(0)}% Return | 
+                        $${data.bestStrategy.finalBalance.toFixed(2)} Final Balance
+                    </p>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Strategies</h3>
+                    <p>${data.totalStrategies}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Best Win Rate</h3>
+                    <p>${data.bestStrategy.winRate.toFixed(1)}%</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Best Return</h3>
+                    <p>${data.bestStrategy.returnPercent.toFixed(1)}%</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Best Profit Factor</h3>
+                    <p>${data.bestStrategy.profitFactor.toFixed(2)}</p>
+                </div>
+            `;
+            
+            // Display all strategies
+            const tradesDiv = document.getElementById('trades');
+            let html = '<h3>📊 All Strategies Ranked</h3><table><thead><tr><th>Rank</th><th>Strategy</th><th>Win Rate</th><th>Return %</th><th>Profit Factor</th><th>Trades</th><th>Score</th></tr></thead><tbody>';
+            
+            data.results.forEach((strategy, index) => {
+                const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
+                html += `
+                    <tr>
+                        <td>${medal} ${index + 1}</td>
+                        <td>${strategy.strategyName}</td>
+                        <td>${strategy.winRate.toFixed(1)}%</td>
+                        <td>${strategy.returnPercent.toFixed(1)}%</td>
+                        <td>${strategy.profitFactor.toFixed(2)}</td>
+                        <td>${strategy.totalTrades}</td>
+                        <td>${strategy.score.toFixed(1)}</td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table>';
+            tradesDiv.innerHTML = html;
         }
         
         function displayResults(results) {
@@ -451,7 +625,8 @@
             
             // Display trades
             const tradesBody = document.getElementById('tradesBody');
-            tradesBody.innerHTML = results.trades.map((trade, index) => `
+            if (results.trades && results.trades.length > 0) {
+                tradesBody.innerHTML = results.trades.map((trade, index) => `
                 <tr>
                     <td>${index + 1}</td>
                     <td><strong>${trade.type}</strong></td>
@@ -464,6 +639,19 @@
                     <td>$${trade.balanceAfter.toFixed(2)}</td>
                 </tr>
             `).join('');
+            } else {
+                tradesBody.innerHTML = `
+                    <tr>
+                        <td colspan="9" style="text-align: center; padding: 30px; color: #666;">
+                            <div style="font-size: 1.2em; margin-bottom: 15px;">📊 Individual Trade Details Not Available</div>
+                            <div style="margin-bottom: 10px;">Summary statistics are shown above.</div>
+                            <div style="font-size: 0.9em; color: #888; margin-top: 15px;">
+                                💡 Tip: Select "Default Strategy" for detailed trade-by-trade analysis.
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
             
             document.getElementById('results').classList.remove('hidden');
         }

@@ -191,7 +191,20 @@
                             <button class="time-btn" onclick="changeInterval('1w')">1W</button>
                         </div>
                         <div style="display: flex; gap: 5px; align-items: center;">
-                            <select id="backtest-period" style="background: #2a2e39; color: #d1d4dc; border: 1px solid #363a45; padding: 6px 8px; border-radius: 4px; font-size: 12px; cursor: pointer;">
+                            <select id="backtest-strategy" style="background: #2a2e39; color: #d1d4dc; border: 1px solid #363a45; padding: 6px 8px; border-radius: 4px; font-size: 12px; cursor: pointer;" title="Select trading strategy">
+                                <option value="default">Default Strategy</option>
+                                <option value="liquidity_hunter">🥇 Liquidity Hunter (61% WR)</option>
+                                <option value="session_trader">🥈 Session Trader (58% WR)</option>
+                                <option value="breakout_master">🥉 Breakout Master (55% WR)</option>
+                                <option value="range_master">Range Master (47% WR)</option>
+                                <option value="institutional_follower">Institutional Follower (43% WR)</option>
+                                <option value="trend_rider">Trend Rider (42% WR)</option>
+                                <option value="smart_money_tracker">Smart Money Tracker (34% WR)</option>
+                                <option value="reversal_sniper">Reversal Sniper (29% WR)</option>
+                                <option value="momentum_beast">Momentum Beast</option>
+                                <option value="scalper_pro">Scalper Pro</option>
+                            </select>
+                            <select id="backtest-period" style="background: #2a2e39; color: #d1d4dc; border: 1px solid #363a45; padding: 6px 8px; border-radius: 4px; font-size: 12px; cursor: pointer;" title="Select backtest period">
                                 <option value="7">7 days</option>
                                 <option value="30" selected>30 days</option>
                                 <option value="60">60 days</option>
@@ -234,12 +247,12 @@
         </div>
     </div>
 
-    <script src="pattern-recognition.js"></script>
-    <script src="ai-prediction.js"></script>
-    <script src="trading-signals.js"></script>
-    <script src="backtest.js"></script>
-    <script src="prediction.js"></script>
+    <script src="archive/javascript/pattern-recognition.js"></script>
+    <script src="archive/javascript/ai-prediction.js"></script>
+    <script src="archive/javascript/trading-signals.js"></script>
+    <script src="archive/javascript/backtest.js"></script>
+    <script src="archive/javascript/prediction.js"></script>
     <!-- Background Sync Service - Runs automatically -->
-    <script src="sync-service.js"></script>
+    <script src="archive/javascript/sync-service.js"></script>
 </body>
 </html>
