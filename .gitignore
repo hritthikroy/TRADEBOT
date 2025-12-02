@@ -6,16 +6,20 @@
 # IDE
 .vscode/
 .idea/
+*.swp
+*.swo
 
 # Logs
 *.log
 npm-debug.log*
+backend/server.log
 
 # Environment variables
 .env
 .env.local
+backend/.env
 
-# API Keys (if any)
+# API Keys
 config.js
 secrets.js
 
@@ -24,5 +28,34 @@ secrets.js
 *.temp
 *_old.js
 
-# Node modules (if you add npm later)
+# Node modules
 node_modules/
+
+# Build artifacts
+backend/trading-bot
+backend/main
+*.exe
+
+# Test coverage
+backend/coverage.out
+backend/coverage.html
+
+# Go workspace
+go.work
+go.work.sum
+
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Dependency directories
+vendor/

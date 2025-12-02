@@ -8,13 +8,10 @@ import (
 func SetupRoutes(app *fiber.App) {
 	api := app.Group("/api/v1")
 
-	// Health check
-	api.Get("/health", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{
-			"status": "ok",
-			"message": "Trading Bot API is running",
-		})
-	})
+	// Health check endpoints
+	api.Get("/health", HealthHandler)
+	api.Get("/ready", ReadinessHandler)
+	api.Get("/live", LivenessHandler)
 
 	// Signal routes
 	signals := api.Group("/signals")

@@ -1,6 +1,39 @@
+# Environment and secrets
 .env
-.env.example
-*.md
+.env.local
+*.log
+
+# Git
 .git
 .gitignore
-README.md
+.github
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Build artifacts
+trading-bot
+main
+*.exe
+
+# Test files
+*_test.go
+test_*.sh
+
+# Documentation
+*.md
+!README.md
+
+# Temporary files
+*.tmp
+*.temp
+.DS_Store
+
+# Deployment configs
+fly.toml
+render.yaml
+Dockerfile
+.dockerignore

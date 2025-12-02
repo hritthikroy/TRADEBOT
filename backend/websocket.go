@@ -34,13 +34,23 @@ var hub = &WebSocketHub{
 
 // Run starts the WebSocket hub
 func (h *WebSocketHub) Run() {
+	defer RecoverFromPanic("WebSocket Hub")
+	
+	maxConnections := 1000
+	
 	for {
 		select {
 		case client := <-h.register:
 			h.mu.Lock()
+			if len(h.clients) >= maxConnections {
+				log.Printf("⚠️  Max WebSocket connections reached (%d)", maxConnections)
+				close(client.send)
+				h.mu.Unlock()
+				continue
+			}
 			h.clients[client] = true
 			h.mu.Unlock()
-			log.Printf("Client connected. Total clients: %d", len(h.clients))
+			log.Printf("✅ WebSocket client connected (total: %d)", len(h.clients))
 
 		case client := <-h.unregister:
 			h.mu.Lock()
@@ -49,7 +59,7 @@ func (h *WebSocketHub) Run() {
 				close(client.send)
 			}
 			h.mu.Unlock()
-			log.Printf("Client disconnected. Total clients: %d", len(h.clients))
+			log.Printf("👋 WebSocket client disconnected (total: %d)", len(h.clients))
 
 		case message := <-h.broadcast:
 			h.mu.RLock()
@@ -57,8 +67,10 @@ func (h *WebSocketHub) Run() {
 				select {
 				case client.send <- message:
 				default:
+					// Client is slow or disconnected
 					close(client.send)
 					delete(h.clients, client)
+					log.Println("⚠️  Removed slow/disconnected WebSocket client")
 				}
 			}
 			h.mu.RUnlock()
@@ -93,9 +105,17 @@ func HandleWebSocket(c *websocket.Conn) {
 // readPump reads messages from the WebSocket connection
 func (c *WebSocketClient) readPump() {
 	defer func() {
+		RecoverFromPanic("WebSocket readPump")
 		hub.unregister <- c
 		c.conn.Close()
 	}()
+
+	// Set read deadline for heartbeat
+	c.conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+	c.conn.SetPongHandler(func(string) error {
+		c.conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+		return nil
+	})
 
 	for {
 		_, _, err := c.conn.ReadMessage()
@@ -109,6 +129,7 @@ func (c *WebSocketClient) readPump() {
 func (c *WebSocketClient) writePump() {
 	ticker := time.NewTicker(30 * time.Second)
 	defer func() {
+		RecoverFromPanic("WebSocket writePump")
 		ticker.Stop()
 		c.conn.Close()
 	}()
@@ -116,6 +137,7 @@ func (c *WebSocketClient) writePump() {
 	for {
 		select {
 		case message, ok := <-c.send:
+			c.conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
 			if !ok {
 				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
@@ -127,6 +149,7 @@ func (c *WebSocketClient) writePump() {
 
 		case <-ticker.C:
 			// Send ping to keep connection alive
+			c.conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
 			}
@@ -137,6 +160,8 @@ func (c *WebSocketClient) writePump() {
 // StartSignalBroadcaster starts broadcasting signals periodically
 func StartSignalBroadcaster() {
 	go func() {
+		defer RecoverFromPanic("Signal Broadcaster")
+		
 		ticker := time.NewTicker(2 * time.Second)
 		defer ticker.Stop()
 
