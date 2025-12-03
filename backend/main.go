@@ -85,8 +85,6 @@ func main() {
 	if autoStart == "true" {
 		symbol := os.Getenv("TELEGRAM_SYMBOL")
 		strategy := os.Getenv("TELEGRAM_STRATEGY")
-		filterBuy := os.Getenv("TELEGRAM_FILTER_BUY") == "true"
-		filterSell := os.Getenv("TELEGRAM_FILTER_SELL") == "true"
 		
 		if symbol == "" {
 			symbol = "BTCUSDT"
@@ -95,11 +93,15 @@ func main() {
 			strategy = "session_trader"
 		}
 		
+		// Get current filter settings from database (not from env vars)
+		filterBuy, filterSell := GetCurrentFilterSettings()
+		
 		err := StartTelegramSignalBot(symbol, strategy, filterBuy, filterSell)
 		if err != nil {
 			log.Printf("⚠️  Failed to auto-start Telegram bot: %v", err)
 		} else {
 			log.Printf("✅ Telegram bot auto-started for %s with %s strategy", symbol, strategy)
+			log.Printf("ℹ️  Filter settings from database: filterBuy=%v, filterSell=%v", filterBuy, filterSell)
 		}
 	}
 

@@ -12,10 +12,18 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+// UserSettings for API responses (camelCase for frontend)
 type UserSettings struct {
 	ID         int  `json:"id"`
-	FilterBuy  bool `json:"filterBuy"`
-	FilterSell bool `json:"filterSell"`
+	FilterBuy  bool `json:"filterBuy"`   // camelCase for frontend
+	FilterSell bool `json:"filterSell"`  // camelCase for frontend
+}
+
+// UserSettingsDB for database operations (snake_case for Supabase)
+type UserSettingsDB struct {
+	ID         int  `json:"id"`
+	FilterBuy  bool `json:"filter_buy"`  // snake_case for database
+	FilterSell bool `json:"filter_sell"` // snake_case for database
 }
 
 // GetUserSettings retrieves user filter settings from Supabase
@@ -50,17 +58,36 @@ func GetUserSettings(c *fiber.Ctx) error {
 	}
 	defer resp.Body.Close()
 
-	var settings []UserSettings
-	if err := json.NewDecoder(resp.Body).Decode(&settings); err != nil {
+	// Read response body for debugging
+	var responseBody bytes.Buffer
+	responseBody.ReadFrom(resp.Body)
+	responseBodyStr := responseBody.String()
+	
+	log.Printf("🔍 GetUserSettings - Supabase response: %s", responseBodyStr)
+	
+	// Decode from database (snake_case)
+	var settingsDB []UserSettingsDB
+	if err := json.Unmarshal(responseBody.Bytes(), &settingsDB); err != nil {
+		log.Printf("⚠️  GetUserSettings - Failed to decode: %v", err)
+		log.Printf("⚠️  GetUserSettings - Response was: %s", responseBodyStr)
 		return c.JSON(UserSettings{ID: 1, FilterBuy: true, FilterSell: true})
 	}
 
-	if len(settings) == 0 {
+	if len(settingsDB) == 0 {
 		// No settings exist, return defaults
+		log.Printf("ℹ️  GetUserSettings - No settings found in database, returning defaults")
 		return c.JSON(UserSettings{ID: 1, FilterBuy: true, FilterSell: true})
 	}
 
-	return c.JSON(settings[0])
+	// Convert from DB format to API format (snake_case to camelCase)
+	apiSettings := UserSettings{
+		ID:         settingsDB[0].ID,
+		FilterBuy:  settingsDB[0].FilterBuy,
+		FilterSell: settingsDB[0].FilterSell,
+	}
+	
+	log.Printf("✅ GetUserSettings - Returning: filterBuy=%v, filterSell=%v", apiSettings.FilterBuy, apiSettings.FilterSell)
+	return c.JSON(apiSettings)
 }
 
 // UpdateUserSettings updates user filter settings in Supabase
@@ -141,8 +168,8 @@ func GetCurrentFilterSettings() (bool, bool) {
 		return true, true
 	}
 
-	// Try to get settings from Supabase with cache-busting
-	url := fmt.Sprintf("%s/rest/v1/user_settings?id=eq.1&_=%d", supabaseURL, time.Now().UnixNano())
+	// Try to get settings from Supabase (use headers for cache-busting, not query params)
+	url := fmt.Sprintf("%s/rest/v1/user_settings?id=eq.1", supabaseURL)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		log.Printf("⚠️  Failed to create request, using defaults")
@@ -153,6 +180,7 @@ func GetCurrentFilterSettings() (bool, bool) {
 	req.Header.Set("Authorization", "Bearer "+supabaseKey)
 	req.Header.Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	req.Header.Set("Pragma", "no-cache")
+	req.Header.Set("Expires", "0")
 
 	client := &http.Client{Timeout: 5 * time.Second}
 	resp, err := client.Do(req)
@@ -162,17 +190,26 @@ func GetCurrentFilterSettings() (bool, bool) {
 	}
 	defer resp.Body.Close()
 
-	var settings []UserSettings
-	if err := json.NewDecoder(resp.Body).Decode(&settings); err != nil {
-		log.Printf("⚠️  Failed to decode settings, using defaults")
+	// Read response body for debugging
+	var responseBody bytes.Buffer
+	responseBody.ReadFrom(resp.Body)
+	responseBodyStr := responseBody.String()
+	
+	log.Printf("🔍 Supabase response for user_settings: %s", responseBodyStr)
+	
+	// Decode from database (snake_case)
+	var settingsDB []UserSettingsDB
+	if err := json.Unmarshal(responseBody.Bytes(), &settingsDB); err != nil {
+		log.Printf("⚠️  Failed to decode settings: %v", err)
+		log.Printf("⚠️  Response body was: %s", responseBodyStr)
 		return true, true
 	}
 
-	if len(settings) == 0 {
-		log.Printf("ℹ️  No filter settings found, using defaults")
+	if len(settingsDB) == 0 {
+		log.Printf("ℹ️  No filter settings found in database, using defaults")
 		return true, true
 	}
 
-	log.Printf("✅ Loaded filter settings from Supabase: filterBuy=%v, filterSell=%v", settings[0].FilterBuy, settings[0].FilterSell)
-	return settings[0].FilterBuy, settings[0].FilterSell
+	log.Printf("✅ Loaded filter settings from Supabase: filterBuy=%v, filterSell=%v", settingsDB[0].FilterBuy, settingsDB[0].FilterSell)
+	return settingsDB[0].FilterBuy, settingsDB[0].FilterSell
 }

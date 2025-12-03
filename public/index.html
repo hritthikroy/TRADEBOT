@@ -1632,21 +1632,29 @@
         // Live Trading Signals
         let autoRefreshInterval = null;
         let signalsHistory = [];
+        let isLoadingSettings = false; // Flag to prevent saving during initial load
         
-        async function updateSignalFilterDisplay() {
+        async function updateSignalFilterDisplay(skipSave = false) {
             const filterBuy = document.getElementById('signalFilterBuy').checked;
             const filterSell = document.getElementById('signalFilterSell').checked;
             const filterStatus = document.getElementById('signalFilterStatus');
             
-            // Save to database
-            try {
-                await fetch('/api/v1/settings', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ filterBuy, filterSell })
-                });
-            } catch (error) {
-                console.error('Failed to save settings:', error);
+            // Save to database (unless this is called during initial load)
+            if (!skipSave && !isLoadingSettings) {
+                try {
+                    console.log(`💾 Saving filter settings: filterBuy=${filterBuy}, filterSell=${filterSell}`);
+                    await fetch('/api/v1/settings', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ filterBuy, filterSell })
+                    });
+                    
+                    // Immediately fetch a new signal after changing filters
+                    console.log('✅ Filter settings saved, fetching new signal...');
+                    await getLiveSignal();
+                } catch (error) {
+                    console.error('Failed to save settings:', error);
+                }
             }
             
             if (filterBuy && filterSell) {
@@ -1659,8 +1667,8 @@
                 filterStatus.innerHTML = '🔴 Showing: <strong style="color: #f44336;">SELL signals ONLY</strong> (Short positions)';
                 filterStatus.style.color = '#f44336';
             } else {
-                filterStatus.innerHTML = '⚠️ <strong style="color: #f44336;">ERROR:</strong> Select at least one signal type!';
-                filterStatus.style.color = '#f44336';
+                filterStatus.innerHTML = '⚠️ <strong style="color: #f44336;">Both filters disabled</strong> - Signal generation paused';
+                filterStatus.style.color = '#FF9800';
             }
         }
         
@@ -1687,7 +1695,13 @@
                 
                 const signal = await response.json();
                 displaySignal(signal);
-                addToSignalHistory(signal);
+                
+                // Only add to history if it's a valid BUY or SELL signal with price data
+                if (signal.signal === 'BUY' || signal.signal === 'SELL') {
+                    if (signal.entry && signal.stopLoss && signal.takeProfit) {
+                        addToSignalHistory(signal);
+                    }
+                }
                 
             } catch (error) {
                 console.error('Signal error:', error);
@@ -1697,6 +1711,21 @@
         function displaySignal(signal) {
             const signalCard = document.getElementById('signalCard');
             const currentSignal = document.getElementById('currentSignal');
+            
+            // Check if signal is PAUSED (backend returns this when both filters are disabled)
+            if (signal.signal === 'PAUSED' || signal.message) {
+                signalCard.style.background = 'linear-gradient(135deg, #9E9E9E 0%, #757575 100%)';
+                signalCard.style.color = 'white';
+                document.getElementById('signalType').textContent = '⏸️ Signal Generation Paused';
+                currentSignal.style.display = 'block';
+                document.getElementById('signalPrice').textContent = 'N/A';
+                document.getElementById('signalEntry').textContent = 'N/A';
+                document.getElementById('signalSL').textContent = 'N/A';
+                document.getElementById('signalTP').textContent = 'N/A';
+                document.getElementById('signalRR').textContent = 'N/A';
+                document.getElementById('signalTime').textContent = 'Updated: ' + new Date().toLocaleString();
+                return;
+            }
             
             // Check filter settings
             const filterBuy = document.getElementById('signalFilterBuy').checked;
@@ -1708,7 +1737,7 @@
                 signalCard.style.color = 'white';
                 document.getElementById('signalType').textContent = '⚪ No Filters Active - Enable BUY or SELL';
                 currentSignal.style.display = 'block';
-                document.getElementById('signalPrice').textContent = '$' + signal.currentPrice.toFixed(2);
+                document.getElementById('signalPrice').textContent = signal.currentPrice ? '$' + signal.currentPrice.toFixed(2) : 'N/A';
                 document.getElementById('signalEntry').textContent = 'N/A';
                 document.getElementById('signalSL').textContent = 'N/A';
                 document.getElementById('signalTP').textContent = 'N/A';
@@ -1723,7 +1752,7 @@
                 signalCard.style.color = 'white';
                 document.getElementById('signalType').textContent = '⚪ BUY Signal Filtered - Waiting for SELL';
                 currentSignal.style.display = 'block';
-                document.getElementById('signalPrice').textContent = '$' + signal.currentPrice.toFixed(2);
+                document.getElementById('signalPrice').textContent = signal.currentPrice ? '$' + signal.currentPrice.toFixed(2) : 'N/A';
                 document.getElementById('signalEntry').textContent = 'N/A';
                 document.getElementById('signalSL').textContent = 'N/A';
                 document.getElementById('signalTP').textContent = 'N/A';
@@ -1737,7 +1766,7 @@
                 signalCard.style.color = 'white';
                 document.getElementById('signalType').textContent = '⚪ SELL Signal Filtered - Waiting for BUY';
                 currentSignal.style.display = 'block';
-                document.getElementById('signalPrice').textContent = '$' + signal.currentPrice.toFixed(2);
+                document.getElementById('signalPrice').textContent = signal.currentPrice ? '$' + signal.currentPrice.toFixed(2) : 'N/A';
                 document.getElementById('signalEntry').textContent = 'N/A';
                 document.getElementById('signalSL').textContent = 'N/A';
                 document.getElementById('signalTP').textContent = 'N/A';
@@ -1810,6 +1839,11 @@
             }
             
             tbody.innerHTML = signalsHistory.map(s => {
+                // Skip signals without complete data
+                if (!s.entry || !s.stopLoss || !s.takeProfit || !s.riskReward) {
+                    return '';
+                }
+                
                 const timeStr = s.time.toLocaleTimeString('en-US', {hour: '2-digit', minute:'2-digit'});
                 const signalClass = s.signal === 'BUY' ? 'profit' : 'loss';
                 const signalIcon = s.signal === 'BUY' ? '🟢' : '🔴';
@@ -1832,7 +1866,7 @@
                     <td style="color: #FF9800; font-weight: bold; white-space: nowrap;">📊 Active</td>
                     <td><span style="background: #4CAF50; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.85em;">${s.status}</span></td>
                 </tr>`;
-            }).join('');
+            }).filter(row => row !== '').join('');
         }
         
         function startAutoRefresh() {
@@ -2392,9 +2426,13 @@
         
         // Load filter settings from database
         async function loadFilterSettings() {
+            isLoadingSettings = true; // Prevent saving during load
             try {
+                console.log('📥 Loading filter settings from database...');
                 const response = await fetch('/api/v1/settings');
                 const settings = await response.json();
+                
+                console.log(`✅ Loaded settings: filterBuy=${settings.filterBuy}, filterSell=${settings.filterSell}`);
                 
                 // Apply settings to checkboxes
                 document.getElementById('filterBuy').checked = settings.filterBuy;
@@ -2402,14 +2440,16 @@
                 document.getElementById('signalFilterBuy').checked = settings.filterBuy;
                 document.getElementById('signalFilterSell').checked = settings.filterSell;
                 
-                // Update displays
+                // Update displays (skip save since we just loaded)
                 updateFilterDisplay();
-                updateSignalFilterDisplay();
+                updateSignalFilterDisplay(true); // Pass true to skip save
             } catch (error) {
                 console.error('Failed to load settings:', error);
                 // Use defaults if loading fails
                 updateFilterDisplay();
-                updateSignalFilterDisplay();
+                updateSignalFilterDisplay(true); // Pass true to skip save
+            } finally {
+                isLoadingSettings = false; // Re-enable saving
             }
         }
         

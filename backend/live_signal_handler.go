@@ -499,6 +499,13 @@ func calculateStdDevForBB(candles []Candle, period int) float64 {
 }
 
 
+// Track last signal to prevent duplicates
+var (
+	lastLiveSignalType   = ""
+	lastLiveSignalTime   = time.Time{}
+	lastLiveSignalSymbol = ""
+)
+
 // Fiber wrapper for live signal handler
 func HandleLiveSignalFiber(c *fiber.Ctx) error {
 	var req LiveSignalRequest
@@ -544,6 +551,15 @@ func HandleLiveSignalFiber(c *fiber.Ctx) error {
 	filterBuy, filterSell := GetCurrentFilterSettings()
 	log.Printf("🔍 Current filter settings: filterBuy=%v, filterSell=%v", filterBuy, filterSell)
 
+	// Check if both filters are disabled (bot paused)
+	if !filterBuy && !filterSell {
+		log.Printf("⏸️  Both filters disabled - Live signal handler paused")
+		return c.JSON(fiber.Map{
+			"signal":  "PAUSED",
+			"message": "Signal generation paused (both filters disabled)",
+		})
+	}
+
 	// Check if signal matches filter
 	signalMatchesFilter := true
 	if signal.Signal == "BUY" && !filterBuy {
@@ -553,6 +569,13 @@ func HandleLiveSignalFiber(c *fiber.Ctx) error {
 	if signal.Signal == "SELL" && !filterSell {
 		signalMatchesFilter = false
 		log.Printf("⏭️  SELL signal filtered out (filterSell=false)")
+	}
+
+	// Check for duplicate signals (same signal type for same symbol)
+	if signal.Signal != "NONE" && signal.Signal == lastLiveSignalType && req.Symbol == lastLiveSignalSymbol {
+		timeSinceLastSignal := time.Since(lastLiveSignalTime)
+		log.Printf("⏭️  Skipping duplicate %s signal (same as last, %v ago)", signal.Signal, timeSinceLastSignal)
+		return c.JSON(signal) // Return signal but don't save/send
 	}
 
 	// Only save BUY/SELL signals that match filter to Supabase
@@ -568,6 +591,11 @@ func HandleLiveSignalFiber(c *fiber.Ctx) error {
 		} else {
 			log.Printf("✅ Signal successfully saved to Supabase: %s %s @ $%.2f", signal.Signal, req.Symbol, signal.Entry)
 			signalSavedToDatabase = true
+			
+			// Update last signal tracking
+			lastLiveSignalType = signal.Signal
+			lastLiveSignalTime = time.Now()
+			lastLiveSignalSymbol = req.Symbol
 		}
 	} else if signal.Signal == "NONE" {
 		log.Printf("ℹ️  Signal is NONE, not saving to Supabase")

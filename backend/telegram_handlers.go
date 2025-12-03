@@ -5,10 +5,10 @@ import (
 )
 
 type TelegramBotStartRequest struct {
-	Symbol     string `json:"symbol"`
-	Strategy   string `json:"strategy"`
-	FilterBuy  bool   `json:"filterBuy"`
-	FilterSell bool   `json:"filterSell"`
+	Symbol   string `json:"symbol"`
+	Strategy string `json:"strategy"`
+	// Note: filterBuy and filterSell are no longer used here
+	// They are controlled via user_settings API and read from database
 }
 
 // HandleStartTelegramBot starts the Telegram signal bot
@@ -27,14 +27,12 @@ func HandleStartTelegramBot(c *fiber.Ctx) error {
 	if req.Strategy == "" {
 		req.Strategy = "session_trader"
 	}
-	if !req.FilterBuy && !req.FilterSell {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "At least one filter (buy or sell) must be enabled",
-		})
-	}
 	
-	// Start the bot
-	err := StartTelegramSignalBot(req.Symbol, req.Strategy, req.FilterBuy, req.FilterSell)
+	// Get current filter settings from database
+	filterBuy, filterSell := GetCurrentFilterSettings()
+	
+	// Start the bot (pass current filter settings for display only)
+	err := StartTelegramSignalBot(req.Symbol, req.Strategy, filterBuy, filterSell)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
@@ -47,8 +45,8 @@ func HandleStartTelegramBot(c *fiber.Ctx) error {
 		"config": fiber.Map{
 			"symbol":     req.Symbol,
 			"strategy":   req.Strategy,
-			"filterBuy":  req.FilterBuy,
-			"filterSell": req.FilterSell,
+			"filterBuy":  filterBuy,  // Return current settings from database
+			"filterSell": filterSell, // Return current settings from database
 		},
 	})
 }
