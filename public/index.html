@@ -526,9 +526,6 @@
                                     <th>Stop Loss</th>
                                     <th>Take Profit</th>
                                     <th>RR</th>
-                                    <th>Progress</th>
-                                    <th>Result</th>
-                                    <th>Status</th>
                                 </tr>
                             </thead>
                             <tbody id="signalsHistory"></tbody>
@@ -1995,7 +1992,7 @@
             const tbody = document.getElementById('signalsHistory');
             
             if (signalsHistory.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px;color:#666;">No signals yet. Waiting for market conditions...</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#666;">No signals yet. Waiting for market conditions...</td></tr>';
                 return;
             }
             
@@ -2016,16 +2013,6 @@
                     <td style="color: #f44336;">$${s.stopLoss.toFixed(2)}</td>
                     <td style="color: #4CAF50;">$${s.takeProfit.toFixed(2)}</td>
                     <td>${s.riskReward.toFixed(2)}:1</td>
-                    <td>
-                        <div style="width: 100px;">
-                            <div style="background: #e0e0e0; border-radius: 10px; height: 20px; overflow: hidden;">
-                                <div style="background: #2196F3; width: ${Math.floor(Math.random() * 100)}%; height: 100%; transition: width 0.3s;"></div>
-                            </div>
-                            <div style="text-align: center; font-size: 0.75em; margin-top: 2px;">${Math.floor(Math.random() * 100)}%</div>
-                        </div>
-                    </td>
-                    <td style="color: #FF9800; font-weight: bold; white-space: nowrap;">📊 Active</td>
-                    <td><span style="background: #4CAF50; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.85em;">${s.status}</span></td>
                 </tr>`;
             }).filter(row => row !== '').join('');
         }
