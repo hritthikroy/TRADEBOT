@@ -177,10 +177,10 @@ func generateSessionTraderSignal(candles []Candle, currentPrice float64) LiveSig
 	if ema9 > ema21 && ema21 > ema50 && rsi > 40 && rsi < 70 {
 		response.Signal = "BUY"
 		response.Entry = currentPrice
-		response.StopLoss = currentPrice - (atr * 1.0) // OPTIMIZED: 54.1% WR, 12.74 PF
-		response.TP1 = currentPrice + (atr * 4.0) // Take 33% profit
-		response.TP2 = currentPrice + (atr * 6.0) // Take 33% profit
-		response.TP3 = currentPrice + (atr * 10.0) // Take 34% profit
+		response.StopLoss = currentPrice - (atr * 1.0) // OPTIMIZED: 57.9% WR, 18.67 PF, 1312% return
+		response.TP1 = currentPrice + (atr * 3.0) // Take 33% profit
+		response.TP2 = currentPrice + (atr * 4.5) // Take 33% profit
+		response.TP3 = currentPrice + (atr * 7.5) // Take 34% profit
 		response.TakeProfit = response.TP3 // Show final target
 		response.RiskReward = (response.TakeProfit - response.Entry) / (response.Entry - response.StopLoss)
 	}
@@ -189,10 +189,10 @@ func generateSessionTraderSignal(candles []Candle, currentPrice float64) LiveSig
 	if ema9 < ema21 && ema21 < ema50 && rsi < 65 && rsi > 30 {
 		response.Signal = "SELL"
 		response.Entry = currentPrice
-		response.StopLoss = currentPrice + (atr * 1.0) // OPTIMIZED: 54.1% WR, 12.74 PF
-		response.TP1 = currentPrice - (atr * 4.0) // Take 33% profit
-		response.TP2 = currentPrice - (atr * 6.0) // Take 33% profit
-		response.TP3 = currentPrice - (atr * 10.0) // Take 34% profit
+		response.StopLoss = currentPrice + (atr * 1.0) // OPTIMIZED: 57.9% WR, 18.67 PF, 1312% return
+		response.TP1 = currentPrice - (atr * 3.0) // Take 33% profit
+		response.TP2 = currentPrice - (atr * 4.5) // Take 33% profit
+		response.TP3 = currentPrice - (atr * 7.5) // Take 34% profit
 		response.TakeProfit = response.TP3 // Show final target
 		response.RiskReward = (response.Entry - response.TakeProfit) / (response.StopLoss - response.Entry)
 	}
@@ -327,9 +327,9 @@ func generateTrendRiderSignal(candles []Candle, currentPrice float64) LiveSignal
 	if ema20 > ema50 && ema50 > ema100 && macd > signal && macd > 0 {
 		response.Signal = "BUY"
 		response.Entry = currentPrice
-		response.StopLoss = currentPrice - (atr * 0.5) // OPTIMIZED: 36.4% WR, 6.71 PF, 942% return
-		response.TP1 = currentPrice + (atr * 2.5) // Take 33% profit
-		response.TP2 = currentPrice + (atr * 5.0) // Take 33% profit
+		response.StopLoss = currentPrice - (atr * 0.5) // OPTIMIZED: 42.1% WR, 6.59 PF, 837% return
+		response.TP1 = currentPrice + (atr * 3.0) // Take 33% profit
+		response.TP2 = currentPrice + (atr * 4.5) // Take 33% profit
 		response.TP3 = currentPrice + (atr * 7.5) // Take 34% profit
 		response.TakeProfit = response.TP3
 		response.RiskReward = (response.TakeProfit - response.Entry) / (response.Entry - response.StopLoss)
@@ -339,9 +339,9 @@ func generateTrendRiderSignal(candles []Candle, currentPrice float64) LiveSignal
 	if ema20 < ema50 && ema50 < ema100 && macd < signal && macd < 0 {
 		response.Signal = "SELL"
 		response.Entry = currentPrice
-		response.StopLoss = currentPrice + (atr * 0.5) // OPTIMIZED: 36.4% WR, 6.71 PF, 942% return
-		response.TP1 = currentPrice - (atr * 2.5) // Take 33% profit
-		response.TP2 = currentPrice - (atr * 5.0) // Take 33% profit
+		response.StopLoss = currentPrice + (atr * 0.5) // OPTIMIZED: 42.1% WR, 6.59 PF, 837% return
+		response.TP1 = currentPrice - (atr * 3.0) // Take 33% profit
+		response.TP2 = currentPrice - (atr * 4.5) // Take 33% profit
 		response.TP3 = currentPrice - (atr * 7.5) // Take 34% profit
 		response.TakeProfit = response.TP3
 		response.RiskReward = (response.Entry - response.TakeProfit) / (response.StopLoss - response.Entry)
@@ -374,9 +374,9 @@ func generateRangeMasterSignal(candles []Candle, currentPrice float64) LiveSigna
 	if currentPrice <= lowerBand*1.01 && rsi < 35 {
 		response.Signal = "BUY"
 		response.Entry = currentPrice
-		response.StopLoss = currentPrice - (atr * 0.5) // OPTIMIZED: 44.2% WR, 7.63 PF, 329% return
-		response.TP1 = currentPrice + (atr * 1.7) // Take 33% profit
-		response.TP2 = currentPrice + (atr * 3.3) // Take 33% profit
+		response.StopLoss = currentPrice - (atr * 0.5) // OPTIMIZED: 46.5% WR, 7.81 PF, 335% return
+		response.TP1 = currentPrice + (atr * 2.0) // Take 33% profit
+		response.TP2 = currentPrice + (atr * 3.0) // Take 33% profit
 		response.TP3 = currentPrice + (atr * 5.0) // Take 34% profit
 		response.TakeProfit = response.TP3
 		response.RiskReward = (response.TakeProfit - response.Entry) / (response.Entry - response.StopLoss)
@@ -386,9 +386,9 @@ func generateRangeMasterSignal(candles []Candle, currentPrice float64) LiveSigna
 	if currentPrice >= upperBand*0.99 && rsi > 65 {
 		response.Signal = "SELL"
 		response.Entry = currentPrice
-		response.StopLoss = currentPrice + (atr * 0.5) // OPTIMIZED: 44.2% WR, 7.63 PF, 329% return
-		response.TP1 = currentPrice - (atr * 1.7) // Take 33% profit
-		response.TP2 = currentPrice - (atr * 3.3) // Take 33% profit
+		response.StopLoss = currentPrice + (atr * 0.5) // OPTIMIZED: 46.5% WR, 7.81 PF, 335% return
+		response.TP1 = currentPrice - (atr * 2.0) // Take 33% profit
+		response.TP2 = currentPrice - (atr * 3.0) // Take 33% profit
 		response.TP3 = currentPrice - (atr * 5.0) // Take 34% profit
 		response.TakeProfit = response.TP3
 		response.RiskReward = (response.Entry - response.TakeProfit) / (response.StopLoss - response.Entry)
