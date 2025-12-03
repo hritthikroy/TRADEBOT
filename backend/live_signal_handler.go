@@ -556,6 +556,7 @@ func HandleLiveSignalFiber(c *fiber.Ctx) error {
 	}
 
 	// Only save BUY/SELL signals that match filter to Supabase
+	signalSavedToDatabase := false
 	if signal.Signal != "NONE" && signalMatchesFilter {
 		log.Printf("💾 Saving signal to Supabase: %s %s @ $%.2f", signal.Signal, req.Symbol, signal.Entry)
 		err = SaveSignalToSupabase(signal, req.Symbol, req.Strategy, filterBuy, filterSell)
@@ -566,6 +567,7 @@ func HandleLiveSignalFiber(c *fiber.Ctx) error {
 			log.Printf("   Check if trading_signals table exists in Supabase")
 		} else {
 			log.Printf("✅ Signal successfully saved to Supabase: %s %s @ $%.2f", signal.Signal, req.Symbol, signal.Entry)
+			signalSavedToDatabase = true
 		}
 	} else if signal.Signal == "NONE" {
 		log.Printf("ℹ️  Signal is NONE, not saving to Supabase")
@@ -573,8 +575,8 @@ func HandleLiveSignalFiber(c *fiber.Ctx) error {
 		log.Printf("ℹ️  Signal filtered out, not saving to Supabase")
 	}
 
-	// Send BUY/SELL signals to Telegram only if they match filter
-	if signal.Signal != "NONE" && signalMatchesFilter {
+	// Only send to Telegram if signal was successfully saved to database
+	if signalSavedToDatabase {
 		if telegramBot == nil {
 			log.Printf("⚠️  Telegram bot is nil, cannot send signal")
 		} else if telegramBot.Token == "" {
@@ -583,10 +585,8 @@ func HandleLiveSignalFiber(c *fiber.Ctx) error {
 			go telegramBot.SendSignal(signal, req.Symbol, req.Strategy)
 			log.Printf("📤 Sent %s signal to Telegram for %s", signal.Signal, req.Symbol)
 		}
-	} else if signal.Signal == "NONE" {
-		log.Printf("ℹ️  Signal is NONE, not sending to Telegram")
 	} else {
-		log.Printf("ℹ️  Signal filtered out, not sending to Telegram")
+		log.Printf("ℹ️  Signal not sent to Telegram (not saved to database)")
 	}
 
 	return c.JSON(signal)

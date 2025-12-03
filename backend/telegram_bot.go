@@ -130,11 +130,13 @@ func StartTelegramSignalBot(symbol, strategy string, filterBuy, filterSell bool)
 				if err != nil {
 					log.Printf("❌ FAILED to save signal to Supabase: %v", err)
 					log.Printf("   Signal: %s %s @ $%.2f", signal.Signal, symbol, signal.Entry)
-				} else {
-					log.Printf("✅ Signal successfully saved to Supabase")
+					log.Printf("⏭️  Skipping Telegram notification (signal not saved)")
+					continue // Don't send to Telegram if not saved to database
 				}
 				
-				// Send signal to Telegram (even if Supabase fails)
+				log.Printf("✅ Signal successfully saved to Supabase")
+				
+				// Only send to Telegram if signal was successfully saved to database
 				log.Printf("📱 Sending signal to Telegram...")
 				telegramBot.SendSignal(signal, symbol, strategy)
 				
