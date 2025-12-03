@@ -52,15 +52,12 @@ func main() {
 		},
 	}))
 
-	// CORS middleware with specific origins
-	allowedOrigins := os.Getenv("ALLOWED_ORIGINS")
-	if allowedOrigins == "" {
-		allowedOrigins = "http://localhost:8080,http://localhost:3000"
-	}
+	// CORS middleware - allow all origins for development
 	app.Use(cors.New(cors.Config{
-		AllowOrigins: allowedOrigins,
-		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
-		AllowMethods: "GET, POST, PUT, DELETE, OPTIONS",
+		AllowOrigins:     "*",
+		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
+		AllowMethods:     "GET, POST, PUT, DELETE, OPTIONS",
+		AllowCredentials: false,
 	}))
 
 	// Serve static files from public directory
@@ -69,6 +66,9 @@ func main() {
 	// Initialize database
 	InitDB()
 
+	// Run database migrations
+	RunMigrations()
+
 	// Start WebSocket hub
 	go hub.Run()
 	log.Println("✅ WebSocket hub started")
@@ -76,11 +76,35 @@ func main() {
 	// Start signal broadcaster (demo)
 	StartSignalBroadcaster()
 	log.Println("✅ Signal broadcaster started")
-
-	// Routes
-	SetupRoutes(app)
+	
+	// Initialize Telegram bot
+	InitTelegramBot()
+	
+	// Auto-start Telegram bot if configured
+	autoStart := os.Getenv("TELEGRAM_AUTO_START")
+	if autoStart == "true" {
+		symbol := os.Getenv("TELEGRAM_SYMBOL")
+		strategy := os.Getenv("TELEGRAM_STRATEGY")
+		filterBuy := os.Getenv("TELEGRAM_FILTER_BUY") == "true"
+		filterSell := os.Getenv("TELEGRAM_FILTER_SELL") == "true"
+		
+		if symbol == "" {
+			symbol = "BTCUSDT"
+		}
+		if strategy == "" {
+			strategy = "session_trader"
+		}
+		
+		err := StartTelegramSignalBot(symbol, strategy, filterBuy, filterSell)
+		if err != nil {
+			log.Printf("⚠️  Failed to auto-start Telegram bot: %v", err)
+		} else {
+			log.Printf("✅ Telegram bot auto-started for %s with %s strategy", symbol, strategy)
+		}
+	}
 
 	// Start AI-enhanced signal generator (only if DB is available)
+	// Must be initialized BEFORE routes so middleware is available
 	if DB != nil {
 		aiSignalGenerator := NewAIEnhancedSignalGenerator()
 		aiSignalGenerator.Start()
@@ -91,7 +115,16 @@ func main() {
 			c.Locals("aiGenerator", aiSignalGenerator)
 			return c.Next()
 		})
+	} else {
+		// If DB is not available, provide a nil-safe middleware
+		app.Use(func(c *fiber.Ctx) error {
+			c.Locals("aiGenerator", nil)
+			return c.Next()
+		})
 	}
+
+	// Routes (must be after middleware setup)
+	SetupRoutes(app)
 
 	// Start server
 	port := os.Getenv("PORT")
@@ -111,19 +144,27 @@ func main() {
 
 // validateEnv checks required environment variables
 func validateEnv() {
-	required := []string{"SUPABASE_HOST", "SUPABASE_PASSWORD"}
-	missing := []string{}
-
-	for _, env := range required {
-		if os.Getenv(env) == "" {
-			missing = append(missing, env)
-		}
+	// Check if Supabase REST API is configured (preferred method)
+	supabaseURL := os.Getenv("SUPABASE_URL")
+	supabaseKey := os.Getenv("SUPABASE_KEY")
+	
+	if supabaseURL != "" && supabaseKey != "" {
+		log.Println("✅ Supabase REST API configured")
+		return
 	}
-
-	if len(missing) > 0 {
-		log.Printf("⚠️  Warning: Missing environment variables: %v", missing)
-		log.Println("⚠️  Database features may not work properly")
+	
+	// Check if direct PostgreSQL connection is configured (alternative method)
+	dbHost := os.Getenv("SUPABASE_HOST")
+	dbPassword := os.Getenv("SUPABASE_PASSWORD")
+	
+	if dbHost != "" && dbPassword != "" {
+		log.Println("✅ PostgreSQL direct connection configured")
+		return
 	}
+	
+	// Neither method configured
+	log.Println("⚠️  No database configured - some features will use defaults")
+	log.Println("ℹ️  To enable persistence, configure SUPABASE_URL and SUPABASE_KEY in .env")
 }
 
 // customErrorHandler handles errors globally

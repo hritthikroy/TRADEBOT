@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Bot - Go Backend</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .nav {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+        
+        .nav button {
+            padding: 12px 24px;
+            background: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .nav button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .nav button.active {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .card h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+        
+        .form-group {
+            margin-bottom: 16px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .btn:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+        
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-success {
+            background: #4CAF50;
+        }
+        
+        .btn-success:hover {
+            background: #45a049;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-top: 20px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-card h3 {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 8px;
+        }
+        
+        .stat-card p {
+            font-size: 28px;
+            font-weight: bold;
+        }
+        
+        .trades-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .trades-table th, .trades-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .trades-table th {
+            background: #f5f5f5;
+            font-weight: 600;
+        }
+        
+        .trades-table tr:hover {
+            background: #f9f9f9;
+        }
+        
+        .profit {
+            color: #4CAF50;
+            font-weight: 600;
+        }
+        
+        .loss {
+            color: #f44336;
+            font-weight: 600;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+        }
+        
+        .loading::after {
+            content: '...';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+        
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .status {
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 600;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Trading Bot</h1>
+            <p>Powered by Go Backend</p>
+        </div>
+        
+        <div class="nav">
+            <button onclick="showSection('backtest')" class="active">Backtest</button>
+            <button onclick="showSection('signals')">Live Signals</button>
+            <button onclick="showSection('analytics')">Analytics</button>
+        </div>
+        
+        <div id="status" class="status hidden"></div>
+        
+        <!-- Backtest Section -->
+        <div id="backtest-section">
+            <div class="card">
+                <h2>📊 Backtest Configuration</h2>
+                <div class="form-group">
+                    <label>Symbol</label>
+                    <input type="text" id="symbol" value="BTCUSDT">
+                </div>
+                <div class="form-group">
+                    <label>🎯 Trading Strategy</label>
+                    <select id="strategy">
+                        <option value="session_trader">🥇 Session Trader (48% WR, 15m) - BEST! HIGHEST RETURN!</option>
+                        <option value="breakout_master">🥈 Breakout Master (51% WR, 15m) - HIGHEST WR!</option>
+                        <option value="liquidity_hunter">🥉 Liquidity Hunter (49% WR, 15m) - BALANCED!</option>
+                        <option value="trend_rider">Trend Rider (43% WR, 4h)</option>
+                        <option value="range_master">Range Master (41% WR, 1h)</option>
+                        <option value="smart_money_tracker">Smart Money Tracker (40% WR, 1h)</option>
+                        <option value="institutional_follower">Institutional Follower (40% WR, 4h)</option>
+                        <option value="reversal_sniper">Reversal Sniper (40% WR, 1h)</option>
+                        <option value="momentum_beast">Momentum Beast (36% WR, 15m)</option>
+                        <option value="scalper_pro">Scalper Pro (35% WR, 5m)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Interval</label>
+                    <select id="interval">
+                        <option value="1m">1 Minute</option>
+                        <option value="3m">3 Minutes</option>
+                        <option value="5m">5 Minutes</option>
+                        <option value="15m" selected>15 Minutes</option>
+                        <option value="30m">30 Minutes</option>
+                        <option value="1h">1 Hour</option>
+                        <option value="4h">4 Hours</option>
+                        <option value="1d">1 Day</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Days to Test</label>
+                    <input type="number" id="days" value="30" min="1" max="365">
+                </div>
+                <div class="form-group">
+                    <label>Starting Balance ($)</label>
+                    <input type="number" id="balance" value="500" min="100">
+                </div>
+                <div class="form-group">
+                    <label>Risk Per Trade (%)</label>
+                    <input type="number" id="risk" value="2" min="0.5" max="10" step="0.5">
+                </div>
+                <button class="btn" onclick="runBacktest()" id="runBtn">Run Backtest</button>
+                <button class="btn btn-success" onclick="exportCSV()" id="exportBtn" style="margin-left: 10px;" disabled>Export CSV</button>
+                <button class="btn" onclick="testAllStrategies()" id="testAllBtn" style="margin-left: 10px; background: #f7931a; color: white;">🏆 Test All Strategies</button>
+            </div>
+            
+            <div id="results" class="hidden">
+                <div class="card">
+                    <h2>📈 Results</h2>
+                    <div class="stats-grid" id="statsGrid"></div>
+                </div>
+                
+                <div class="card">
+                    <h2>📊 Equity Curve & Drawdown</h2>
+                    <canvas id="equityChart" style="max-height: 400px;"></canvas>
+                </div>
+                
+                <div class="card">
+                    <h2>💼 Trades</h2>
+                    <div style="overflow-x: auto;">
+                        <table class="trades-table" id="tradesTable">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Type</th>
+                                    <th>Entry</th>
+                                    <th>Exit</th>
+                                    <th>Exit Reason</th>
+                                    <th>Profit</th>
+                                    <th>Profit %</th>
+                                    <th>RR</th>
+                                    <th>Balance</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tradesBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Signals Section -->
+        <div id="signals-section" class="hidden">
+            <div class="card">
+                <h2>📡 Live Trading Signals</h2>
+                <p>Coming soon - Real-time signal generation</p>
+            </div>
+        </div>
+        
+        <!-- Analytics Section -->
+        <div id="analytics-section" class="hidden">
+            <div class="card">
+                <h2>📊 Performance Analytics</h2>
+                <p>Coming soon - Detailed performance metrics</p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const API_URL = 'http://localhost:8080/api/v1';
+        let currentResults = null;
+        
+        function showSection(section) {
+            // Hide all sections
+            document.getElementById('backtest-section').classList.add('hidden');
+            document.getElementById('signals-section').classList.add('hidden');
+            document.getElementById('analytics-section').classList.add('hidden');
+            
+            // Show selected section
+            document.getElementById(section + '-section').classList.remove('hidden');
+            
+            // Update nav buttons
+            document.querySelectorAll('.nav button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+        }
+        
+        function showStatus(message, type = 'info') {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = 'status ' + type;
+            status.classList.remove('hidden');
+            
+            if (type !== 'error') {
+                setTimeout(() => {
+                    status.classList.add('hidden');
+                }, 5000);
+            }
+        }
+        
+        async function runBacktest() {
+            const symbol = document.getElementById('symbol').value;
+            const strategy = document.getElementById('strategy').value;
+            const interval = document.getElementById('interval').value;
+            const days = parseInt(document.getElementById('days').value);
+            const balance = parseFloat(document.getElementById('balance').value);
+            const risk = parseFloat(document.getElementById('risk').value) / 100;
+            
+            const runBtn = document.getElementById('runBtn');
+            const exportBtn = document.getElementById('exportBtn');
+            
+            runBtn.disabled = true;
+            runBtn.textContent = 'Running...';
+            exportBtn.disabled = true;
+            
+            document.getElementById('results').classList.add('hidden');
+            
+            // All strategies use the proper strategy testing
+            showStatus(`Testing ${strategy} strategy with full logic...`, 'info');
+            
+            try {
+                // Use test-all-strategies endpoint but filter for selected strategy
+                const response = await fetch(`${API_URL}/backtest/test-all-strategies`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        symbol,
+                        startBalance: balance
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Strategy test failed');
+                }
+                
+                const data = await response.json();
+                
+                // Find the selected strategy in results
+                const selectedStrategy = data.results.find(s => s.strategyName === strategy);
+                
+                if (selectedStrategy) {
+                    // Convert strategy result to backtest result format
+                    currentResults = {
+                        totalTrades: selectedStrategy.totalTrades,
+                        winningTrades: selectedStrategy.winningTrades,
+                        losingTrades: selectedStrategy.losingTrades,
+                        winRate: selectedStrategy.winRate,
+                        profitFactor: selectedStrategy.profitFactor,
+                        returnPercent: selectedStrategy.returnPercent,
+                        finalBalance: selectedStrategy.finalBalance,
+                        startBalance: balance,
+                        maxDrawdown: selectedStrategy.maxDrawdown,
+                        trades: selectedStrategy.trades || [] // Use trades from strategy result
+                    };
+                    
+                    displayResults(currentResults);
+                    showStatus(`✅ ${strategy}: ${selectedStrategy.winRate.toFixed(1)}% WR, ${selectedStrategy.returnPercent.toFixed(0)}% return`, 'success');
+                } else {
+                    throw new Error('Strategy not found in results');
+                }
+                
+                exportBtn.disabled = false;
+                
+            } catch (error) {
+                showStatus('Error: ' + error.message, 'error');
+                console.error('Strategy test error:', error);
+            } finally {
+                runBtn.disabled = false;
+                runBtn.textContent = 'Run Backtest';
+            }
+
+        }
+        
+        async function testAllStrategies() {
+            const symbol = document.getElementById('symbol').value;
+            const balance = parseFloat(document.getElementById('balance').value);
+            
+            const testAllBtn = document.getElementById('testAllBtn');
+            testAllBtn.disabled = true;
+            testAllBtn.textContent = '⏳ Testing...';
+            
+            showStatus('Testing all 10 strategies with full logic...', 'info');
+            
+            try {
+                const response = await fetch(`${API_URL}/backtest/test-all-strategies`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        symbol,
+                        startBalance: balance
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Test failed');
+                }
+                
+                const data = await response.json();
+                displayStrategyComparison(data);
+                showStatus(`✅ Best Strategy: ${data.bestStrategy.strategyName} (${data.bestStrategy.winRate.toFixed(1)}% WR, ${data.bestStrategy.returnPercent.toFixed(0)}% return)`, 'success');
+                
+            } catch (error) {
+                showStatus('Error: ' + error.message, 'error');
+                console.error('Test error:', error);
+            } finally {
+                testAllBtn.disabled = false;
+                testAllBtn.textContent = '🏆 Test All Strategies';
+            }
+        }
+        
+        function displayStrategyComparison(data) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.classList.remove('hidden');
+            
+            const strategies = data.results;
+            const bestReturn = strategies.reduce((max, s) => s.returnPercent > max.returnPercent ? s : max);
+            const bestWinRate = strategies.reduce((max, s) => s.winRate > max.winRate ? s : max);
+            const bestProfitFactor = strategies.reduce((max, s) => s.profitFactor > max.profitFactor ? s : max);
+            const mostActive = strategies.reduce((max, s) => s.totalTrades > max.totalTrades ? s : max);
+            const lowestDrawdown = strategies.reduce((min, s) => s.maxDrawdown < min.maxDrawdown ? s : min);
+            
+            const statsGrid = document.getElementById('statsGrid');
+            statsGrid.innerHTML = `
+                <div class="stat-card" style="grid-column: 1 / -1; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <h3>🏆 SUPER BEST: ${bestReturn.strategyName}</h3>
+                    <p style="font-size: 1.3em; margin: 10px 0;">
+                        ${bestReturn.winRate.toFixed(1)}% WR | ${(bestReturn.returnPercent / 1000000).toFixed(1)}M% Return | $${bestReturn.finalBalance.toLocaleString()} Balance
+                    </p>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                    <h3>🎯 Best Win Rate</h3>
+                    <p style="font-size: 1.8em;">${bestWinRate.winRate.toFixed(1)}%</p>
+                    <p style="font-size: 0.9em;">${bestWinRate.strategyName}</p>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                    <h3>💰 Best Return</h3>
+                    <p style="font-size: 1.8em;">${(bestReturn.returnPercent / 1000000).toFixed(1)}M%</p>
+                    <p style="font-size: 0.9em;">${bestReturn.strategyName}</p>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                    <h3>📊 Best PF</h3>
+                    <p style="font-size: 1.8em;">${bestProfitFactor.profitFactor.toFixed(2)}</p>
+                    <p style="font-size: 0.9em;">${bestProfitFactor.strategyName}</p>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+                    <h3>⚡ Most Active</h3>
+                    <p style="font-size: 1.8em;">${mostActive.totalTrades}</p>
+                    <p style="font-size: 0.9em;">${mostActive.strategyName}</p>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);">
+                    <h3>🛡️ Lowest Drawdown</h3>
+                    <p style="font-size: 1.8em;">${lowestDrawdown.maxDrawdown.toFixed(1)}%</p>
+                    <p style="font-size: 0.9em;">${lowestDrawdown.strategyName}</p>
+                </div>
+            `;
+            
+            const tradesDiv = document.getElementById('trades');
+            let html = '<h2>📊 Complete Strategy Analysis</h2><div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;"><h3>🎯 Best by Trading Style</h3><div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;"><div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #4CAF50;"><h4 style="color: #4CAF50;">⚡ SCALPING (5m)</h4>';
+            const scalping = strategies.filter(s => s.timeframe === '5m')[0];
+            if (scalping) html += `<p><strong>${scalping.strategyName}</strong></p><p>WR: ${scalping.winRate.toFixed(1)}% | ${scalping.totalTrades} trades</p>`;
+            html += '</div><div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #2196F3;"><h4 style="color: #2196F3;">📈 SHORT-TERM (15m)</h4>';
+            const shortTerm = strategies.filter(s => s.timeframe === '15m')[0];
+            if (shortTerm) html += `<p><strong>${shortTerm.strategyName}</strong></p><p>WR: ${shortTerm.winRate.toFixed(1)}% | ${shortTerm.totalTrades} trades</p>`;
+            html += '</div><div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #FF9800;"><h4 style="color: #FF9800;">📊 MEDIUM-TERM (1h)</h4>';
+            const mediumTerm = strategies.filter(s => s.timeframe === '1h')[0];
+            if (mediumTerm) html += `<p><strong>${mediumTerm.strategyName}</strong></p><p>WR: ${mediumTerm.winRate.toFixed(1)}% | ${mediumTerm.totalTrades} trades</p>`;
+            html += '</div><div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #9C27B0;"><h4 style="color: #9C27B0;">📉 LONG-TERM (4h)</h4>';
+            const longTerm = strategies.filter(s => s.timeframe === '4h')[0];
+            if (longTerm) html += `<p><strong>${longTerm.strategyName}</strong></p><p>WR: ${longTerm.winRate.toFixed(1)}% | ${longTerm.totalTrades} trades</p>`;
+            html += '</div></div><div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin-top: 15px;"><h4 style="color: #856404;">💡 Live Trading Recommendations</h4><ul style="margin-left: 20px; color: #856404;"><li><strong>Maximum Returns:</strong> ' + bestReturn.strategyName + '</li><li><strong>Consistency:</strong> ' + bestWinRate.strategyName + ' (' + bestWinRate.winRate.toFixed(1) + '% WR)</li><li><strong>Best Risk/Reward:</strong> ' + bestProfitFactor.strategyName + ' (' + bestProfitFactor.profitFactor.toFixed(2) + ' PF)</li><li><strong>Active Trading:</strong> ' + mostActive.strategyName + ' (' + mostActive.totalTrades + ' trades)</li></ul></div></div><h3>📊 All Strategies Ranked</h3><table><thead><tr><th>Rank</th><th>Strategy</th><th>TF</th><th>Win Rate</th><th>Return %</th><th>PF</th><th>Trades</th><th>Best For</th></tr></thead><tbody>';
+            
+            strategies.forEach((strategy, index) => {
+                const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
+                const bestFor = strategy.timeframe === '5m' ? 'Scalping' : strategy.timeframe === '15m' ? 'Day Trading' : strategy.timeframe === '1h' ? 'Swing Trading' : 'Position Trading';
+                html += `<tr><td>${medal} ${index + 1}</td><td><strong>${strategy.strategyName}</strong></td><td>${strategy.timeframe}</td><td style="color: ${strategy.winRate >= 50 ? '#4CAF50' : '#666'};"><strong>${strategy.winRate.toFixed(1)}%</strong></td><td style="color: #2196F3;"><strong>${strategy.returnPercent.toLocaleString()}%</strong></td><td>${strategy.profitFactor.toFixed(2)}</td><td>${strategy.totalTrades}</td><td style="font-size: 0.9em; color: #666;">${bestFor}</td></tr>`;
+            });
+            
+            html += '</tbody></table><div style="background: #e8f5e9; padding: 20px; border-radius: 8px; margin-top: 20px;"><h3 style="color: #2e7d32;">�� SUPER BEST for Live Trading</h3><div style="background: white; padding: 20px; border-radius: 8px;"><h2 style="color: #4CAF50;">' + bestReturn.strategyName + '</h2><p style="margin: 15px 0; padding: 15px; background: #f5f5f5; border-radius: 8px;"><strong>Why it\'s SUPER BEST:</strong> Combines highest returns (' + (bestReturn.returnPercent / 1000000).toFixed(1) + 'M%) with ' + bestReturn.totalTrades + ' trades and ' + bestReturn.winRate.toFixed(1) + '% win rate. Perfect for maximum profit through active ' + bestReturn.timeframe + ' trading.</p></div></div>';
+            
+            tradesDiv.innerHTML = html;
+        }
+        
+        let equityChart = null;
+        
+        function displayResults(results) {
+            // Display stats
+            const statsGrid = document.getElementById('statsGrid');
+            statsGrid.innerHTML = `
+                <div class="stat-card">
+                    <h3>Total Trades</h3>
+                    <p>${results.totalTrades}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Win Rate</h3>
+                    <p>${results.winRate.toFixed(1)}%</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Return</h3>
+                    <p class="${results.returnPercent >= 0 ? 'profit' : 'loss'}">${results.returnPercent.toFixed(1)}%</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Final Balance</h3>
+                    <p>$${results.finalBalance.toFixed(2)}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Profit Factor</h3>
+                    <p>${results.profitFactor.toFixed(2)}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Max Drawdown</h3>
+                    <p>${(results.maxDrawdown * 100).toFixed(1)}%</p>
+                </div>
+            `;
+            
+            // Display trades
+            const tradesBody = document.getElementById('tradesBody');
+            if (results.trades && results.trades.length > 0) {
+                tradesBody.innerHTML = results.trades.map((trade, index) => `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td><strong>${trade.type}</strong></td>
+                    <td>$${trade.entry.toFixed(2)}</td>
+                    <td>$${trade.exit.toFixed(2)}</td>
+                    <td>${trade.exitReason}</td>
+                    <td class="${trade.profit >= 0 ? 'profit' : 'loss'}">$${trade.profit.toFixed(2)}</td>
+                    <td class="${trade.profitPercent >= 0 ? 'profit' : 'loss'}">${trade.profitPercent.toFixed(1)}%</td>
+                    <td>${trade.rr.toFixed(2)}</td>
+                    <td>$${trade.balanceAfter.toFixed(2)}</td>
+                </tr>
+            `).join('');
+            } else {
+                tradesBody.innerHTML = `
+                    <tr>
+                        <td colspan="9" style="text-align: center; padding: 30px; color: #666;">
+                            <div style="font-size: 1.2em; margin-bottom: 15px;">📊 Individual Trade Details Not Available</div>
+                            <div style="margin-bottom: 10px;">Summary statistics are shown above.</div>
+                            <div style="font-size: 0.9em; color: #888; margin-top: 15px;">
+                                💡 All strategies now show complete trade details!
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
+            
+            // Create equity curve and drawdown chart
+            createEquityChart(results);
+            
+            document.getElementById('results').classList.remove('hidden');
+        }
+        
+        function createEquityChart(results) {
+            // Destroy previous chart if exists
+            if (equityChart) {
+                equityChart.destroy();
+            }
+            
+            if (!results.trades || results.trades.length === 0) {
+                return;
+            }
+            
+            // Prepare data
+            const labels = ['Start'];
+            const equityData = [results.startBalance];
+            const drawdownData = [0];
+            
+            let peakBalance = results.startBalance;
+            
+            results.trades.forEach((trade, index) => {
+                labels.push(`Trade ${index + 1}`);
+                equityData.push(trade.balanceAfter);
+                
+                // Calculate drawdown
+                if (trade.balanceAfter > peakBalance) {
+                    peakBalance = trade.balanceAfter;
+                }
+                const drawdown = ((peakBalance - trade.balanceAfter) / peakBalance) * 100;
+                drawdownData.push(-drawdown); // Negative for visual representation
+            });
+            
+            const ctx = document.getElementById('equityChart').getContext('2d');
+            
+            equityChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Equity Curve',
+                            data: equityData,
+                            borderColor: '#4CAF50',
+                            backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4,
+                            yAxisID: 'y',
+                            pointRadius: 0,
+                            pointHoverRadius: 5
+                        },
+                        {
+                            label: 'Drawdown %',
+                            data: drawdownData,
+                            borderColor: '#f44336',
+                            backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4,
+                            yAxisID: 'y1',
+                            pointRadius: 0,
+                            pointHoverRadius: 5
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Account Balance & Drawdown Over Time',
+                            font: {
+                                size: 16,
+                                weight: 'bold'
+                            }
+                        },
+                        legend: {
+                            display: true,
+                            position: 'top',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        if (context.datasetIndex === 0) {
+                                            label += '$' + context.parsed.y.toFixed(2);
+                                        } else {
+                                            label += context.parsed.y.toFixed(2) + '%';
+                                        }
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Trade Number'
+                            },
+                            ticks: {
+                                maxTicksLimit: 20
+                            }
+                        },
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Account Balance ($)',
+                                color: '#4CAF50'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toFixed(0);
+                                },
+                                color: '#4CAF50'
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Drawdown (%)',
+                                color: '#f44336'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toFixed(1) + '%';
+                                },
+                                color: '#f44336'
+                            },
+                            grid: {
+                                drawOnChartArea: false,
+                            },
+                            min: Math.min(...drawdownData) * 1.1,
+                            max: 5
+                        }
+                    }
+                }
+            });
+        }
+        
+        async function exportCSV() {
+            const symbol = document.getElementById('symbol').value;
+            const interval = document.getElementById('interval').value;
+            const days = parseInt(document.getElementById('days').value);
+            const balance = parseFloat(document.getElementById('balance').value);
+            const risk = parseFloat(document.getElementById('risk').value) / 100;
+            
+            showStatus('Generating CSV...', 'info');
+            
+            try {
+                const response = await fetch(`${API_URL}/backtest/export`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        symbol,
+                        interval,
+                        days,
+                        startBalance: balance,
+                        riskPercent: risk
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Export failed');
+                }
+                
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `backtest_${symbol}_${days}d_${Date.now()}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                showStatus('CSV exported successfully!', 'success');
+                
+            } catch (error) {
+                showStatus('Error: ' + error.message, 'error');
+                console.error('Export error:', error);
+            }
+        }
+    </script>
+</body>
+</html>

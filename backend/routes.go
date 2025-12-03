@@ -46,6 +46,7 @@ func SetupRoutes(app *fiber.App) {
 	backtest.Post("/test-all-strategies", HandleTestAllStrategies) // Test 10 advanced strategies
 	backtest.Post("/optimize-parameters", HandleOptimizeParameters) // Optimize single strategy parameters
 	backtest.Post("/optimize-all", HandleOptimizeAllStrategies) // Optimize all strategies
+	backtest.Post("/live-signal", HandleLiveSignalFiber) // Get live trading signal
 	
 	// External Signal API routes (FREE)
 	externalSignals := api.Group("/external-signals")
@@ -63,6 +64,23 @@ func SetupRoutes(app *fiber.App) {
 	ai.Post("/toggle", ToggleAIFilter)                    // Enable/disable AI filter
 	ai.Get("/test", TestAIConnection)                     // Test Grok AI connection
 	ai.Post("/sentiment", AnalyzeSymbolSentiment)         // Analyze symbol sentiment
+	
+	// Telegram Bot routes
+	telegram := api.Group("/telegram")
+	telegram.Post("/start", HandleStartTelegramBot)       // Start 24/7 signal bot
+	telegram.Post("/stop", HandleStopTelegramBot)         // Stop signal bot
+	telegram.Get("/status", HandleGetTelegramBotStatus)   // Get bot status
+	
+	// Signal Storage routes
+	signalStorage := api.Group("/signal-storage")
+	signalStorage.Get("/recent", HandleGetRecentSignals)        // Get recent signals
+	signalStorage.Get("/performance", HandleGetSignalPerformance) // Get performance metrics
+	signalStorage.Post("/update", HandleUpdateSignalStatus)      // Update signal status
+	
+	// User Settings routes
+	settings := api.Group("/settings")
+	settings.Get("/", GetUserSettings)           // Get filter settings
+	settings.Post("/", UpdateUserSettings)       // Update filter settings
 
 	// Template-based routes (Server-Side Rendered)
 	app.Get("/", HandleIndexPage)

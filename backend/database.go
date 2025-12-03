@@ -18,8 +18,9 @@ func InitDB() {
 	password := os.Getenv("SUPABASE_PASSWORD")
 
 	if host == "" || password == "" {
-		log.Println("⚠️  Database credentials not configured")
-		log.Println("⚠️  Running without database support")
+		// Direct PostgreSQL connection not configured
+		// This is fine - we use Supabase REST API instead
+		log.Println("ℹ️  Using Supabase REST API (no direct database connection)")
 		return
 	}
 

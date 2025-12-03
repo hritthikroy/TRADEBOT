@@ -4,6 +4,7 @@ import (
 	"log"
 	"math"
 	"sort"
+	"strings"
 )
 
 // StrategyTestResult holds test results for a strategy
@@ -24,6 +25,14 @@ type StrategyTestResult struct {
 	TargetWinRate  float64 `json:"targetWinRate"`
 	TargetPF       float64 `json:"targetProfitFactor"`
 	Trades         []Trade `json:"trades"` // Add individual trades
+	// Buy/Sell specific stats
+	BuyTrades      int     `json:"buyTrades"`
+	BuyWins        int     `json:"buyWins"`
+	BuyWinRate     float64 `json:"buyWinRate"`
+	SellTrades     int     `json:"sellTrades"`
+	SellWins       int     `json:"sellWins"`
+	SellWinRate    float64 `json:"sellWinRate"`
+	MarketBias     string  `json:"marketBias"` // "BULL", "BEAR", or "NEUTRAL"
 }
 
 // TestAllStrategies tests all advanced strategies
@@ -63,6 +72,179 @@ func TestAllStrategies(symbol string, startBalance float64) ([]StrategyTestResul
 		
 		if len(signals) == 0 {
 			log.Printf("  ⚠️  No signals generated")
+			continue
+		}
+		
+		// Simulate trades
+		result := simulateAdvancedTrades(signals, candles, startBalance, strategy)
+		result.StrategyName = name
+		result.Description = strategy.Description
+		result.Timeframe = strategy.Timeframe
+		result.TargetWinRate = strategy.TargetWinRate
+		result.TargetPF = strategy.TargetProfitFactor
+		
+		// Calculate score
+		result.Score = calculateStrategyScore(result)
+		
+		results = append(results, result)
+		
+		log.Printf("  ✅ Trades: %d | WR: %.1f%% | Return: %.1f%% | PF: %.2f | Score: %.1f",
+			result.TotalTrades, result.WinRate, result.ReturnPercent, result.ProfitFactor, result.Score)
+	}
+	
+	// Sort by score
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].Score > results[j].Score
+	})
+	
+	// Print summary
+	printStrategySummary(results)
+	
+	return results, nil
+}
+
+// TestAllStrategiesWithFilter tests all advanced strategies with trade type filtering
+func TestAllStrategiesWithFilter(symbol string, startBalance float64, filterBuy bool, filterSell bool) ([]StrategyTestResult, error) {
+	strategies := GetAdvancedStrategies()
+	results := []StrategyTestResult{}
+	
+	filterMsg := "ALL trades"
+	if filterBuy && !filterSell {
+		filterMsg = "BUY trades only"
+	} else if !filterBuy && filterSell {
+		filterMsg = "SELL trades only"
+	}
+	
+	log.Printf("🚀 Testing All Advanced Strategies (%s)", filterMsg)
+	log.Println("=" + string(make([]byte, 70)))
+	
+	for name, strategy := range strategies {
+		log.Printf("\n📊 Testing: %s (%s)", strategy.Name, strategy.Timeframe)
+		
+		// Determine days based on timeframe
+		days := getOptimalDays(strategy.Timeframe)
+		
+		// Fetch data
+		candles, err := fetchBinanceData(symbol, strategy.Timeframe, days)
+		if err != nil {
+			log.Printf("  ❌ Failed to fetch data: %v", err)
+			continue
+		}
+		
+		if len(candles) < 100 {
+			log.Printf("  ⚠️  Insufficient data")
+			continue
+		}
+		
+		// Generate signals
+		signals := []AdvancedSignal{}
+		for i := 100; i < len(candles)-1; i++ {
+			signal := GenerateSignalWithStrategy(candles[:i+1], name)
+			if signal != nil {
+				// Filter by trade type
+				signalType := strings.TrimSpace(strings.ToUpper(signal.Type))
+				if (filterBuy && (signalType == "BUY" || signalType == "LONG")) ||
+					(filterSell && (signalType == "SELL" || signalType == "SHORT")) {
+					signals = append(signals, *signal)
+				}
+			}
+		}
+		
+		if len(signals) == 0 {
+			log.Printf("  ⚠️  No signals generated with filter")
+			continue
+		}
+		
+		// Simulate trades
+		result := simulateAdvancedTrades(signals, candles, startBalance, strategy)
+		result.StrategyName = name
+		result.Description = strategy.Description
+		result.Timeframe = strategy.Timeframe
+		result.TargetWinRate = strategy.TargetWinRate
+		result.TargetPF = strategy.TargetProfitFactor
+		
+		// Calculate score
+		result.Score = calculateStrategyScore(result)
+		
+		results = append(results, result)
+		
+		log.Printf("  ✅ Trades: %d | WR: %.1f%% | Return: %.1f%% | PF: %.2f | Score: %.1f",
+			result.TotalTrades, result.WinRate, result.ReturnPercent, result.ProfitFactor, result.Score)
+	}
+	
+	// Sort by score
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].Score > results[j].Score
+	})
+	
+	// Print summary
+	printStrategySummary(results)
+	
+	return results, nil
+}
+
+// TestAllStrategiesWithFilterAndRange tests all advanced strategies with trade type filtering and optional date range
+func TestAllStrategiesWithFilterAndRange(symbol string, startBalance float64, filterBuy bool, filterSell bool, startTime *int64, endTime *int64) ([]StrategyTestResult, error) {
+	strategies := GetAdvancedStrategies()
+	results := []StrategyTestResult{}
+	
+	filterMsg := "ALL trades"
+	if filterBuy && !filterSell {
+		filterMsg = "BUY trades only"
+	} else if !filterBuy && filterSell {
+		filterMsg = "SELL trades only"
+	}
+	
+	dateRangeMsg := ""
+	if startTime != nil && endTime != nil {
+		dateRangeMsg = " (Historical data)"
+	}
+	
+	log.Printf("🚀 Testing All Advanced Strategies (%s%s)", filterMsg, dateRangeMsg)
+	log.Println("=" + string(make([]byte, 70)))
+	
+	for name, strategy := range strategies {
+		log.Printf("\n📊 Testing: %s (%s)", strategy.Name, strategy.Timeframe)
+		
+		var candles []Candle
+		var err error
+		
+		// Fetch data - use date range if provided, otherwise use recent data
+		if startTime != nil && endTime != nil {
+			log.Printf("  📅 Fetching historical data from %d to %d", *startTime, *endTime)
+			candles, err = fetchBinanceDataWithRange(symbol, strategy.Timeframe, *startTime, *endTime)
+		} else {
+			// Determine days based on timeframe
+			days := getOptimalDays(strategy.Timeframe)
+			candles, err = fetchBinanceData(symbol, strategy.Timeframe, days)
+		}
+		
+		if err != nil {
+			log.Printf("  ❌ Failed to fetch data: %v", err)
+			continue
+		}
+		
+		if len(candles) < 100 {
+			log.Printf("  ⚠️  Insufficient data")
+			continue
+		}
+		
+		// Generate signals
+		signals := []AdvancedSignal{}
+		for i := 100; i < len(candles)-1; i++ {
+			signal := GenerateSignalWithStrategy(candles[:i+1], name)
+			if signal != nil {
+				// Filter by trade type
+				signalType := strings.TrimSpace(strings.ToUpper(signal.Type))
+				if (filterBuy && (signalType == "BUY" || signalType == "LONG")) ||
+					(filterSell && (signalType == "SELL" || signalType == "SHORT")) {
+					signals = append(signals, *signal)
+				}
+			}
+		}
+		
+		if len(signals) == 0 {
+			log.Printf("  ⚠️  No signals generated with filter")
 			continue
 		}
 		
@@ -229,6 +411,20 @@ func simulateAdvancedTrades(signals []AdvancedSignal, candles []Candle, startBal
 		result.Trades = append(result.Trades, trade)
 		result.TotalTrades++
 		
+		// Track buy/sell specific stats
+		signalType := strings.TrimSpace(strings.ToUpper(signal.Type))
+		if signalType == "BUY" || signalType == "LONG" {
+			result.BuyTrades++
+			if profit > 0 {
+				result.BuyWins++
+			}
+		} else if signalType == "SELL" || signalType == "SHORT" {
+			result.SellTrades++
+			if profit > 0 {
+				result.SellWins++
+			}
+		}
+		
 		if profit > 0 {
 			result.WinningTrades++
 			totalProfit += profit
@@ -249,6 +445,39 @@ func simulateAdvancedTrades(signals []AdvancedSignal, candles []Candle, startBal
 	result.ReturnPercent = ((balance - startBalance) / startBalance) * 100
 	if maxBalance > 0 {
 		result.MaxDrawdown = ((maxBalance - balance) / maxBalance) * 100
+	}
+	
+	// Calculate buy/sell win rates
+	if result.BuyTrades > 0 {
+		result.BuyWinRate = (float64(result.BuyWins) / float64(result.BuyTrades)) * 100
+	}
+	if result.SellTrades > 0 {
+		result.SellWinRate = (float64(result.SellWins) / float64(result.SellTrades)) * 100
+	}
+	
+	// Determine market bias
+	if result.BuyTrades > 0 && result.SellTrades > 0 {
+		buyPerformance := result.BuyWinRate * float64(result.BuyTrades)
+		sellPerformance := result.SellWinRate * float64(result.SellTrades)
+		
+		diff := math.Abs(buyPerformance - sellPerformance)
+		threshold := float64(result.TotalTrades) * 10 // 10% threshold
+		
+		if diff > threshold {
+			if buyPerformance > sellPerformance {
+				result.MarketBias = "BULL"
+			} else {
+				result.MarketBias = "BEAR"
+			}
+		} else {
+			result.MarketBias = "NEUTRAL"
+		}
+	} else if result.BuyTrades > result.SellTrades {
+		result.MarketBias = "BULL"
+	} else if result.SellTrades > result.BuyTrades {
+		result.MarketBias = "BEAR"
+	} else {
+		result.MarketBias = "NEUTRAL"
 	}
 	
 	return result

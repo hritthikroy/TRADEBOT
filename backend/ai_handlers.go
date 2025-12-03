@@ -6,7 +6,21 @@ import (
 
 // GetAIStats returns AI enhancement statistics
 func GetAIStats(c *fiber.Ctx) error {
-	aiGen := c.Locals("aiGenerator").(*AIEnhancedSignalGenerator)
+	aiGenInterface := c.Locals("aiGenerator")
+	if aiGenInterface == nil {
+		return c.Status(503).JSON(fiber.Map{
+			"success": false,
+			"error":   "AI generator not available (database not connected)",
+		})
+	}
+	
+	aiGen, ok := aiGenInterface.(*AIEnhancedSignalGenerator)
+	if !ok || aiGen == nil {
+		return c.Status(503).JSON(fiber.Map{
+			"success": false,
+			"error":   "AI generator not initialized",
+		})
+	}
 	
 	stats := aiGen.GetAIStats()
 	
@@ -18,7 +32,21 @@ func GetAIStats(c *fiber.Ctx) error {
 
 // ToggleAIFilter enables or disables AI filtering
 func ToggleAIFilter(c *fiber.Ctx) error {
-	aiGen := c.Locals("aiGenerator").(*AIEnhancedSignalGenerator)
+	aiGenInterface := c.Locals("aiGenerator")
+	if aiGenInterface == nil {
+		return c.Status(503).JSON(fiber.Map{
+			"success": false,
+			"error":   "AI generator not available",
+		})
+	}
+	
+	aiGen, ok := aiGenInterface.(*AIEnhancedSignalGenerator)
+	if !ok || aiGen == nil {
+		return c.Status(503).JSON(fiber.Map{
+			"success": false,
+			"error":   "AI generator not initialized",
+		})
+	}
 	
 	type ToggleRequest struct {
 		Enabled bool `json:"enabled"`
@@ -43,7 +71,21 @@ func ToggleAIFilter(c *fiber.Ctx) error {
 
 // TestAIConnection tests the Grok AI connection
 func TestAIConnection(c *fiber.Ctx) error {
-	aiGen := c.Locals("aiGenerator").(*AIEnhancedSignalGenerator)
+	aiGenInterface := c.Locals("aiGenerator")
+	if aiGenInterface == nil {
+		return c.Status(503).JSON(fiber.Map{
+			"success": false,
+			"error":   "AI generator not available",
+		})
+	}
+	
+	aiGen, ok := aiGenInterface.(*AIEnhancedSignalGenerator)
+	if !ok || aiGen == nil {
+		return c.Status(503).JSON(fiber.Map{
+			"success": false,
+			"error":   "AI generator not initialized",
+		})
+	}
 	
 	// Test with a simple query
 	response, err := aiGen.GrokService.CallGrokAPI("Say 'AI connection successful' if you can read this.")
@@ -64,7 +106,21 @@ func TestAIConnection(c *fiber.Ctx) error {
 
 // AnalyzeSymbolSentiment analyzes sentiment for a specific symbol
 func AnalyzeSymbolSentiment(c *fiber.Ctx) error {
-	aiGen := c.Locals("aiGenerator").(*AIEnhancedSignalGenerator)
+	aiGenInterface := c.Locals("aiGenerator")
+	if aiGenInterface == nil {
+		return c.Status(503).JSON(fiber.Map{
+			"success": false,
+			"error":   "AI generator not available",
+		})
+	}
+	
+	aiGen, ok := aiGenInterface.(*AIEnhancedSignalGenerator)
+	if !ok || aiGen == nil {
+		return c.Status(503).JSON(fiber.Map{
+			"success": false,
+			"error":   "AI generator not initialized",
+		})
+	}
 	
 	type SentimentRequest struct {
 		Symbol       string  `json:"symbol"`

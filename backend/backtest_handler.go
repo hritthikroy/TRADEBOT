@@ -171,6 +171,49 @@ func fetchBinanceData(symbol, interval string, days int) ([]Candle, error) {
 	return candles, nil
 }
 
+// fetchBinanceDataWithRange fetches historical candle data from Binance for a specific date range
+func fetchBinanceDataWithRange(symbol, interval string, startTime, endTime int64) ([]Candle, error) {
+	// Convert interval to Binance format
+	binanceInterval := toBinanceInterval(interval)
+	
+	// Binance API endpoint with date range
+	url := fmt.Sprintf("https://api.binance.com/api/v3/klines?symbol=%s&interval=%s&startTime=%d&endTime=%d&limit=1000",
+		symbol, binanceInterval, startTime, endTime)
+	
+	// Make request
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch from Binance: %w", err)
+	}
+	defer resp.Body.Close()
+	
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("binance API error: %s", string(body))
+	}
+	
+	// Parse response
+	var klines []BinanceKlineArray
+	if err := json.NewDecoder(resp.Body).Decode(&klines); err != nil {
+		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+	
+	// Convert to Candle format
+	candles := make([]Candle, len(klines))
+	for i, k := range klines {
+		candles[i] = Candle{
+			Timestamp: int64(k[0].(float64)),
+			Open:      parseFloatBT(k[1]),
+			High:      parseFloatBT(k[2]),
+			Low:       parseFloatBT(k[3]),
+			Close:     parseFloatBT(k[4]),
+			Volume:    parseFloatBT(k[5]),
+		}
+	}
+	
+	return candles, nil
+}
+
 // toBinanceInterval converts interval to Binance format
 func toBinanceInterval(interval string) string {
 	binanceIntervals := map[string]string{

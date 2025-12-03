@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Lightweight Charts</title>
+    <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+<body>
+    <h1>Testing Lightweight Charts</h1>
+    <div id="chart" style="width: 600px; height: 400px;"></div>
+    
+    <script>
+        // Wait for DOM to load
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM loaded');
+            console.log('LightweightCharts available:', typeof LightweightCharts !== 'undefined');
+            
+            if (typeof LightweightCharts === 'undefined') {
+                document.body.innerHTML += '<p style="color: red;">ERROR: LightweightCharts not loaded!</p>';
+                return;
+            }
+            
+            try {
+                const chart = LightweightCharts.createChart(document.getElementById('chart'), {
+                    width: 600,
+                    height: 400
+                });
+                
+                const candlestickSeries = chart.addCandlestickSeries();
+                
+                candlestickSeries.setData([
+                    { time: '2023-01-01', open: 100, high: 110, low: 95, close: 105 },
+                    { time: '2023-01-02', open: 105, high: 115, low: 100, close: 110 },
+                    { time: '2023-01-03', open: 110, high: 120, low: 105, close: 115 },
+                ]);
+                
+                document.body.innerHTML += '<p style="color: green;">SUCCESS: Chart created!</p>';
+            } catch (error) {
+                document.body.innerHTML += '<p style="color: red;">ERROR: ' + error.message + '</p>';
+                console.error(error);
+            }
+        });
+    </script>
+</body>
+</html>
