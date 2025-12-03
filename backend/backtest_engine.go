@@ -151,9 +151,25 @@ func RunBacktest(config BacktestConfig, candles []Candle) (*BacktestResult, erro
 		dataWindow := candles[i-windowSize : i]
 		futureData := candles[i : i+10]
 
-		// Generate signal using simplified backtest logic (matches JavaScript)
-		// If strategy is specified, use strategy-specific parameters but default signal logic
-		signal := generateBacktestSignal(dataWindow, config.Interval)
+		// Generate signal using LIVE SIGNAL LOGIC (unified with real-time trading)
+		liveSignal := generateLiveSignal(dataWindow, config.Strategy)
+		
+		// Convert LiveSignalResponse to Signal for backtest
+		var signal *Signal
+		if liveSignal.Signal != "NONE" {
+			signal = &Signal{
+				Type:      liveSignal.Signal,
+				Entry:     liveSignal.Entry,
+				StopLoss:  liveSignal.StopLoss,
+				Targets: []Target{
+					{Price: liveSignal.TP1, RR: 0, Percentage: 33},
+					{Price: liveSignal.TP2, RR: 0, Percentage: 33},
+					{Price: liveSignal.TP3, RR: 0, Percentage: 34},
+				},
+				Strength:  liveSignal.RiskReward,
+				Timeframe: config.Interval,
+			}
+		}
 		
 		// Apply strategy-specific modifications if strategy is selected
 		if signal != nil && config.Strategy != "" && config.Strategy != "default" {

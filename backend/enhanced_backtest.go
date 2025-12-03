@@ -117,8 +117,25 @@ func runSimulationWindowBacktest(config BacktestConfig, candles []Candle) (*Back
 		
 		futureData := candles[i : minInt(i+20, len(candles))] // Look ahead 20 candles max
 		
-		// Generate signal using available data only
-		signal := generateBacktestSignal(dataWindow, config.Interval)
+		// Generate signal using LIVE SIGNAL LOGIC (unified with real-time trading)
+		liveSignal := generateLiveSignal(dataWindow, config.Strategy)
+		
+		// Convert LiveSignalResponse to Signal for backtest
+		var signal *Signal
+		if liveSignal.Signal != "NONE" {
+			signal = &Signal{
+				Type:      liveSignal.Signal,
+				Entry:     liveSignal.Entry,
+				StopLoss:  liveSignal.StopLoss,
+				Targets: []Target{
+					{Price: liveSignal.TP1, RR: 0, Percentage: 33},
+					{Price: liveSignal.TP2, RR: 0, Percentage: 33},
+					{Price: liveSignal.TP3, RR: 0, Percentage: 34},
+				},
+				Strength:  liveSignal.RiskReward,
+				Timeframe: config.Interval,
+			}
+		}
 		
 		if signal != nil {
 			// Simulate trade with realistic conditions
