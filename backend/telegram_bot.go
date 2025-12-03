@@ -109,6 +109,12 @@ func StartTelegramSignalBot(symbol, strategy string, filterBuy, filterSell bool)
 				currentFilterBuy, currentFilterSell := GetCurrentFilterSettings()
 				log.Printf("🔍 Current filter settings: filterBuy=%v, filterSell=%v", currentFilterBuy, currentFilterSell)
 				
+				// If both filters are disabled, pause signal processing
+				if !currentFilterBuy && !currentFilterSell {
+					log.Printf("⏸️  Both filters disabled - Telegram bot paused (not sending signals)")
+					continue
+				}
+				
 				if (signal.Signal == "BUY" && !currentFilterBuy) || (signal.Signal == "SELL" && !currentFilterSell) {
 					log.Printf("⏭️  Signal %s filtered out (filterBuy=%v, filterSell=%v)", signal.Signal, currentFilterBuy, currentFilterSell)
 					continue
