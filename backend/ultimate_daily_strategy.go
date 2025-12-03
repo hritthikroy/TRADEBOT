@@ -704,7 +704,7 @@ func (uds *UltimateDailyStrategy) PrintSetupReport(setup *DailySetup) {
 	
 	fmt.Println("\n╔══════════════════════════════════════════════════════════════════════╗")
 	fmt.Printf("║  ✅ VALID SETUP - %s                                    \n", setup.ValidationMsg)
-	fmt.Println("╚══════════════════════════════════════════════════════════════════════╝\n")
+	fmt.Println("╚══════════════════════════════════════════════════════════════════════╝")
 }
 
 // Start begins the ultimate daily strategy
@@ -738,7 +738,7 @@ func (uds *UltimateDailyStrategy) Start() {
 	log.Println("   ✅ Supply & Demand")
 	log.Println("   ✅ ICT/SMC Concepts")
 	log.Println("   ✅ Volatility Filter")
-	log.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+	log.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 	
 	// Initial scan
 	uds.ScanForSetups()

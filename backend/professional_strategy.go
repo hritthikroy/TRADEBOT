@@ -668,7 +668,7 @@ func (psg *ProfessionalSignalGenerator) Start() {
 	log.Println("   ✅ Order Flow Analysis")
 	log.Println("   ✅ Multi-Timeframe")
 	log.Println("   ✅ Volatility Filter")
-	log.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+	log.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 	
 	// Initial scan
 	psg.ScanMarkets()

@@ -1161,7 +1161,7 @@ func (lfs *LiquidityFirstStrategy) PrintUnifiedSetup(setup *UnifiedSetup) {
 	
 	fmt.Println("\n╔══════════════════════════════════════════════════════════════════════╗")
 	fmt.Printf("║  ✅ %s                                                    \n", setup.Reason)
-	fmt.Println("╚══════════════════════════════════════════════════════════════════════╝\n")
+	fmt.Println("╚══════════════════════════════════════════════════════════════════════╝")
 }
 
 // Start begins the strategy
@@ -1183,7 +1183,7 @@ func (lfs *LiquidityFirstStrategy) Start() {
 	log.Println("SUPPORTING:")
 	log.Println("   • Auction Market Theory (POC, Value Area)")
 	log.Println("   • Wyckoff (Accumulation, Distribution, Spring)")
-	log.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+	log.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 	
 	// Initial scan
 	for _, tf := range lfs.Timeframes {

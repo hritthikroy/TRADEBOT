@@ -163,7 +163,7 @@ func (aisg *AIEnhancedSignalGenerator) Start() {
 	log.Printf("🎯 Max signals/day: %d", aisg.MaxSignalsPerDay)
 	log.Printf("🤖 AI Filter: %v", aisg.AIFilterEnabled)
 	log.Printf("🎓 Min AI Confidence: %.0f%%", aisg.MinAIConfidence)
-	log.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+	log.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
 	// Initial scan
 	aisg.GenerateAIEnhancedSignals()

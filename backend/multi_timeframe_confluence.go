@@ -843,5 +843,5 @@ func PrintMTFReport(report *MTFReport) {
 	
 	fmt.Println("───────────────────────────────────────────────────────────")
 	fmt.Printf("RECOMMENDATION: %s\n", report.Recommendation)
-	fmt.Println("═══════════════════════════════════════════════════════════\n")
+	fmt.Println("═══════════════════════════════════════════════════════════")
 }
