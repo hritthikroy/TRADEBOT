@@ -402,20 +402,60 @@
                     <input type="text" id="signalSymbol" value="BTCUSDT">
                 </div>
                 <div class="form-group">
-                    <label>🎯 Strategy</label>
-                    <select id="signalStrategy">
-                        <option value="session_trader">🥇 Session Trader (15m)</option>
-                        <option value="breakout_master">🥈 Breakout Master (15m)</option>
-                        <option value="liquidity_hunter">🥉 Liquidity Hunter (15m)</option>
-                        <option value="trend_rider">Trend Rider (4h)</option>
-                        <option value="range_master">Range Master (1h)</option>
-                        <option value="smart_money_tracker">Smart Money Tracker (1h)</option>
-                        <option value="institutional_follower">Institutional Follower (4h)</option>
-                        <option value="reversal_sniper">Reversal Sniper (1h)</option>
-                        <option value="momentum_beast">Momentum Beast (15m)</option>
-                        <option value="scalper_pro">Scalper Pro (5m)</option>
-                    </select>
+                    <label style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>🎯 Strategy Filter</span>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.9em; font-weight: normal;">
+                            <input type="checkbox" id="selectAllStrategies" onchange="toggleAllStrategies()" style="width: 16px; height: 16px; cursor: pointer;">
+                            <span>Select All</span>
+                        </label>
+                    </label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; background: #f5f5f5; border-radius: 6px;">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0;">
+                            <input type="checkbox" class="strategy-checkbox" value="session_trader" checked style="width: 18px; height: 18px; cursor: pointer;">
+                            <span style="font-size: 0.9em;">🥇 Session Trader</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0;">
+                            <input type="checkbox" class="strategy-checkbox" value="breakout_master" style="width: 18px; height: 18px; cursor: pointer;">
+                            <span style="font-size: 0.9em;">🥈 Breakout Master</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0;">
+                            <input type="checkbox" class="strategy-checkbox" value="liquidity_hunter" style="width: 18px; height: 18px; cursor: pointer;">
+                            <span style="font-size: 0.9em;">🥉 Liquidity Hunter</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0;">
+                            <input type="checkbox" class="strategy-checkbox" value="trend_rider" style="width: 18px; height: 18px; cursor: pointer;">
+                            <span style="font-size: 0.9em;">📈 Trend Rider</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0;">
+                            <input type="checkbox" class="strategy-checkbox" value="range_master" style="width: 18px; height: 18px; cursor: pointer;">
+                            <span style="font-size: 0.9em;">📊 Range Master</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0;">
+                            <input type="checkbox" class="strategy-checkbox" value="smart_money_tracker" style="width: 18px; height: 18px; cursor: pointer;">
+                            <span style="font-size: 0.9em;">💰 Smart Money</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0;">
+                            <input type="checkbox" class="strategy-checkbox" value="institutional_follower" style="width: 18px; height: 18px; cursor: pointer;">
+                            <span style="font-size: 0.9em;">🏛️ Institutional</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0;">
+                            <input type="checkbox" class="strategy-checkbox" value="reversal_sniper" style="width: 18px; height: 18px; cursor: pointer;">
+                            <span style="font-size: 0.9em;">🎯 Reversal Sniper</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0;">
+                            <input type="checkbox" class="strategy-checkbox" value="momentum_beast" style="width: 18px; height: 18px; cursor: pointer;">
+                            <span style="font-size: 0.9em;">⚡ Momentum Beast</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0;">
+                            <input type="checkbox" class="strategy-checkbox" value="scalper_pro" style="width: 18px; height: 18px; cursor: pointer;">
+                            <span style="font-size: 0.9em;">⚡ Scalper Pro</span>
+                        </label>
+                    </div>
+                    <div id="strategyFilterStatus" style="margin-top: 10px; padding: 8px; background: #e3f2fd; border-radius: 4px; font-size: 0.9em; text-align: center;">
+                        ✅ Active: <strong>Session Trader</strong>
+                    </div>
                 </div>
+                
                 <div class="form-group">
                     <label>🎯 Trade Type Filter</label>
                     <div style="display: flex; gap: 20px; align-items: center; padding: 10px; background: #f5f5f5; border-radius: 6px;">
@@ -432,34 +472,19 @@
                         ✅ Showing: Buy + Sell signals (All signals)
                     </p>
                 </div>
+                
+                <!-- Save All Settings Button -->
+                <div class="form-group">
+                    <button onclick="saveAllSettings()" style="width: 100%; padding: 15px; background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; border: none; border-radius: 8px; font-size: 1.1em; font-weight: bold; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                        💾 Save All Settings
+                    </button>
+                </div>
                 <!-- Auto-refresh status -->
                 <div style="padding: 12px; border-radius: 8px; margin-bottom: 20px; background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; text-align: center;">
                     <p style="margin: 0; font-weight: 600;">🔄 Auto-Refresh Active - Updating every 30 seconds</p>
                 </div>
                 
-                <!-- Real-time Status Indicators -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
-                    <!-- Telegram Bot Status -->
-                    <div style="padding: 15px; border-radius: 8px; background: linear-gradient(135deg, #0088cc 0%, #0077b3 100%);">
-                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                            <span style="font-size: 1.5em;">📱</span>
-                            <h4 style="margin: 0; color: white;">Telegram Bot - Fast Mode</h4>
-                        </div>
-                        <p style="margin: 5px 0; font-size: 0.9em; color: white; opacity: 0.9;">Real-time signal delivery (24/7)</p>
-                        <p style="margin: 5px 0 0 0; font-size: 1.1em; font-weight: bold; color: white;">🟢 Active - Every 15 seconds</p>
-                    </div>
-                    
-                    <!-- Supabase Storage Status -->
-                    <div style="padding: 15px; border-radius: 8px; background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);">
-                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                            <span style="font-size: 1.5em;">💾</span>
-                            <h4 style="margin: 0; color: white;">Supabase Storage</h4>
-                        </div>
-                        <p style="margin: 5px 0; font-size: 0.9em; color: white; opacity: 0.9;">All signals saved automatically</p>
-                        <p style="margin: 5px 0 0 0; font-size: 1.1em; font-weight: bold; color: white;">🟢 Connected</p>
-                    </div>
-                </div>
-                
+
                 <div id="currentSignal" style="display: none;">
                     <div id="signalCard" style="padding: 30px; border-radius: 12px; text-align: center; margin-bottom: 20px;">
                         <h3 id="signalType" style="font-size: 2em; margin-bottom: 15px;"></h3>
@@ -1634,47 +1659,166 @@
         let signalsHistory = [];
         let isLoadingSettings = false; // Flag to prevent saving during initial load
         
-        async function updateSignalFilterDisplay(skipSave = false) {
+        // Toggle all strategy checkboxes
+        function toggleAllStrategies() {
+            const selectAll = document.getElementById('selectAllStrategies').checked;
+            document.querySelectorAll('.strategy-checkbox').forEach(checkbox => {
+                checkbox.checked = selectAll;
+            });
+            updateStrategyFilterDisplay();
+        }
+        
+        // Save all settings (filters + strategies) to database
+        async function saveAllSettings() {
+            try {
+                const filterBuy = document.getElementById('signalFilterBuy').checked;
+                const filterSell = document.getElementById('signalFilterSell').checked;
+                const checkedStrategies = Array.from(document.querySelectorAll('.strategy-checkbox:checked'));
+                const selectedStrategies = checkedStrategies.map(cb => cb.value);
+                
+                if (selectedStrategies.length === 0) {
+                    alert('⚠️ Please select at least one strategy!');
+                    return;
+                }
+                
+                console.log(`💾 Saving all settings: filterBuy=${filterBuy}, filterSell=${filterSell}, strategies=${selectedStrategies.length}`);
+                
+                const response = await fetch('/api/v1/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        filterBuy, 
+                        filterSell,
+                        selectedStrategies 
+                    })
+                });
+                
+                const result = await response.json();
+                console.log('✅ All settings saved:', result);
+                
+                // Show success message
+                const btn = document.querySelector('button[onclick="saveAllSettings()"]');
+                if (btn) {
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = '✅ Saved Successfully!';
+                    btn.style.background = 'linear-gradient(135deg, #2196F3 0%, #1976D2 100%)';
+                    
+                    setTimeout(() => {
+                        btn.innerHTML = originalText;
+                        btn.style.background = 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)';
+                    }, 2000);
+                }
+                
+                // Fetch new signal
+                await getLiveSignal();
+            } catch (error) {
+                console.error('❌ Failed to save settings:', error);
+                alert('❌ Failed to save settings. Please try again.');
+            }
+        }
+        
+        // Update strategy filter display
+        function updateStrategyFilterDisplay() {
+            const checkedStrategies = Array.from(document.querySelectorAll('.strategy-checkbox:checked'));
+            const totalStrategies = document.querySelectorAll('.strategy-checkbox').length;
+            const selectedStrategies = checkedStrategies.map(cb => cb.value);
+            
+            // Update "Select All" checkbox state
+            const selectAllCheckbox = document.getElementById('selectAllStrategies');
+            if (selectAllCheckbox) {
+                selectAllCheckbox.checked = checkedStrategies.length === totalStrategies;
+                selectAllCheckbox.indeterminate = checkedStrategies.length > 0 && checkedStrategies.length < totalStrategies;
+            }
+            
+            const strategyNames = {
+                'session_trader': 'Session Trader',
+                'breakout_master': 'Breakout Master',
+                'liquidity_hunter': 'Liquidity Hunter',
+                'trend_rider': 'Trend Rider',
+                'range_master': 'Range Master',
+                'smart_money_tracker': 'Smart Money',
+                'institutional_follower': 'Institutional',
+                'reversal_sniper': 'Reversal Sniper',
+                'momentum_beast': 'Momentum Beast',
+                'scalper_pro': 'Scalper Pro'
+            };
+            
+            const statusDiv = document.getElementById('strategyFilterStatus');
+            
+            if (checkedStrategies.length === 0) {
+                statusDiv.innerHTML = '⚠️ <strong>No strategies selected!</strong> Click "Save All Settings" to apply.';
+                statusDiv.style.background = '#ffebee';
+                statusDiv.style.color = '#c62828';
+            } else if (checkedStrategies.length === 1) {
+                const strategyName = strategyNames[checkedStrategies[0].value];
+                statusDiv.innerHTML = `✅ Selected: <strong>${strategyName}</strong> (Click "Save" to apply)`;
+                statusDiv.style.background = '#fff3e0';
+                statusDiv.style.color = '#e65100';
+            } else {
+                const names = checkedStrategies.map(cb => strategyNames[cb.value]).join(', ');
+                statusDiv.innerHTML = `✅ Selected: <strong>${checkedStrategies.length} strategies</strong> (Click "Save" to apply)`;
+                statusDiv.style.background = '#fff3e0';
+                statusDiv.style.color = '#e65100';
+            }
+        }
+        
+        // Load saved strategy selections from localStorage
+        function loadStrategySelections() {
+            const saved = localStorage.getItem('selectedStrategies');
+            if (saved) {
+                try {
+                    const selectedStrategies = JSON.parse(saved);
+                    
+                    // Uncheck all first
+                    document.querySelectorAll('.strategy-checkbox').forEach(cb => {
+                        cb.checked = false;
+                    });
+                    
+                    // Check the saved ones
+                    selectedStrategies.forEach(strategy => {
+                        const checkbox = document.querySelector(`.strategy-checkbox[value="${strategy}"]`);
+                        if (checkbox) {
+                            checkbox.checked = true;
+                        }
+                    });
+                    
+                    // Update display without fetching signal
+                    updateStrategyFilterDisplay(true);
+                } catch (e) {
+                    console.error('Failed to load strategy selections:', e);
+                }
+            }
+        }
+        
+        function updateSignalFilterDisplay() {
             const filterBuy = document.getElementById('signalFilterBuy').checked;
             const filterSell = document.getElementById('signalFilterSell').checked;
             const filterStatus = document.getElementById('signalFilterStatus');
             
-            // Save to database (unless this is called during initial load)
-            if (!skipSave && !isLoadingSettings) {
-                try {
-                    console.log(`💾 Saving filter settings: filterBuy=${filterBuy}, filterSell=${filterSell}`);
-                    await fetch('/api/v1/settings', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ filterBuy, filterSell })
-                    });
-                    
-                    // Immediately fetch a new signal after changing filters
-                    console.log('✅ Filter settings saved, fetching new signal...');
-                    await getLiveSignal();
-                } catch (error) {
-                    console.error('Failed to save settings:', error);
-                }
-            }
-            
             if (filterBuy && filterSell) {
-                filterStatus.innerHTML = '✅ Showing: <strong style="color: #4CAF50;">Buy</strong> + <strong style="color: #f44336;">Sell</strong> signals (All signals)';
-                filterStatus.style.color = '#666';
+                filterStatus.innerHTML = '✅ Selected: <strong style="color: #4CAF50;">Buy</strong> + <strong style="color: #f44336;">Sell</strong> signals (Click "Save" to apply)';
+                filterStatus.style.color = '#e65100';
             } else if (filterBuy && !filterSell) {
-                filterStatus.innerHTML = '🟢 Showing: <strong style="color: #4CAF50;">BUY signals ONLY</strong> (Long positions)';
-                filterStatus.style.color = '#4CAF50';
+                filterStatus.innerHTML = '🟢 Selected: <strong style="color: #4CAF50;">BUY signals ONLY</strong> (Click "Save" to apply)';
+                filterStatus.style.color = '#e65100';
             } else if (!filterBuy && filterSell) {
-                filterStatus.innerHTML = '🔴 Showing: <strong style="color: #f44336;">SELL signals ONLY</strong> (Short positions)';
-                filterStatus.style.color = '#f44336';
+                filterStatus.innerHTML = '🔴 Selected: <strong style="color: #f44336;">SELL signals ONLY</strong> (Click "Save" to apply)';
+                filterStatus.style.color = '#e65100';
             } else {
-                filterStatus.innerHTML = '⚠️ <strong style="color: #f44336;">Both filters disabled</strong> - Signal generation paused';
-                filterStatus.style.color = '#FF9800';
+                filterStatus.innerHTML = '⚠️ <strong style="color: #f44336;">Both filters disabled</strong> - Click "Save" to pause signals';
+                filterStatus.style.color = '#c62828';
             }
         }
         
         async function getLiveSignal() {
             const symbol = document.getElementById('signalSymbol').value;
-            const strategy = document.getElementById('signalStrategy').value;
+            
+            // Get all checked strategies
+            const checkedStrategies = Array.from(document.querySelectorAll('.strategy-checkbox:checked'))
+                .map(cb => cb.value);
+            
+            // If no strategies selected, use session_trader as default
+            const strategy = checkedStrategies.length > 0 ? checkedStrategies[0] : 'session_trader';
             
             try {
                 // Get latest candles for analysis
@@ -2428,17 +2572,37 @@
         async function loadFilterSettings() {
             isLoadingSettings = true; // Prevent saving during load
             try {
-                console.log('📥 Loading filter settings from database...');
+                console.log('📥 Loading settings from database...');
                 const response = await fetch('/api/v1/settings');
                 const settings = await response.json();
                 
-                console.log(`✅ Loaded settings: filterBuy=${settings.filterBuy}, filterSell=${settings.filterSell}`);
+                console.log(`✅ Loaded settings:`, settings);
+                console.log(`   - filterBuy: ${settings.filterBuy}`);
+                console.log(`   - filterSell: ${settings.filterSell}`);
+                console.log(`   - strategies (type: ${typeof settings.selectedStrategies}):`, settings.selectedStrategies);
+                console.log(`   - strategies JSON:`, JSON.stringify(settings.selectedStrategies));
                 
-                // Apply settings to checkboxes
+                // Apply filter settings to checkboxes
                 document.getElementById('filterBuy').checked = settings.filterBuy;
                 document.getElementById('filterSell').checked = settings.filterSell;
                 document.getElementById('signalFilterBuy').checked = settings.filterBuy;
                 document.getElementById('signalFilterSell').checked = settings.filterSell;
+                
+                // Apply strategy settings to checkboxes
+                // Handle both string and array formats from backend
+                let selectedStrategies = settings.selectedStrategies || ['session_trader'];
+                if (typeof selectedStrategies === 'string') {
+                    // If it's a string, convert to array
+                    selectedStrategies = [selectedStrategies];
+                    console.log(`   - Converted string to array:`, selectedStrategies);
+                }
+                console.log(`   - Applying ${selectedStrategies.length} strategies to checkboxes:`, selectedStrategies);
+                
+                document.querySelectorAll('.strategy-checkbox').forEach(checkbox => {
+                    const shouldBeChecked = selectedStrategies.includes(checkbox.value);
+                    checkbox.checked = shouldBeChecked;
+                    console.log(`     ${checkbox.value}: ${shouldBeChecked}`);
+                });
                 
                 // Update displays (skip save since we just loaded)
                 updateFilterDisplay();
@@ -2454,9 +2618,20 @@
         }
         
         // Auto-start signal refresh when page loads
-        window.addEventListener('DOMContentLoaded', function() {
-            // Load saved filter settings from database
-            loadFilterSettings();
+        window.addEventListener('DOMContentLoaded', async function() {
+            // Attach event listeners to strategy checkboxes FIRST
+            document.querySelectorAll('.strategy-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    console.log('🔄 Strategy checkbox changed:', this.value, 'checked:', this.checked);
+                    updateStrategyFilterDisplay();
+                });
+            });
+            
+            // Load saved filter settings from database (this will set checkboxes)
+            await loadFilterSettings();
+            
+            // Initialize strategy filter display (skip save since we just loaded)
+            await updateStrategyFilterDisplay(true);
             
             // Wait a bit for the page to fully load
             setTimeout(function() {

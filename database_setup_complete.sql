@@ -278,18 +278,19 @@ WHERE signal_type = 'NONE';
 -- USER SETTINGS TABLE
 -- ============================================
 
--- Create user_settings table for filter preferences
+-- Create user_settings table for filter preferences and strategy selections
 CREATE TABLE IF NOT EXISTS user_settings (
     id INTEGER PRIMARY KEY DEFAULT 1,
     filter_buy BOOLEAN DEFAULT true,
     filter_sell BOOLEAN DEFAULT true,
+    selected_strategies TEXT[] DEFAULT ARRAY['session_trader'],
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     CONSTRAINT single_row CHECK (id = 1)
 );
 
 -- Insert default settings
-INSERT INTO user_settings (id, filter_buy, filter_sell)
-VALUES (1, true, true)
+INSERT INTO user_settings (id, filter_buy, filter_sell, selected_strategies)
+VALUES (1, true, true, ARRAY['session_trader'])
 ON CONFLICT (id) DO NOTHING;
 
 -- Enable RLS for user_settings

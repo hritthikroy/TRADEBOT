@@ -14,16 +14,18 @@ import (
 
 // UserSettings for API responses (camelCase for frontend)
 type UserSettings struct {
-	ID         int  `json:"id"`
-	FilterBuy  bool `json:"filterBuy"`   // camelCase for frontend
-	FilterSell bool `json:"filterSell"`  // camelCase for frontend
+	ID                 int      `json:"id"`
+	FilterBuy          bool     `json:"filterBuy"`          // camelCase for frontend
+	FilterSell         bool     `json:"filterSell"`         // camelCase for frontend
+	SelectedStrategies []string `json:"selectedStrategies"` // camelCase for frontend
 }
 
 // UserSettingsDB for database operations (snake_case for Supabase)
 type UserSettingsDB struct {
-	ID         int  `json:"id"`
-	FilterBuy  bool `json:"filter_buy"`  // snake_case for database
-	FilterSell bool `json:"filter_sell"` // snake_case for database
+	ID                 int      `json:"id"`
+	FilterBuy          bool     `json:"filter_buy"`          // snake_case for database
+	FilterSell         bool     `json:"filter_sell"`         // snake_case for database
+	SelectedStrategies []string `json:"selected_strategies"` // snake_case for database
 }
 
 // GetUserSettings retrieves user filter settings from Supabase
@@ -34,9 +36,10 @@ func GetUserSettings(c *fiber.Ctx) error {
 	if supabaseURL == "" || supabaseKey == "" {
 		// Return defaults if Supabase not configured
 		return c.JSON(UserSettings{
-			ID:         1,
-			FilterBuy:  true,
-			FilterSell: true,
+			ID:                 1,
+			FilterBuy:          true,
+			FilterSell:         true,
+			SelectedStrategies: []string{"session_trader"},
 		})
 	}
 
@@ -44,7 +47,12 @@ func GetUserSettings(c *fiber.Ctx) error {
 	url := fmt.Sprintf("%s/rest/v1/user_settings?id=eq.1", supabaseURL)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return c.JSON(UserSettings{ID: 1, FilterBuy: true, FilterSell: true})
+		return c.JSON(UserSettings{
+			ID:                 1,
+			FilterBuy:          true,
+			FilterSell:         true,
+			SelectedStrategies: []string{"session_trader"},
+		})
 	}
 
 	req.Header.Set("apikey", supabaseKey)
@@ -54,7 +62,12 @@ func GetUserSettings(c *fiber.Ctx) error {
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Printf("⚠️  Failed to get settings from Supabase: %v", err)
-		return c.JSON(UserSettings{ID: 1, FilterBuy: true, FilterSell: true})
+		return c.JSON(UserSettings{
+			ID:                 1,
+			FilterBuy:          true,
+			FilterSell:         true,
+			SelectedStrategies: []string{"session_trader"},
+		})
 	}
 	defer resp.Body.Close()
 
@@ -70,23 +83,39 @@ func GetUserSettings(c *fiber.Ctx) error {
 	if err := json.Unmarshal(responseBody.Bytes(), &settingsDB); err != nil {
 		log.Printf("⚠️  GetUserSettings - Failed to decode: %v", err)
 		log.Printf("⚠️  GetUserSettings - Response was: %s", responseBodyStr)
-		return c.JSON(UserSettings{ID: 1, FilterBuy: true, FilterSell: true})
+		return c.JSON(UserSettings{
+			ID:                 1,
+			FilterBuy:          true,
+			FilterSell:         true,
+			SelectedStrategies: []string{"session_trader"},
+		})
 	}
 
 	if len(settingsDB) == 0 {
 		// No settings exist, return defaults
 		log.Printf("ℹ️  GetUserSettings - No settings found in database, returning defaults")
-		return c.JSON(UserSettings{ID: 1, FilterBuy: true, FilterSell: true})
+		return c.JSON(UserSettings{
+			ID:                 1,
+			FilterBuy:          true,
+			FilterSell:         true,
+			SelectedStrategies: []string{"session_trader"},
+		})
 	}
 
 	// Convert from DB format to API format (snake_case to camelCase)
 	apiSettings := UserSettings{
-		ID:         settingsDB[0].ID,
-		FilterBuy:  settingsDB[0].FilterBuy,
-		FilterSell: settingsDB[0].FilterSell,
+		ID:                 settingsDB[0].ID,
+		FilterBuy:          settingsDB[0].FilterBuy,
+		FilterSell:         settingsDB[0].FilterSell,
+		SelectedStrategies: settingsDB[0].SelectedStrategies,
 	}
 	
-	log.Printf("✅ GetUserSettings - Returning: filterBuy=%v, filterSell=%v", apiSettings.FilterBuy, apiSettings.FilterSell)
+	// Default to session_trader if no strategies selected
+	if len(apiSettings.SelectedStrategies) == 0 {
+		apiSettings.SelectedStrategies = []string{"session_trader"}
+	}
+	
+	log.Printf("✅ GetUserSettings - Returning: filterBuy=%v, filterSell=%v, strategies=%v", apiSettings.FilterBuy, apiSettings.FilterSell, apiSettings.SelectedStrategies)
 	return c.JSON(apiSettings)
 }
 
@@ -111,11 +140,16 @@ func UpdateUserSettings(c *fiber.Ctx) error {
 		})
 	}
 
-	// Prepare data
+	// Default to session_trader if no strategies provided
+	if len(settings.SelectedStrategies) == 0 {
+		settings.SelectedStrategies = []string{"session_trader"}
+	}
+	
+	// Prepare data (only the fields we want to update)
 	data := map[string]interface{}{
-		"id":          1,
-		"filter_buy":  settings.FilterBuy,
-		"filter_sell": settings.FilterSell,
+		"filter_buy":          settings.FilterBuy,
+		"filter_sell":         settings.FilterSell,
+		"selected_strategies": settings.SelectedStrategies,
 	}
 
 	jsonData, err := json.Marshal(data)
@@ -125,9 +159,11 @@ func UpdateUserSettings(c *fiber.Ctx) error {
 		})
 	}
 
-	// Upsert to Supabase
-	url := fmt.Sprintf("%s/rest/v1/user_settings", supabaseURL)
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	log.Printf("🔍 Updating settings in Supabase: %s", string(jsonData))
+
+	// Use PATCH to update existing row
+	url := fmt.Sprintf("%s/rest/v1/user_settings?id=eq.1", supabaseURL)
+	req, err := http.NewRequest("PATCH", url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to create request",
@@ -137,7 +173,7 @@ func UpdateUserSettings(c *fiber.Ctx) error {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("apikey", supabaseKey)
 	req.Header.Set("Authorization", "Bearer "+supabaseKey)
-	req.Header.Set("Prefer", "resolution=merge-duplicates")
+	req.Header.Set("Prefer", "return=representation")
 
 	client := &http.Client{Timeout: 5 * time.Second}
 	resp, err := client.Do(req)
@@ -149,7 +185,16 @@ func UpdateUserSettings(c *fiber.Ctx) error {
 	}
 	defer resp.Body.Close()
 
-	log.Printf("✅ User settings updated: filterBuy=%v, filterSell=%v", settings.FilterBuy, settings.FilterSell)
+	// Read response to verify update
+	var responseBody bytes.Buffer
+	responseBody.ReadFrom(resp.Body)
+	log.Printf("🔍 Supabase update response (status %d): %s", resp.StatusCode, responseBody.String())
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
+		log.Printf("❌ Supabase update failed with status %d", resp.StatusCode)
+	}
+
+	log.Printf("✅ User settings updated: filterBuy=%v, filterSell=%v, strategies=%v", settings.FilterBuy, settings.FilterSell, settings.SelectedStrategies)
 
 	return c.JSON(fiber.Map{
 		"success": true,
