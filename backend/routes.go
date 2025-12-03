@@ -46,6 +46,8 @@ func SetupRoutes(app *fiber.App) {
 	backtest.Post("/test-all-strategies", HandleTestAllStrategies) // Test 10 advanced strategies
 	backtest.Post("/optimize-parameters", HandleOptimizeParameters) // Optimize single strategy parameters
 	backtest.Post("/optimize-all", HandleOptimizeAllStrategies) // Optimize all strategies
+	backtest.Post("/world-class-optimize", HandleWorldClassOptimization) // World-class optimization
+	backtest.Post("/quick-optimize", HandleQuickOptimization) // Quick single strategy optimization
 	backtest.Post("/live-signal", HandleLiveSignalFiber) // Get live trading signal
 	
 	// External Signal API routes (FREE)
