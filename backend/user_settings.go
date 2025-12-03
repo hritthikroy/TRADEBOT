@@ -238,7 +238,6 @@ func GetCurrentSettings() (bool, bool, []string) {
 	// Read response body
 	var responseBody bytes.Buffer
 	responseBody.ReadFrom(resp.Body)
-	responseBodyStr := responseBody.String()
 	
 	// Decode from database (snake_case)
 	var settingsDB []UserSettingsDB
