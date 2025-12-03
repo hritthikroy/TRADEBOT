@@ -524,7 +524,9 @@
                                     <th>Signal</th>
                                     <th>Entry</th>
                                     <th>Stop Loss</th>
-                                    <th>Take Profit</th>
+                                    <th>TP1</th>
+                                    <th>TP2</th>
+                                    <th>TP3</th>
                                     <th>RR</th>
                                 </tr>
                             </thead>
@@ -1975,7 +1977,9 @@
                 signal: signal.signal,
                 entry: signal.entry,
                 stopLoss: signal.stopLoss,
-                takeProfit: signal.takeProfit,
+                tp1: signal.tp1,
+                tp2: signal.tp2,
+                tp3: signal.tp3,
                 riskReward: signal.riskReward,
                 status: 'Active'
             });
@@ -1992,13 +1996,13 @@
             const tbody = document.getElementById('signalsHistory');
             
             if (signalsHistory.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#666;">No signals yet. Waiting for market conditions...</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:#666;">No signals yet. Waiting for market conditions...</td></tr>';
                 return;
             }
             
             tbody.innerHTML = signalsHistory.map(s => {
                 // Skip signals without complete data
-                if (!s.entry || !s.stopLoss || !s.takeProfit || !s.riskReward) {
+                if (!s.entry || !s.stopLoss || !s.riskReward) {
                     return '';
                 }
                 
@@ -2011,7 +2015,9 @@
                     <td class="${signalClass}"><strong>${signalIcon} ${s.signal}</strong></td>
                     <td>$${s.entry.toFixed(2)}</td>
                     <td style="color: #f44336;">$${s.stopLoss.toFixed(2)}</td>
-                    <td style="color: #4CAF50;">$${s.takeProfit.toFixed(2)}</td>
+                    <td style="color: #4CAF50;">$${s.tp1 ? s.tp1.toFixed(2) : 'N/A'}</td>
+                    <td style="color: #4CAF50;">$${s.tp2 ? s.tp2.toFixed(2) : 'N/A'}</td>
+                    <td style="color: #4CAF50;">$${s.tp3 ? s.tp3.toFixed(2) : 'N/A'}</td>
                     <td>${s.riskReward.toFixed(2)}:1</td>
                 </tr>`;
             }).filter(row => row !== '').join('');
