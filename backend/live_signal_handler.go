@@ -547,9 +547,18 @@ func HandleLiveSignalFiber(c *fiber.Ctx) error {
 	
 	log.Printf("🔍 Generated signal: %s for %s using %s strategy", signal.Signal, req.Symbol, req.Strategy)
 
-	// Get current filter settings from database
-	filterBuy, filterSell := GetCurrentFilterSettings()
-	log.Printf("🔍 Current filter settings: filterBuy=%v, filterSell=%v", filterBuy, filterSell)
+	// Get current filter settings and selected strategies from database
+	filterBuy, filterSell, selectedStrategies := GetCurrentSettings()
+	log.Printf("🔍 Current settings: filterBuy=%v, filterSell=%v, strategies=%v", filterBuy, filterSell, selectedStrategies)
+
+	// Check if no strategies are selected (bot paused)
+	if len(selectedStrategies) == 0 {
+		log.Printf("⏸️  No strategies selected - Live signal handler paused")
+		return c.JSON(fiber.Map{
+			"signal":  "PAUSED",
+			"message": "Signal generation paused (no strategies selected)",
+		})
+	}
 
 	// Check if both filters are disabled (bot paused)
 	if !filterBuy && !filterSell {

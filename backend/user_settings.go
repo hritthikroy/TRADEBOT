@@ -203,8 +203,72 @@ func UpdateUserSettings(c *fiber.Ctx) error {
 	})
 }
 
-// GetCurrentFilterSettings returns current filter settings for internal use
+// GetCurrentSettings returns current filter and strategy settings for internal use
+func GetCurrentSettings() (bool, bool, []string) {
+	supabaseURL := os.Getenv("SUPABASE_URL")
+	supabaseKey := os.Getenv("SUPABASE_KEY")
+
+	if supabaseURL == "" || supabaseKey == "" {
+		log.Printf("⚠️  Supabase not configured, using default settings")
+		return true, true, []string{"session_trader"}
+	}
+
+	// Try to get settings from Supabase
+	url := fmt.Sprintf("%s/rest/v1/user_settings?id=eq.1", supabaseURL)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Printf("⚠️  Failed to create request, using defaults")
+		return true, true, []string{"session_trader"}
+	}
+
+	req.Header.Set("apikey", supabaseKey)
+	req.Header.Set("Authorization", "Bearer "+supabaseKey)
+	req.Header.Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	req.Header.Set("Pragma", "no-cache")
+	req.Header.Set("Expires", "0")
+
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("⚠️  Failed to get settings from Supabase: %v, using defaults", err)
+		return true, true, []string{"session_trader"}
+	}
+	defer resp.Body.Close()
+
+	// Read response body
+	var responseBody bytes.Buffer
+	responseBody.ReadFrom(resp.Body)
+	responseBodyStr := responseBody.String()
+	
+	// Decode from database (snake_case)
+	var settingsDB []UserSettingsDB
+	if err := json.Unmarshal(responseBody.Bytes(), &settingsDB); err != nil {
+		log.Printf("⚠️  Failed to decode settings: %v", err)
+		return true, true, []string{"session_trader"}
+	}
+
+	if len(settingsDB) == 0 {
+		log.Printf("ℹ️  No settings found in database, using defaults")
+		return true, true, []string{"session_trader"}
+	}
+
+	strategies := settingsDB[0].SelectedStrategies
+	if len(strategies) == 0 {
+		strategies = []string{"session_trader"}
+	}
+
+	log.Printf("✅ Loaded settings: filterBuy=%v, filterSell=%v, strategies=%v", settingsDB[0].FilterBuy, settingsDB[0].FilterSell, strategies)
+	return settingsDB[0].FilterBuy, settingsDB[0].FilterSell, strategies
+}
+
+// GetCurrentFilterSettings returns current filter settings for internal use (backward compatibility)
 func GetCurrentFilterSettings() (bool, bool) {
+	filterBuy, filterSell, _ := GetCurrentSettings()
+	return filterBuy, filterSell
+}
+
+// Deprecated: Use GetCurrentSettings instead
+func GetCurrentFilterSettingsOld() (bool, bool) {
 	supabaseURL := os.Getenv("SUPABASE_URL")
 	supabaseKey := os.Getenv("SUPABASE_KEY")
 

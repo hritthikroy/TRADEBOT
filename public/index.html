@@ -1676,8 +1676,16 @@
                 const checkedStrategies = Array.from(document.querySelectorAll('.strategy-checkbox:checked'));
                 const selectedStrategies = checkedStrategies.map(cb => cb.value);
                 
+                // Validate at least one strategy is selected
                 if (selectedStrategies.length === 0) {
-                    alert('⚠️ Please select at least one strategy!');
+                    // Show error in the status div
+                    const statusDiv = document.getElementById('strategyFilterStatus');
+                    statusDiv.innerHTML = '❌ <strong>ERROR: Please select at least one strategy!</strong>';
+                    statusDiv.style.background = '#ffebee';
+                    statusDiv.style.color = '#c62828';
+                    
+                    // Also show browser alert
+                    alert('⚠️ Please select at least one strategy before saving!');
                     return;
                 }
                 
@@ -1856,18 +1864,27 @@
             const signalCard = document.getElementById('signalCard');
             const currentSignal = document.getElementById('currentSignal');
             
-            // Check if signal is PAUSED (backend returns this when both filters are disabled)
+            // Check if signal is PAUSED (backend returns this when both filters are disabled or no strategies selected)
             if (signal.signal === 'PAUSED' || signal.message) {
                 signalCard.style.background = 'linear-gradient(135deg, #9E9E9E 0%, #757575 100%)';
                 signalCard.style.color = 'white';
-                document.getElementById('signalType').textContent = '⏸️ Signal Generation Paused';
+                
+                // Show specific message based on reason
+                if (signal.message && signal.message.includes('no strategies')) {
+                    document.getElementById('signalType').textContent = '⏸️ Paused - No Strategies Selected';
+                } else if (signal.message && signal.message.includes('both filters disabled')) {
+                    document.getElementById('signalType').textContent = '⏸️ Paused - Both Filters Disabled';
+                } else {
+                    document.getElementById('signalType').textContent = '⏸️ Signal Generation Paused';
+                }
+                
                 currentSignal.style.display = 'block';
                 document.getElementById('signalPrice').textContent = 'N/A';
                 document.getElementById('signalEntry').textContent = 'N/A';
                 document.getElementById('signalSL').textContent = 'N/A';
                 document.getElementById('signalTP').textContent = 'N/A';
                 document.getElementById('signalRR').textContent = 'N/A';
-                document.getElementById('signalTime').textContent = 'Updated: ' + new Date().toLocaleString();
+                document.getElementById('signalTime').textContent = signal.message || 'Updated: ' + new Date().toLocaleString();
                 return;
             }
             
