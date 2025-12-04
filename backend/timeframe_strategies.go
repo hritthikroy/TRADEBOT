@@ -510,8 +510,9 @@ func hasBreakOfStructure(candles []Candle, index int) bool {
 		}
 	}
 	
-	// Check if current candle breaks structure
-	return candles[index].Close > recentHigh || candles[index].Close < recentLow
+	// SIMPLIFIED: Check if current candle is NEAR structure (with 0.5% tolerance)
+	tolerance := candles[index].Close * 0.005
+	return candles[index].Close >= recentHigh-tolerance || candles[index].Close <= recentLow+tolerance
 }
 
 
@@ -521,24 +522,24 @@ func detectOrderBlock(candles []Candle, index int) bool {
 		return false
 	}
 	
-	// Look for strong move followed by consolidation
+	// SIMPLIFIED: Look for any reversal candle (reduced from 1.5x to 0.8x)
 	prev := candles[index-1]
 	curr := candles[index]
 	
-	// Bullish order block
+	// Bullish order block: any bullish candle after bearish
 	if prev.Close < prev.Open && curr.Close > curr.Open {
 		bodySize := curr.Close - curr.Open
 		prevBodySize := prev.Open - prev.Close
-		if bodySize > prevBodySize*1.5 {
+		if bodySize > prevBodySize*0.8 { // Reduced from 1.5 to 0.8
 			return true
 		}
 	}
 	
-	// Bearish order block
+	// Bearish order block: any bearish candle after bullish
 	if prev.Close > prev.Open && curr.Close < curr.Open {
 		bodySize := curr.Open - curr.Close
 		prevBodySize := prev.Close - prev.Open
-		if bodySize > prevBodySize*1.5 {
+		if bodySize > prevBodySize*0.8 { // Reduced from 1.5 to 0.8
 			return true
 		}
 	}
@@ -546,19 +547,21 @@ func detectOrderBlock(candles []Candle, index int) bool {
 	return false
 }
 
-// detectFVG detects fair value gaps
+// detectFVG detects fair value gaps (SIMPLIFIED with tolerance)
 func detectFVG(candles []Candle, index int) bool {
 	if index < 2 {
 		return false
 	}
 	
-	// Bullish FVG: gap between candle[i-2].High and candle[i].Low
-	if candles[index].Low > candles[index-2].High {
+	tolerance := candles[index].Close * 0.003 // 0.3% tolerance
+	
+	// Bullish FVG: gap or near-gap between candle[i-2].High and candle[i].Low
+	if candles[index].Low >= candles[index-2].High-tolerance {
 		return true
 	}
 	
-	// Bearish FVG: gap between candles[i-2].Low and candle[i].High
-	if candles[index].High < candles[index-2].Low {
+	// Bearish FVG: gap or near-gap between candles[i-2].Low and candle[i].High
+	if candles[index].High <= candles[index-2].Low+tolerance {
 		return true
 	}
 	
@@ -584,16 +587,17 @@ func detectLiquiditySweep(candles []Candle, index int) bool {
 		}
 	}
 	
-	// Check if current candle swept liquidity and reversed
+	// Check if current candle swept liquidity and reversed (SIMPLIFIED with tolerance)
 	curr := candles[index]
+	tolerance := curr.Close * 0.002 // 0.2% tolerance
 	
-	// Bullish sweep: wick below recent low, close above
-	if curr.Low < recentLow && curr.Close > recentLow {
+	// Bullish sweep: wick near or below recent low, close above (with tolerance)
+	if curr.Low <= recentLow+tolerance && curr.Close > recentLow-tolerance {
 		return true
 	}
 	
-	// Bearish sweep: wick above recent high, close below
-	if curr.High > recentHigh && curr.Close < recentHigh {
+	// Bearish sweep: wick near or above recent high, close below (with tolerance)
+	if curr.High >= recentHigh-tolerance && curr.Close < recentHigh+tolerance {
 		return true
 	}
 	

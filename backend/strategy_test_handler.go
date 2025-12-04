@@ -8,6 +8,7 @@ import (
 func HandleTestAllStrategies(c *fiber.Ctx) error {
 	var req struct {
 		Symbol       string  `json:"symbol"`
+		Days         int     `json:"days"`         // FIX: Added days parameter
 		StartBalance float64 `json:"startBalance"`
 		FilterBuy    *bool   `json:"filterBuy"`    // nil = both, true = buy only, false = exclude buy
 		FilterSell   *bool   `json:"filterSell"`   // nil = both, true = sell only, false = exclude sell
@@ -38,8 +39,14 @@ func HandleTestAllStrategies(c *fiber.Ctx) error {
 		filterSell = *req.FilterSell
 	}
 	
+	// Default to 30 days if not specified
+	days := req.Days
+	if days == 0 {
+		days = 30
+	}
+	
 	// Test all strategies with filters and optional date range
-	results, err := TestAllStrategiesWithFilterAndRange(req.Symbol, req.StartBalance, filterBuy, filterSell, req.StartTime, req.EndTime)
+	results, err := TestAllStrategiesWithFilterAndRange(req.Symbol, days, req.StartBalance, filterBuy, filterSell, req.StartTime, req.EndTime)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),

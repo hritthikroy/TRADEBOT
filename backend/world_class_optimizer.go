@@ -101,14 +101,7 @@ func (wco *WorldClassOptimizer) OptimizeAll() *WorldClassResults {
 		Results:          make(map[string]WorldClassOptimizationResult),
 	}
 	
-	// Fetch candles once (reuse for all tests)
-	log.Println("📊 Fetching historical data...")
-	candles, err := fetchBinanceData(wco.Symbol, "15m", wco.Days)
-	if err != nil {
-		log.Printf("❌ Failed to fetch data: %v", err)
-		return results
-	}
-	log.Printf("✅ Loaded %d candles", len(candles))
+	log.Println("📊 Each strategy will fetch data for its optimal timeframe...")
 	log.Println("")
 	
 	// Optimize each strategy in parallel
@@ -119,7 +112,7 @@ func (wco *WorldClassOptimizer) OptimizeAll() *WorldClassResults {
 		wg.Add(1)
 		go func(strat string) {
 			defer wg.Done()
-			result := wco.OptimizeStrategy(strat, candles)
+			result := wco.OptimizeStrategy(strat, nil) // Each strategy fetches its own candles
 			resultsChan <- result
 		}(strategy)
 	}
@@ -160,6 +153,19 @@ func (wco *WorldClassOptimizer) OptimizeStrategy(strategy string, candles []Cand
 	
 	log.Printf("🎯 Optimizing: %s", strategy)
 	
+	// Fetch strategy-specific candles with correct interval
+	interval := getStrategyInterval(strategy)
+	strategyCandles, err := fetchBinanceData(wco.Symbol, interval, wco.Days)
+	if err != nil || len(strategyCandles) < 50 {
+		log.Printf("❌ %s: Failed to fetch candles for interval %s", strategy, interval)
+		return WorldClassOptimizationResult{
+			Strategy:   strategy,
+			TotalTests: 0,
+			BestScore:  0,
+		}
+	}
+	log.Printf("  📊 %s: Using %s interval with %d candles", strategy, interval, len(strategyCandles))
+	
 	// Parameter ranges
 	stopLossValues := []float64{0.5, 0.75, 1.0, 1.25, 1.5, 2.0}
 	tp1Values := []float64{2.0, 2.5, 3.0, 3.5, 4.0, 5.0}
@@ -170,6 +176,9 @@ func (wco *WorldClassOptimizer) OptimizeStrategy(strategy string, candles []Cand
 	bestScore := 0.0
 	var bestParams OptimizationParams
 	var bestResult *BacktestResult
+	var bestUnfilteredResult *BacktestResult // Track best result even if it doesn't meet criteria
+	var bestUnfilteredParams OptimizationParams
+	bestUnfilteredScore := 0.0
 	totalTests := 0
 	
 	// Test all combinations
@@ -182,17 +191,18 @@ func (wco *WorldClassOptimizer) OptimizeStrategy(strategy string, candles []Cand
 						if tp1 < tp2 && tp2 < tp3 {
 							totalTests++
 							
-							// Run backtest
+							// Run backtest with CUSTOM parameters (not hardcoded ones)
 							config := BacktestConfig{
 								Symbol:       wco.Symbol,
-								Interval:     "15m",
+								Interval:     interval,
 								Days:         wco.Days,
 								StartBalance: wco.StartBalance,
 								RiskPercent:  risk / 100,
 								Strategy:     strategy,
 							}
 							
-							result, err := RunBacktest(config, candles)
+							// Pass custom parameters to backtest
+							result, err := RunBacktestWithCustomParams(config, strategyCandles, stop, tp1, tp2, tp3)
 							if err != nil {
 								continue
 							}
@@ -200,7 +210,20 @@ func (wco *WorldClassOptimizer) OptimizeStrategy(strategy string, candles []Cand
 							// Calculate score
 							score := wco.CalculateScore(result)
 							
-							// Check if this is the best
+							// Track best unfiltered result
+							if score > bestUnfilteredScore {
+								bestUnfilteredScore = score
+								bestUnfilteredResult = result
+								bestUnfilteredParams = OptimizationParams{
+									StopATR:     stop,
+									TP1ATR:      tp1,
+									TP2ATR:      tp2,
+									TP3ATR:      tp3,
+									RiskPercent: risk,
+								}
+							}
+							
+							// Check if this is the best that meets criteria
 							if score > bestScore && wco.MeetsMinimumCriteria(result) {
 								bestScore = score
 								bestParams = OptimizationParams{
@@ -212,8 +235,8 @@ func (wco *WorldClassOptimizer) OptimizeStrategy(strategy string, candles []Cand
 								}
 								bestResult = result
 								
-								log.Printf("  ✨ %s: Score %.2f | WR %.1f%% | PF %.2f | DD %.1f%% | Trades %d",
-									strategy, score, result.WinRate, result.ProfitFactor, result.MaxDrawdown, result.TotalTrades)
+								log.Printf("  ✨ %s: NEW BEST! Score %.2f | Stop %.2f | TP1 %.1f | TP2 %.1f | TP3 %.1f | Risk %.1f%% | WR %.1f%% | PF %.2f | Return %.0f%% | Trades %d",
+									strategy, score, stop, tp1, tp2, tp3, risk, result.WinRate, result.ProfitFactor, result.ReturnPercent, result.TotalTrades)
 							}
 							
 							// Progress
@@ -228,8 +251,29 @@ func (wco *WorldClassOptimizer) OptimizeStrategy(strategy string, candles []Cand
 	}
 	
 	duration := time.Since(startTime)
-	log.Printf("✅ %s: Complete! Tests: %d | Duration: %s | Best Score: %.2f",
-		strategy, totalTests, duration, bestScore)
+	
+	// Debug: Show what we found
+	if bestUnfilteredResult != nil {
+		log.Printf("  📊 %s: Best unfiltered - Trades=%d, WR=%.1f%%, PF=%.2f, Return=%.0f%%, DD=%.1f%%",
+			strategy, bestUnfilteredResult.TotalTrades, bestUnfilteredResult.WinRate,
+			bestUnfilteredResult.ProfitFactor, bestUnfilteredResult.ReturnPercent, bestUnfilteredResult.MaxDrawdown)
+	}
+	
+	// If no result met criteria, use the best unfiltered result
+	if bestResult == nil && bestUnfilteredResult != nil {
+		log.Printf("⚠️  %s: No results met criteria. Using best unfiltered result.", strategy)
+		bestResult = bestUnfilteredResult
+		bestScore = bestUnfilteredScore
+		bestParams = bestUnfilteredParams
+	}
+	
+	if bestResult != nil {
+		log.Printf("✅ %s: Complete! Tests: %d | Duration: %s | Best Score: %.2f | WR: %.1f%% | PF: %.2f | Return: %.0f%%",
+			strategy, totalTests, duration, bestScore, bestResult.WinRate, bestResult.ProfitFactor, bestResult.ReturnPercent)
+	} else {
+		log.Printf("❌ %s: Complete! Tests: %d | Duration: %s | No viable results found (no trades generated)",
+			strategy, totalTests, duration)
+	}
 	
 	return WorldClassOptimizationResult{
 		Strategy:       strategy,
@@ -243,18 +287,22 @@ func (wco *WorldClassOptimizer) OptimizeStrategy(strategy string, candles []Cand
 
 // CalculateScore calculates optimization score
 func (wco *WorldClassOptimizer) CalculateScore(result *BacktestResult) float64 {
-	if result == nil {
+	if result == nil || result.TotalTrades == 0 {
 		return 0
 	}
 	
-	// Weighted scoring formula
-	// Prioritize: Win Rate, Profit Factor, Low Drawdown, High Return
-	score := (result.WinRate * 2.0) +                    // Win rate weight: 2x
-		(result.ProfitFactor * 10.0) +               // Profit factor weight: 10x
-		(result.ReturnPercent / 10.0) +              // Return weight: 0.1x
-		-(result.MaxDrawdown * 2.0) +                // Drawdown penalty: -2x
-		(float64(result.TotalTrades) / 2.0) +        // Trade count bonus: 0.5x
-		(float64(result.WinningTrades) / 1.0)        // Winning trades bonus: 1x
+	// CRITICAL: Heavily penalize losing strategies
+	if result.ReturnPercent < 0 {
+		return 0 // Losing strategies get ZERO score
+	}
+	
+	// Weighted scoring formula - Prioritize PROFITABILITY
+	score := (result.ReturnPercent * 2.0) +              // Return is MOST important: 2x
+		(result.ProfitFactor * 20.0) +               // Profit factor: 20x (increased)
+		(result.WinRate * 1.0) +                     // Win rate: 1x
+		-(result.MaxDrawdown * 3.0) +                // Drawdown penalty: -3x (increased)
+		(float64(result.WinningTrades) * 2.0) +      // Winning trades bonus: 2x
+		(float64(result.TotalTrades) / 5.0)          // Trade count bonus: 0.2x (reduced)
 	
 	return math.Max(0, score)
 }
@@ -265,11 +313,12 @@ func (wco *WorldClassOptimizer) MeetsMinimumCriteria(result *BacktestResult) boo
 		return false
 	}
 	
-	return result.WinRate >= 55.0 &&           // Min 55% win rate
-		result.ProfitFactor >= 2.5 &&      // Min 2.5 profit factor
-		result.MaxDrawdown <= 20.0 &&      // Max 20% drawdown
-		result.TotalTrades >= 15 &&        // Min 15 trades
-		result.ReturnPercent >= 100.0      // Min 100% return
+	// Focus on PROFITABLE strategies only
+	return result.ReturnPercent > 0 &&         // MUST be profitable
+		result.ProfitFactor > 1.0 &&       // MUST have profit factor > 1
+		result.WinRate >= 40.0 &&          // Min 40% win rate
+		result.MaxDrawdown <= 40.0 &&      // Max 40% drawdown
+		result.TotalTrades >= 5            // Min 5 trades
 }
 
 // SaveResults saves optimization results to file

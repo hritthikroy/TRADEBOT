@@ -968,6 +968,7 @@
                     },
                     body: JSON.stringify({
                         symbol,
+                        days,  // FIX: Added days parameter
                         startBalance: balance,
                         filterBuy,
                         filterSell
@@ -1018,6 +1019,7 @@
         
         async function testAllStrategies() {
             const symbol = document.getElementById('symbol').value;
+            const days = parseInt(document.getElementById('days').value);  // FIX: Added days parameter
             const balance = parseFloat(document.getElementById('balance').value);
             const filterBuy = document.getElementById('filterBuy').checked;
             const filterSell = document.getElementById('filterSell').checked;
@@ -1053,6 +1055,7 @@
             
             const requestBody = {
                 symbol,
+                days,  // FIX: Added days parameter
                 startBalance: balance,
                 filterBuy,
                 filterSell

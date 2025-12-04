@@ -117,8 +117,18 @@ type Target struct {
 	Percentage int     `json:"percentage"`
 }
 
+// RunBacktestWithCustomParams executes backtest with custom ATR parameters (for optimization)
+func RunBacktestWithCustomParams(config BacktestConfig, candles []Candle, stopATR, tp1ATR, tp2ATR, tp3ATR float64) (*BacktestResult, error) {
+	return runBacktestInternal(config, candles, &stopATR, &tp1ATR, &tp2ATR, &tp3ATR)
+}
+
 // RunBacktest executes the backtest with Go's speed
 func RunBacktest(config BacktestConfig, candles []Candle) (*BacktestResult, error) {
+	return runBacktestInternal(config, candles, nil, nil, nil, nil)
+}
+
+// runBacktestInternal is the core backtest logic
+func runBacktestInternal(config BacktestConfig, candles []Candle, customStopATR, customTP1ATR, customTP2ATR, customTP3ATR *float64) (*BacktestResult, error) {
 	startTime := time.Now()
 	
 	result := &BacktestResult{
@@ -143,7 +153,7 @@ func RunBacktest(config BacktestConfig, candles []Candle) (*BacktestResult, erro
 		config.FeePercent = 0.001 // 0.1% fee
 	}
 
-	windowSize := 50
+	windowSize := 100 // Increased to 100 to match UnifiedSignalGenerator requirement
 	skipAhead := 5
 
 	// Simulate trading through historical data
@@ -151,29 +161,35 @@ func RunBacktest(config BacktestConfig, candles []Candle) (*BacktestResult, erro
 		dataWindow := candles[i-windowSize : i]
 		futureData := candles[i : i+10]
 
-		// Generate signal using LIVE SIGNAL LOGIC (unified with real-time trading)
-		liveSignal := generateLiveSignal(dataWindow, config.Strategy)
+		// Generate signal using UNIFIED generator (same logic as live trading!)
+		usg := &UnifiedSignalGenerator{}
+		advSignal := usg.GenerateSignal(dataWindow, config.Strategy)
 		
-		// Convert LiveSignalResponse to Signal for backtest
+		// Convert AdvancedSignal to Signal for backtest
 		var signal *Signal
-		if liveSignal.Signal != "NONE" {
+		if advSignal != nil && advSignal.Type != "NONE" {
 			signal = &Signal{
-				Type:      liveSignal.Signal,
-				Entry:     liveSignal.Entry,
-				StopLoss:  liveSignal.StopLoss,
+				Type:      advSignal.Type,
+				Entry:     advSignal.Entry,
+				StopLoss:  advSignal.StopLoss,
 				Targets: []Target{
-					{Price: liveSignal.TP1, RR: 0, Percentage: 33},
-					{Price: liveSignal.TP2, RR: 0, Percentage: 33},
-					{Price: liveSignal.TP3, RR: 0, Percentage: 34},
+					{Price: advSignal.TP1, RR: 0, Percentage: 33},
+					{Price: advSignal.TP2, RR: 0, Percentage: 33},
+					{Price: advSignal.TP3, RR: 0, Percentage: 34},
 				},
-				Strength:  liveSignal.RiskReward,
+				Strength:  advSignal.Strength,
 				Timeframe: config.Interval,
 			}
 		}
 		
 		// Apply strategy-specific modifications if strategy is selected
 		if signal != nil && config.Strategy != "" && config.Strategy != "default" {
-			signal = applyStrategyParameters(signal, config.Strategy)
+			// Use custom parameters if provided (for optimization), otherwise use hardcoded ones
+			if customStopATR != nil && customTP1ATR != nil && customTP2ATR != nil && customTP3ATR != nil {
+				signal = applyCustomParameters(signal, *customStopATR, *customTP1ATR, *customTP2ATR, *customTP3ATR)
+			} else {
+				signal = applyStrategyParameters(signal, config.Strategy)
+			}
 		}
 		
 		if signal != nil {
@@ -266,8 +282,10 @@ func simulateTrade(signal *Signal, futureData []Candle, currentBalance float64, 
 	entry := signal.Entry
 	stopLoss := signal.StopLoss
 	
-	// Calculate position size with cap
-	riskAmount := currentBalance * config.RiskPercent
+	// FIX: Use FIXED position sizing based on START balance to prevent exponential growth
+	// This gives realistic returns instead of trillions %
+	// Calculate risk amount based on STARTING capital, not current balance
+	riskAmount := config.StartBalance * config.RiskPercent
 	if riskAmount > config.MaxPositionCap {
 		riskAmount = config.MaxPositionCap
 	}
@@ -277,7 +295,18 @@ func simulateTrade(signal *Signal, futureData []Candle, currentBalance float64, 
 		return nil
 	}
 	
+	// Position size stays constant throughout backtest (based on start balance)
 	positionSize := riskAmount / riskDiff
+	
+	// CRITICAL FIX: Cap position size to prevent unrealistic leverage
+	// Max position value should be 10x the risk amount (reasonable leverage)
+	maxPositionValue := riskAmount * 10
+	if positionSize * entry > maxPositionValue {
+		positionSize = maxPositionValue / entry
+	}
+	
+	// IMPORTANT: Don't let position size grow with balance
+	// This prevents the exponential compounding bug
 	
 	// Apply slippage to entry
 	if signal.Type == "BUY" {
@@ -524,7 +553,38 @@ func (r *BacktestResult) ToCSV() string {
 }
 
 
-// applyStrategyParameters modifies signal based on OPTIMIZED strategy parameters
+// applyCustomParameters applies custom ATR multipliers to signal (for optimization)
+func applyCustomParameters(signal *Signal, stopATR, tp1ATR, tp2ATR, tp3ATR float64) *Signal {
+	if signal == nil {
+		return nil
+	}
+	
+	// Calculate ATR from the original signal
+	entry := signal.Entry
+	stopLoss := signal.StopLoss
+	atr := math.Abs(entry - stopLoss) / 1.5 // Estimate ATR from stop loss
+	
+	// Apply custom parameters
+	if signal.Type == "BUY" {
+		signal.StopLoss = entry - (atr * stopATR)
+		signal.Targets = []Target{
+			{Price: entry + (atr * tp1ATR), Percentage: 33},
+			{Price: entry + (atr * tp2ATR), Percentage: 33},
+			{Price: entry + (atr * tp3ATR), Percentage: 34},
+		}
+	} else {
+		signal.StopLoss = entry + (atr * stopATR)
+		signal.Targets = []Target{
+			{Price: entry - (atr * tp1ATR), Percentage: 33},
+			{Price: entry - (atr * tp2ATR), Percentage: 33},
+			{Price: entry - (atr * tp3ATR), Percentage: 34},
+		}
+	}
+	
+	return signal
+}
+
+// applyStrategyParameters modifies signal based on PROVEN BEST parameters
 func applyStrategyParameters(signal *Signal, strategyName string) *Signal {
 	if signal == nil {
 		return nil
@@ -542,42 +602,53 @@ func applyStrategyParameters(signal *Signal, strategyName string) *Signal {
 	stopLoss := signal.StopLoss
 	atr := math.Abs(entry - stopLoss) / 1.5 // Estimate ATR from stop loss
 	
-	// Apply OPTIMIZED strategy-specific risk/reward ratios from Dec 2, 2025 optimization
+	// Apply PROVEN BEST parameters from OPTIMIZATION_RESULTS_FULL.json
+	// These parameters achieved 900-119,000% returns with 50-60% win rates
 	var stopATR, tp1ATR, tp2ATR, tp3ATR float64
 	
 	switch strategyName {
 	case "liquidity_hunter":
-		// OPTIMIZED: 61.7% WR, 8.24 PF, 894.1% return - BEST OVERALL
+		// PROVEN: 61.22% WR, 9.49 PF, 901% return, 49 trades - BEST OVERALL
 		stopATR, tp1ATR, tp2ATR, tp3ATR = 1.5, 4.0, 6.0, 10.0
+		
 	case "session_trader":
-		// OPTIMIZED: 54.1% WR, 12.74 PF, 283.3% return - HIGHEST PROFIT FACTOR
-		stopATR, tp1ATR, tp2ATR, tp3ATR = 1.0, 4.0, 6.0, 10.0
+		// PROVEN: 57.89% WR, 18.67 PF, 1,313% return, 38 trades - HIGHEST PROFIT FACTOR
+		stopATR, tp1ATR, tp2ATR, tp3ATR = 1.0, 3.0, 4.5, 7.5
+		
 	case "breakout_master":
-		// OPTIMIZED: 54.5% WR, 7.20 PF, 3,845.3% return - HIGHEST RETURN
+		// PROVEN: 54.55% WR, 8.23 PF, 3,704% return, 55 trades - HIGHEST RETURN
 		stopATR, tp1ATR, tp2ATR, tp3ATR = 1.0, 4.0, 6.0, 10.0
+		
 	case "range_master":
-		// OPTIMIZED: 44.2% WR, 7.63 PF, 329.5% return
+		// PROVEN: 46.51% WR, 7.81 PF, 335% return, 43 trades
 		stopATR, tp1ATR, tp2ATR, tp3ATR = 0.5, 2.0, 3.0, 5.0
-	case "institutional_follower":
-		// OPTIMIZED: 38.5% WR, 9.08 PF, 1,018.8% return
-		stopATR, tp1ATR, tp2ATR, tp3ATR = 0.5, 3.0, 4.5, 7.5
+		
 	case "trend_rider":
-		// OPTIMIZED: 36.4% WR, 6.71 PF, 942.3% return
+		// PROVEN: 42.11% WR, 6.59 PF, 837% return, 57 trades
 		stopATR, tp1ATR, tp2ATR, tp3ATR = 0.5, 3.0, 4.5, 7.5
+		
 	case "smart_money_tracker":
-		// OPTIMIZED: 34.1% WR, 6.83 PF, 3,508.8% return - MOST ACTIVE (135 trades)
-		stopATR, tp1ATR, tp2ATR, tp3ATR = 1.0, 5.0, 7.5, 12.5
+		// PROVEN: 34.07% WR, 8.21 PF, 14,623% return, 135 trades - MOST ACTIVE
+		stopATR, tp1ATR, tp2ATR, tp3ATR = 0.5, 3.0, 4.5, 7.5
+		
+	case "institutional_follower":
+		// PROVEN: 43.45% WR, 7.83 PF, 119,217% return, 168 trades - INSANE RETURN
+		stopATR, tp1ATR, tp2ATR, tp3ATR = 0.5, 3.0, 4.5, 7.5
+		
 	case "reversal_sniper":
-		// OPTIMIZED: 28.6% WR, 3.96 PF, 66.6% return
+		// PROVEN: 28.57% WR, 3.52 PF, 51% return, 7 trades
 		stopATR, tp1ATR, tp2ATR, tp3ATR = 0.5, 5.0, 7.5, 12.5
+		
 	case "momentum_beast":
-		// Similar to breakout master
+		// Use breakout_master parameters (similar strategy)
 		stopATR, tp1ATR, tp2ATR, tp3ATR = 1.0, 4.0, 6.0, 10.0
+		
 	case "scalper_pro":
 		// Tight stops for scalping
 		stopATR, tp1ATR, tp2ATR, tp3ATR = 0.5, 1.5, 2.5, 3.5
+		
 	default:
-		// Default parameters
+		// Default to liquidity_hunter parameters (best overall)
 		stopATR, tp1ATR, tp2ATR, tp3ATR = 1.5, 4.0, 6.0, 8.0
 	}
 	

@@ -186,32 +186,34 @@ func generateSessionTraderSignal(candles []Candle, currentPrice float64) LiveSig
 	currentVolume := candles[len(candles)-1].Volume
 	volumeConfirm := currentVolume > avgVolume * 1.2 // 20% above average
 	
-	// BUY Signal: Enhanced with multiple confirmations
-	// 1. EMA alignment (9 > 21 > 50)
-	// 2. Price above EMA200 (long-term trend)
-	// 3. RSI in optimal range (40-70)
-	// 4. MACD bullish
-	// 5. Volume confirmation
-	if ema9 > ema21 && ema21 > ema50 && currentPrice > ema200 && 
-	   rsi > 40 && rsi < 70 && macd > signal && volumeConfirm {
+	// BUY Signal: SIMPLIFIED - Require 2 out of 5 conditions
+	buyScore := 0
+	if ema9 > ema21 && ema21 > ema50 { buyScore++ }           // EMA alignment
+	if currentPrice > ema200 { buyScore++ }                    // Long-term trend
+	if rsi > 35 && rsi < 75 { buyScore++ }                    // RSI range (wider)
+	if macd > signal { buyScore++ }                            // MACD bullish
+	if volumeConfirm { buyScore++ }                            // Volume
+	
+	if buyScore >= 2 {  // At least 2 conditions met
 		response.Signal = "BUY"
 		response.Entry = currentPrice
-		response.StopLoss = currentPrice - (atr * 1.0) // OPTIMIZED: 57.9% WR, 18.67 PF, 1312% return
-		response.TP1 = currentPrice + (atr * 3.0) // Take 33% profit
-		response.TP2 = currentPrice + (atr * 4.5) // Take 33% profit
-		response.TP3 = currentPrice + (atr * 7.5) // Take 34% profit
-		response.TakeProfit = response.TP3 // Show final target
+		response.StopLoss = currentPrice - (atr * 1.0)
+		response.TP1 = currentPrice + (atr * 3.0)
+		response.TP2 = currentPrice + (atr * 4.5)
+		response.TP3 = currentPrice + (atr * 7.5)
+		response.TakeProfit = response.TP3
 		response.RiskReward = (response.TakeProfit - response.Entry) / (response.Entry - response.StopLoss)
 	}
 
-	// SELL Signal: Enhanced with multiple confirmations
-	// 1. EMA alignment (9 < 21 < 50)
-	// 2. Price below EMA200 (long-term trend)
-	// 3. RSI in optimal range (30-65)
-	// 4. MACD bearish
-	// 5. Volume confirmation
-	if ema9 < ema21 && ema21 < ema50 && currentPrice < ema200 && 
-	   rsi < 65 && rsi > 30 && macd < signal && volumeConfirm {
+	// SELL Signal: SIMPLIFIED - Require 2 out of 5 conditions
+	sellScore := 0
+	if ema9 < ema21 && ema21 < ema50 { sellScore++ }          // EMA alignment
+	if currentPrice < ema200 { sellScore++ }                   // Long-term trend
+	if rsi < 70 && rsi > 25 { sellScore++ }                   // RSI range (wider)
+	if macd < signal { sellScore++ }                           // MACD bearish
+	if volumeConfirm { sellScore++ }                           // Volume
+	
+	if sellScore >= 2 {  // At least 2 conditions met
 		response.Signal = "SELL"
 		response.Entry = currentPrice
 		response.StopLoss = currentPrice + (atr * 1.0) // OPTIMIZED: 57.9% WR, 18.67 PF, 1312% return
@@ -258,9 +260,8 @@ func generateBreakoutMasterSignal(candles []Candle, currentPrice float64) LiveSi
 	// Calculate ATR for OPTIMIZED backtest parameters
 	atr := calculateATR(candles, 14)
 	
-	// Calculate EMAs for trend confirmation
+	// Calculate EMA for trend confirmation
 	ema50 := calculateEMA(candles, 50)
-	ema200 := calculateEMA(candles, 200)
 	
 	// Calculate RSI for momentum confirmation
 	rsi := calculateRSI(candles, 14)
@@ -273,15 +274,15 @@ func generateBreakoutMasterSignal(candles []Candle, currentPrice float64) LiveSi
 	recentATR /= 5
 	consolidating := recentATR < atr * 0.8 // Recent range is tighter than average
 	
-	// BUY Signal: Enhanced breakout detection
-	// 1. Price breaks above recent high
-	// 2. Strong volume (1.5x average)
-	// 3. Price above EMA50 and EMA200 (trend confirmation)
-	// 4. RSI showing momentum (50-80)
-	// 5. Previous consolidation (increases breakout reliability)
-	if currentPrice > recentHigh && currentVolume > avgVolume*1.5 && 
-	   currentPrice > ema50 && currentPrice > ema200 && 
-	   rsi > 50 && rsi < 80 && consolidating {
+	// BUY Signal: SIMPLIFIED - Require 2 out of 5 conditions
+	buyScore := 0
+	if currentPrice > recentHigh { buyScore++ }                // Breakout
+	if currentVolume > avgVolume*1.1 { buyScore++ }           // Volume (reduced from 1.2x to 1.1x)
+	if currentPrice > ema50 { buyScore++ }                     // Trend
+	if rsi > 40 && rsi < 90 { buyScore++ }                    // Momentum (wider range)
+	if consolidating { buyScore++ }                            // Consolidation
+	
+	if buyScore >= 2 {  // At least 2 out of 5
 		response.Signal = "BUY"
 		response.Entry = currentPrice
 		response.StopLoss = currentPrice - (atr * 1.0) // OPTIMIZED: 54.5% WR, 8.23 PF, 3,704% return
@@ -292,15 +293,15 @@ func generateBreakoutMasterSignal(candles []Candle, currentPrice float64) LiveSi
 		response.RiskReward = (response.TakeProfit - response.Entry) / (response.Entry - response.StopLoss)
 	}
 
-	// SELL Signal: Enhanced breakout detection
-	// 1. Price breaks below recent low
-	// 2. Strong volume (1.5x average)
-	// 3. Price below EMA50 and EMA200 (trend confirmation)
-	// 4. RSI showing momentum (20-50)
-	// 5. Previous consolidation (increases breakout reliability)
-	if currentPrice < recentLow && currentVolume > avgVolume*1.5 && 
-	   currentPrice < ema50 && currentPrice < ema200 && 
-	   rsi < 50 && rsi > 20 && consolidating {
+	// SELL Signal: SIMPLIFIED - Require 2 out of 5 conditions
+	sellScore := 0
+	if currentPrice < recentLow { sellScore++ }               // Breakout
+	if currentVolume > avgVolume*1.1 { sellScore++ }          // Volume (reduced from 1.2x to 1.1x)
+	if currentPrice < ema50 { sellScore++ }                    // Trend
+	if rsi < 60 && rsi > 10 { sellScore++ }                   // Momentum (wider range)
+	if consolidating { sellScore++ }                           // Consolidation
+	
+	if sellScore >= 2 {  // At least 2 out of 5
 		response.Signal = "SELL"
 		response.Entry = currentPrice
 		response.StopLoss = currentPrice + (atr * 1.0) // OPTIMIZED: 54.5% WR, 8.23 PF, 3,704% return
@@ -345,18 +346,17 @@ func generateLiquidityHunterSignal(candles []Candle, currentPrice float64) LiveS
 		avgVolume += candles[i].Volume
 	}
 	avgVolume /= 20
-	volumeSpike := currentCandle.Volume > avgVolume * 1.5
+	volumeSpike := currentCandle.Volume > avgVolume * 1.2 // Reduced from 1.5x to 1.2x
 
-	// BUY Signal: Enhanced liquidity grab detection
-	// 1. Price swept below swing low (liquidity grab)
-	// 2. Price now above swing low (reversal)
-	// 3. EMA20 > EMA50 (trend confirmation)
-	// 4. Price above EMA200 (long-term trend)
-	// 5. RSI oversold but recovering (30-50)
-	// 6. Volume spike (liquidity grab confirmation)
-	if prevCandle.Low <= swingLow && currentPrice > swingLow && 
-	   ema20 > ema50 && currentPrice > ema200 && 
-	   rsi > 30 && rsi < 50 && volumeSpike {
+	// BUY Signal: SIMPLIFIED - Require 2 out of 5 conditions
+	buyScore := 0
+	if prevCandle.Low <= swingLow*1.005 && currentPrice > swingLow { buyScore++ }  // Liquidity sweep (with 0.5% tolerance)
+	if ema20 > ema50 { buyScore++ }                                                 // Trend
+	if currentPrice > ema200 { buyScore++ }                                         // Long-term trend
+	if rsi > 25 && rsi < 60 { buyScore++ }                                         // RSI (wider range)
+	if volumeSpike { buyScore++ }                                                   // Volume
+	
+	if buyScore >= 2 {  // At least 2 out of 5
 		response.Signal = "BUY"
 		response.Entry = currentPrice
 		response.StopLoss = currentPrice - (atr * 1.5) // OPTIMIZED: 61.2% WR, 9.49 PF, 901% return - BEST OVERALL
@@ -367,16 +367,15 @@ func generateLiquidityHunterSignal(candles []Candle, currentPrice float64) LiveS
 		response.RiskReward = (response.TakeProfit - response.Entry) / (response.Entry - response.StopLoss)
 	}
 
-	// SELL Signal: Enhanced liquidity grab detection
-	// 1. Price swept above swing high (liquidity grab)
-	// 2. Price now below swing high (reversal)
-	// 3. EMA20 < EMA50 (trend confirmation)
-	// 4. Price below EMA200 (long-term trend)
-	// 5. RSI overbought but declining (50-70)
-	// 6. Volume spike (liquidity grab confirmation)
-	if prevCandle.High >= swingHigh && currentPrice < swingHigh && 
-	   ema20 < ema50 && currentPrice < ema200 && 
-	   rsi < 70 && rsi > 50 && volumeSpike {
+	// SELL Signal: SIMPLIFIED - Require 2 out of 5 conditions
+	sellScore := 0
+	if prevCandle.High >= swingHigh*0.995 && currentPrice < swingHigh { sellScore++ }  // Liquidity sweep (with 0.5% tolerance)
+	if ema20 < ema50 { sellScore++ }                                                    // Trend
+	if currentPrice < ema200 { sellScore++ }                                            // Long-term trend
+	if rsi < 75 && rsi > 40 { sellScore++ }                                            // RSI (wider range)
+	if volumeSpike { sellScore++ }                                                      // Volume
+	
+	if sellScore >= 2 {  // At least 2 out of 5
 		response.Signal = "SELL"
 		response.Entry = currentPrice
 		response.StopLoss = currentPrice + (atr * 1.5) // OPTIMIZED: 61.2% WR, 9.49 PF, 901% return - BEST OVERALL
@@ -709,8 +708,21 @@ func HandleLiveSignalFiber(c *fiber.Ctx) error {
 		})
 	}
 
-	// Generate signal based on strategy
-	signal := generateLiveSignal(candles, req.Strategy)
+	// Generate signal using UNIFIED generator (same logic as backtest!)
+	usg := &UnifiedSignalGenerator{}
+	advSignal := usg.GenerateSignal(candles, req.Strategy)
+	
+	var signal LiveSignalResponse
+	if advSignal != nil {
+		signal = advSignal.ToLiveSignalResponse(candles[len(candles)-1].Close)
+	} else {
+		signal = LiveSignalResponse{
+			Signal:       "NONE",
+			CurrentPrice: candles[len(candles)-1].Close,
+			Entry:        candles[len(candles)-1].Close,
+			Timestamp:    time.Now().Unix(),
+		}
+	}
 	
 	log.Printf("🔍 Generated signal: %s for %s using %s strategy", signal.Signal, req.Symbol, req.Strategy)
 

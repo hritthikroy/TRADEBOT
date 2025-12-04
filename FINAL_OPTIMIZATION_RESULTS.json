@@ -1,0 +1,267 @@
+{
+    "optimizationDate": "2025-12-03T17:49:34.677583+05:30",
+    "symbol": "BTCUSDT",
+    "days": 180,
+    "startBalance": 1000,
+    "totalDuration": "18.346930375s",
+    "results": {
+        "breakout_master": {
+            "strategy": "breakout_master",
+            "totalTests": 3990,
+            "bestScore": 0,
+            "bestParams": {
+                "StopATR": 0,
+                "TP1ATR": 0,
+                "TP2ATR": 0,
+                "TP3ATR": 0,
+                "RiskPercent": 0
+            },
+            "backtestResult": null,
+            "testDuration": "16.841672708s"
+        },
+        "institutional_follower": {
+            "strategy": "institutional_follower",
+            "totalTests": 3990,
+            "bestScore": 0,
+            "bestParams": {
+                "StopATR": 0,
+                "TP1ATR": 0,
+                "TP2ATR": 0,
+                "TP3ATR": 0,
+                "RiskPercent": 0
+            },
+            "backtestResult": null,
+            "testDuration": "18.344252209s"
+        },
+        "liquidity_hunter": {
+            "strategy": "liquidity_hunter",
+            "totalTests": 3990,
+            "bestScore": 87.40090929248665,
+            "bestParams": {
+                "StopATR": 1.25,
+                "TP1ATR": 2,
+                "TP2ATR": 3,
+                "TP3ATR": 5,
+                "RiskPercent": 2.5
+            },
+            "backtestResult": {
+                "totalTrades": 2,
+                "winningTrades": 1,
+                "losingTrades": 1,
+                "winRate": 50,
+                "totalProfit": 46.218454815268295,
+                "totalLoss": 29.17799404409381,
+                "netProfit": 17.040460771174484,
+                "returnPercent": 1.7040460771174482,
+                "profitFactor": 1.5840175560192014,
+                "averageRR": 0.227799728424252,
+                "maxDrawdown": 0.029177994044093793,
+                "startBalance": 1000,
+                "finalBalance": 1017.0404607711745,
+                "peakBalance": 1017.0404607711745,
+                "trades": [
+                    {
+                        "type": "SELL",
+                        "entry": 86084.96886,
+                        "exit": 86694.05428571429,
+                        "stopLoss": 86694.05428571429,
+                        "exitReason": "Stop Loss",
+                        "candlesHeld": 1,
+                        "profit": -29.17799404409381,
+                        "profitPercent": -116.71197617637526,
+                        "rr": -1,
+                        "balanceAfter": 970.8220059559062,
+                        "entryIndex": 146
+                    },
+                    {
+                        "type": "BUY",
+                        "entry": 86742.32566999999,
+                        "exit": 87274.198268,
+                        "stopLoss": 87274.198268,
+                        "exitReason": "Trailing Stop",
+                        "candlesHeld": 7,
+                        "profit": 46.218454815268295,
+                        "profitPercent": 190.43019021704166,
+                        "rr": 1.455599456848504,
+                        "balanceAfter": 1017.0404607711745,
+                        "entryIndex": 891
+                    }
+                ],
+                "exitReasons": {
+                    "Stop Loss": 1,
+                    "Trailing Stop": 1
+                },
+                "duration": "2.449167ms",
+                "confidence95": [
+                    0,
+                    0
+                ]
+            },
+            "testDuration": "17.095642166s"
+        },
+        "momentum_beast": {
+            "strategy": "momentum_beast",
+            "totalTests": 3990,
+            "bestScore": 0,
+            "bestParams": {
+                "StopATR": 0,
+                "TP1ATR": 0,
+                "TP2ATR": 0,
+                "TP3ATR": 0,
+                "RiskPercent": 0
+            },
+            "backtestResult": null,
+            "testDuration": "15.292100833s"
+        },
+        "range_master": {
+            "strategy": "range_master",
+            "totalTests": 3990,
+            "bestScore": 0,
+            "bestParams": {
+                "StopATR": 0,
+                "TP1ATR": 0,
+                "TP2ATR": 0,
+                "TP3ATR": 0,
+                "RiskPercent": 0
+            },
+            "backtestResult": null,
+            "testDuration": "8.742525584s"
+        },
+        "reversal_sniper": {
+            "strategy": "reversal_sniper",
+            "totalTests": 3990,
+            "bestScore": 0,
+            "bestParams": {
+                "StopATR": 0,
+                "TP1ATR": 0,
+                "TP2ATR": 0,
+                "TP3ATR": 0,
+                "RiskPercent": 0
+            },
+            "backtestResult": null,
+            "testDuration": "12.057835167s"
+        },
+        "scalper_pro": {
+            "strategy": "scalper_pro",
+            "totalTests": 3990,
+            "bestScore": 0,
+            "bestParams": {
+                "StopATR": 0,
+                "TP1ATR": 0,
+                "TP2ATR": 0,
+                "TP3ATR": 0,
+                "RiskPercent": 0
+            },
+            "backtestResult": null,
+            "testDuration": "3.241032792s"
+        },
+        "session_trader": {
+            "strategy": "session_trader",
+            "totalTests": 3990,
+            "bestScore": 0,
+            "bestParams": {
+                "StopATR": 0,
+                "TP1ATR": 0,
+                "TP2ATR": 0,
+                "TP3ATR": 0,
+                "RiskPercent": 0
+            },
+            "backtestResult": null,
+            "testDuration": "3.326034584s"
+        },
+        "smart_money_tracker": {
+            "strategy": "smart_money_tracker",
+            "totalTests": 3990,
+            "bestScore": 0,
+            "bestParams": {
+                "StopATR": 0,
+                "TP1ATR": 0,
+                "TP2ATR": 0,
+                "TP3ATR": 0,
+                "RiskPercent": 0
+            },
+            "backtestResult": null,
+            "testDuration": "10.317918292s"
+        },
+        "trend_rider": {
+            "strategy": "trend_rider",
+            "totalTests": 3990,
+            "bestScore": 0,
+            "bestParams": {
+                "StopATR": 0,
+                "TP1ATR": 0,
+                "TP2ATR": 0,
+                "TP3ATR": 0,
+                "RiskPercent": 0
+            },
+            "backtestResult": null,
+            "testDuration": "13.472472333s"
+        }
+    },
+    "bestOverall": {
+        "strategy": "liquidity_hunter",
+        "totalTests": 3990,
+        "bestScore": 87.40090929248665,
+        "bestParams": {
+            "StopATR": 1.25,
+            "TP1ATR": 2,
+            "TP2ATR": 3,
+            "TP3ATR": 5,
+            "RiskPercent": 2.5
+        },
+        "backtestResult": {
+            "totalTrades": 2,
+            "winningTrades": 1,
+            "losingTrades": 1,
+            "winRate": 50,
+            "totalProfit": 46.218454815268295,
+            "totalLoss": 29.17799404409381,
+            "netProfit": 17.040460771174484,
+            "returnPercent": 1.7040460771174482,
+            "profitFactor": 1.5840175560192014,
+            "averageRR": 0.227799728424252,
+            "maxDrawdown": 0.029177994044093793,
+            "startBalance": 1000,
+            "finalBalance": 1017.0404607711745,
+            "peakBalance": 1017.0404607711745,
+            "trades": [
+                {
+                    "type": "SELL",
+                    "entry": 86084.96886,
+                    "exit": 86694.05428571429,
+                    "stopLoss": 86694.05428571429,
+                    "exitReason": "Stop Loss",
+                    "candlesHeld": 1,
+                    "profit": -29.17799404409381,
+                    "profitPercent": -116.71197617637526,
+                    "rr": -1,
+                    "balanceAfter": 970.8220059559062,
+                    "entryIndex": 146
+                },
+                {
+                    "type": "BUY",
+                    "entry": 86742.32566999999,
+                    "exit": 87274.198268,
+                    "stopLoss": 87274.198268,
+                    "exitReason": "Trailing Stop",
+                    "candlesHeld": 7,
+                    "profit": 46.218454815268295,
+                    "profitPercent": 190.43019021704166,
+                    "rr": 1.455599456848504,
+                    "balanceAfter": 1017.0404607711745,
+                    "entryIndex": 891
+                }
+            ],
+            "exitReasons": {
+                "Stop Loss": 1,
+                "Trailing Stop": 1
+            },
+            "duration": "2.449167ms",
+            "confidence95": [
+                0,
+                0
+            ]
+        },
+        "testDuration": "17.095642166s"
+    }
+}

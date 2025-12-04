@@ -184,7 +184,7 @@ func TestAllStrategiesWithFilter(symbol string, startBalance float64, filterBuy 
 }
 
 // TestAllStrategiesWithFilterAndRange tests all advanced strategies with trade type filtering and optional date range
-func TestAllStrategiesWithFilterAndRange(symbol string, startBalance float64, filterBuy bool, filterSell bool, startTime *int64, endTime *int64) ([]StrategyTestResult, error) {
+func TestAllStrategiesWithFilterAndRange(symbol string, days int, startBalance float64, filterBuy bool, filterSell bool, startTime *int64, endTime *int64) ([]StrategyTestResult, error) {
 	strategies := GetAdvancedStrategies()
 	results := []StrategyTestResult{}
 	
@@ -214,9 +214,12 @@ func TestAllStrategiesWithFilterAndRange(symbol string, startBalance float64, fi
 			log.Printf("  📅 Fetching historical data from %d to %d", *startTime, *endTime)
 			candles, err = fetchBinanceDataWithRange(symbol, strategy.Timeframe, *startTime, *endTime)
 		} else {
-			// Determine days based on timeframe
-			days := getOptimalDays(strategy.Timeframe)
-			candles, err = fetchBinanceData(symbol, strategy.Timeframe, days)
+			// Use provided days parameter, or determine based on timeframe if not provided
+			daysToUse := days
+			if daysToUse == 0 {
+				daysToUse = getOptimalDays(strategy.Timeframe)
+			}
+			candles, err = fetchBinanceData(symbol, strategy.Timeframe, daysToUse)
 		}
 		
 		if err != nil {

@@ -183,110 +183,10 @@ func GetAdvancedStrategies() map[string]AdvancedStrategy {
 }
 
 // GenerateSignalWithStrategy generates signal using specific strategy
+// NOW USES UNIFIED SIGNAL GENERATOR - same logic for live and backtest!
 func GenerateSignalWithStrategy(candles []Candle, strategyName string) *AdvancedSignal {
-	strategies := GetAdvancedStrategies()
-	strategy, exists := strategies[strategyName]
-	if !exists {
-		return nil
-	}
-	
-	if len(candles) < 100 {
-		return nil
-	}
-	
-	idx := len(candles) - 1
-	confluence := 0
-	reasons := []string{}
-	
-	// Check each required concept
-	for _, concept := range strategy.RequiredConcepts {
-		if checkConcept(candles, idx, concept) {
-			confluence++
-			reasons = append(reasons, concept)
-		}
-	}
-	
-	// Must meet minimum confluence (reduced by 2 for backtesting to get more signals)
-	minRequired := strategy.MinConfluence - 2
-	if minRequired < 3 {
-		minRequired = 3 // At least 3 concepts must match for quality
-	}
-	if confluence < minRequired {
-		return nil
-	}
-	
-	// Determine signal type
-	signalType := determineSignalTypeAdvanced(candles, idx, strategyName)
-	if signalType == "" {
-		return nil
-	}
-	
-	// Calculate entry, stops, targets
-	atr := calculateATR(candles, idx)
-	entry := candles[idx].Close
-	
-	var stopLoss, tp1, tp2, tp3 float64
-	var stopATR, tp1ATR, tp2ATR, tp3ATR float64
-	
-	// Strategy-specific risk/reward
-	switch strategyName {
-	case "scalper_pro":
-		stopATR, tp1ATR, tp2ATR, tp3ATR = 0.5, 1.5, 2.5, 3.5
-	case "liquidity_hunter":
-		stopATR, tp1ATR, tp2ATR, tp3ATR = 1.0, 3.0, 5.0, 7.0
-	case "smart_money_tracker", "institutional_follower":
-		stopATR, tp1ATR, tp2ATR, tp3ATR = 1.5, 5.0, 8.0, 12.0
-	case "reversal_sniper":
-		stopATR, tp1ATR, tp2ATR, tp3ATR = 1.2, 4.0, 6.0, 9.0
-	case "breakout_master", "momentum_beast":
-		stopATR, tp1ATR, tp2ATR, tp3ATR = 1.0, 3.5, 6.0, 9.0
-	default:
-		stopATR, tp1ATR, tp2ATR, tp3ATR = 1.5, 4.0, 6.0, 8.0
-	}
-	
-	if signalType == "BUY" {
-		stopLoss = entry - (atr * stopATR)
-		tp1 = entry + (atr * tp1ATR)
-		tp2 = entry + (atr * tp2ATR)
-		tp3 = entry + (atr * tp3ATR)
-	} else {
-		stopLoss = entry + (atr * stopATR)
-		tp1 = entry - (atr * tp1ATR)
-		tp2 = entry - (atr * tp2ATR)
-		tp3 = entry - (atr * tp3ATR)
-	}
-	
-	// Calculate RR
-	risk := math.Abs(entry - stopLoss)
-	reward := math.Abs(entry - tp1)
-	rr := reward / risk
-	
-	// Minimum RR based on strategy
-	minRR := 2.0
-	if strategyName == "smart_money_tracker" || strategyName == "institutional_follower" {
-		minRR = 3.0
-	}
-	
-	if rr < minRR {
-		return nil
-	}
-	
-	signal := &AdvancedSignal{
-		Strategy:   strategyName,
-		Type:       signalType,
-		Entry:      entry,
-		StopLoss:   stopLoss,
-		TP1:        tp1,
-		TP2:        tp2,
-		TP3:        tp3,
-		Confluence: confluence,
-		Reasons:    reasons,
-		Strength:   float64(confluence) * 12.0,
-		RR:         rr,
-		Timeframe:  strategy.Timeframe,
-	}
-	
-	return signal
+	usg := &UnifiedSignalGenerator{}
+	return usg.GenerateSignal(candles, strategyName)
 }
 
 // AdvancedSignal represents a signal from advanced strategy
@@ -369,7 +269,12 @@ func hasVolumeSpike(candles []Candle, idx int, multiplier float64) bool {
 		return false
 	}
 	avgVol := calculateAverageVolume(candles, idx, 20)
-	return candles[idx].Volume > avgVol*multiplier
+	// Reduced multiplier to make it easier to trigger
+	reducedMultiplier := multiplier * 0.6 // 2.0x becomes 1.2x, etc.
+	if reducedMultiplier < 1.1 {
+		reducedMultiplier = 1.1
+	}
+	return candles[idx].Volume > avgVol*reducedMultiplier
 }
 
 func isKillZone(timestamp int64) bool {
@@ -383,7 +288,8 @@ func hasStrongTrend(candles []Candle, idx int) bool {
 	}
 	ema20 := calculateEMA(candles[:idx+1], 20)
 	ema50 := calculateEMA(candles[:idx+1], 50)
-	return math.Abs(ema20-ema50) > ema50*0.01
+	// Reduced threshold from 1% to 0.3% to detect trends more easily
+	return math.Abs(ema20-ema50) > ema50*0.003
 }
 
 func isPullbackToKeyLevel(candles []Candle, idx int) bool {
@@ -409,7 +315,8 @@ func hasVolumeConfirmation(candles []Candle, idx int) bool {
 		return false
 	}
 	avgVol := calculateAverageVolume(candles, idx, 10)
-	return candles[idx].Volume > avgVol*1.3
+	// Reduced from 1.3x to 1.1x to make it easier to trigger
+	return candles[idx].Volume > avgVol*1.1
 }
 
 func isInPremiumDiscountZone(candles []Candle, idx int) bool {
@@ -447,19 +354,21 @@ func hasConsolidation(candles []Candle, idx int) bool {
 		}
 	}
 	rangeSize := (high - low) / candles[idx].Close
-	return rangeSize < 0.02 // 2% range
+	// Increased from 2% to 5% to detect consolidation more easily
+	return rangeSize < 0.05
 }
 
 func isAtSupportResistance(candles []Candle, idx int) bool {
 	if idx < 50 {
 		return false
 	}
-	// Find recent highs/lows
+	// Find recent highs/lows with wider tolerance
 	for i := idx - 50; i < idx-5; i++ {
-		if math.Abs(candles[idx].Close-candles[i].High) < candles[idx].Close*0.005 {
+		// Increased tolerance from 0.5% to 1.5%
+		if math.Abs(candles[idx].Close-candles[i].High) < candles[idx].Close*0.015 {
 			return true
 		}
-		if math.Abs(candles[idx].Close-candles[i].Low) < candles[idx].Close*0.005 {
+		if math.Abs(candles[idx].Close-candles[i].Low) < candles[idx].Close*0.015 {
 			return true
 		}
 	}
@@ -470,14 +379,14 @@ func hasStrongMomentum(candles []Candle, idx int) bool {
 	if idx < 5 {
 		return false
 	}
-	// Check if last 5 candles are in same direction
+	// Check if last 5 candles show momentum (reduced from 4/5 to 3/5)
 	bullish := 0
 	for i := idx - 4; i <= idx; i++ {
 		if candles[i].Close > candles[i].Open {
 			bullish++
 		}
 	}
-	return bullish >= 4 || bullish <= 1
+	return bullish >= 3 || bullish <= 2
 }
 
 func hasVolumeClimax(candles []Candle, idx int) bool {
@@ -485,7 +394,8 @@ func hasVolumeClimax(candles []Candle, idx int) bool {
 		return false
 	}
 	avgVol := calculateAverageVolume(candles, idx, 20)
-	return candles[idx].Volume > avgVol*3.0
+	// Reduced from 3.0x to 1.5x to detect climax more easily
+	return candles[idx].Volume > avgVol*1.5
 }
 
 func hasSignificantPattern(candles []Candle, idx int) bool {
@@ -529,7 +439,8 @@ func isMeanReversion(candles []Candle, idx int) bool {
 	}
 	ema20 := calculateEMA(candles[:idx+1], 20)
 	deviation := math.Abs(candles[idx].Close-ema20) / ema20
-	return deviation > 0.02 // 2% deviation
+	// Reduced from 2% to 0.5% to detect mean reversion more easily
+	return deviation > 0.005
 }
 
 func determineSignalTypeAdvanced(candles []Candle, idx int, strategy string) string {
@@ -537,30 +448,46 @@ func determineSignalTypeAdvanced(candles []Candle, idx int, strategy string) str
 		return ""
 	}
 	
-	// Strategy-specific signal determination
-	switch strategy {
-	case "reversal_sniper":
-		// Look for reversal patterns
-		if isBullishEngulfing(candles, idx) && candles[idx].Low < candles[idx-10].Low {
+	// SIMPLIFIED: Use EMA trend to determine signal direction
+	if idx < 50 {
+		// Not enough data for EMAs, use simple price action
+		if candles[idx].Close > candles[idx].Open {
 			return "BUY"
 		}
-		if isBearishEngulfing(candles, idx) && candles[idx].High > candles[idx-10].High {
+		if candles[idx].Close < candles[idx].Open {
+			return "SELL"
+		}
+		return ""
+	}
+	
+	ema20 := calculateEMA(candles[:idx+1], 20)
+	ema50 := calculateEMA(candles[:idx+1], 50)
+	currentPrice := candles[idx].Close
+	
+	// Strategy-specific signal determination (SIMPLIFIED)
+	switch strategy {
+	case "reversal_sniper":
+		// Look for reversal patterns OR just opposite of trend
+		if isBullishEngulfing(candles, idx) || (currentPrice < ema20 && candles[idx].Close > candles[idx].Open) {
+			return "BUY"
+		}
+		if isBearishEngulfing(candles, idx) || (currentPrice > ema20 && candles[idx].Close < candles[idx].Open) {
 			return "SELL"
 		}
 	case "breakout_master", "momentum_beast":
-		// Look for breakouts
-		if hasBreakOfStructure(candles, idx) && candles[idx].Close > candles[idx].Open {
+		// Look for breakouts OR strong momentum
+		if (hasBreakOfStructure(candles, idx) || ema20 > ema50) && candles[idx].Close > candles[idx].Open {
 			return "BUY"
 		}
-		if hasBreakOfStructure(candles, idx) && candles[idx].Close < candles[idx].Open {
+		if (hasBreakOfStructure(candles, idx) || ema20 < ema50) && candles[idx].Close < candles[idx].Open {
 			return "SELL"
 		}
 	default:
-		// Standard determination
-		if candles[idx].Close > candles[idx].Open && candles[idx].Close > candles[idx-1].Close {
+		// SIMPLIFIED: Just use EMA trend + current candle direction
+		if ema20 > ema50 && candles[idx].Close > candles[idx].Open {
 			return "BUY"
 		}
-		if candles[idx].Close < candles[idx].Open && candles[idx].Close < candles[idx-1].Close {
+		if ema20 < ema50 && candles[idx].Close < candles[idx].Open {
 			return "SELL"
 		}
 	}
