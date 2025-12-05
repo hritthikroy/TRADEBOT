@@ -218,6 +218,9 @@ func TestAllStrategiesWithFilterAndRange(symbol string, days int, startBalance f
 			daysToUse := days
 			if daysToUse == 0 {
 				daysToUse = getOptimalDays(strategy.Timeframe)
+				log.Printf("  📅 No days specified, using optimal: %d days for %s", daysToUse, strategy.Timeframe)
+			} else {
+				log.Printf("  📅 Using specified days: %d days for %s", daysToUse, strategy.Timeframe)
 			}
 			candles, err = fetchBinanceData(symbol, strategy.Timeframe, daysToUse)
 		}

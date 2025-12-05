@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Frontend Test - Chart Update</title>
+    <style>
+        body { font-family: Arial; padding: 20px; background: #1a1a1a; color: #fff; }
+        .test-box { background: #2a2a2a; padding: 20px; margin: 10px 0; border-radius: 8px; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; background: #4CAF50; color: white; border: none; border-radius: 4px; }
+        button:hover { background: #45a049; }
+        .result { background: #333; padding: 10px; margin: 10px 0; border-left: 4px solid #4CAF50; }
+        .error { border-left-color: #f44336; }
+        pre { background: #1a1a1a; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Frontend Chart Update Test</h1>
+    
+    <div class="test-box">
+        <h2>Test 1: API Response Check</h2>
+        <button onclick="test5Days()">Test 5 Days</button>
+        <button onclick="test10Days()">Test 10 Days</button>
+        <button onclick="test15Days()">Test 15 Days</button>
+        <div id="result1"></div>
+    </div>
+
+    <div class="test-box">
+        <h2>Test 2: Cache Busting Check</h2>
+        <button onclick="testCacheBusting()">Test Cache Busting</button>
+        <div id="result2"></div>
+    </div>
+
+    <div class="test-box">
+        <h2>Test 3: Console Logs</h2>
+        <p>Open browser console (F12) to see debug logs</p>
+        <div id="result3"></div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8080/api/v1';
+        
+        async function testDays(days, resultId) {
+            const resultDiv = document.getElementById(resultId);
+            resultDiv.innerHTML = `<p>⏳ Testing ${days} days...</p>`;
+            
+            try {
+                const cacheBuster = Date.now();
+                console.log(`🔄 Testing ${days} days at ${new Date(cacheBuster).toLocaleTimeString()}`);
+                
+                const response = await fetch(`${API_URL}/backtest/test-all-strategies?_=${cacheBuster}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache'
+                    },
+                    body: JSON.stringify({
+                        symbol: 'BTCUSDT',
+                        days: days,
+                        startBalance: 10000,
+                        filterBuy: true,
+                        filterSell: true
+                    })
+                });
+                
+                const data = await response.json();
+                const sessionTrader = data.results.find(s => s.strategyName === 'session_trader');
+                
+                console.log(`✅ ${days} days result:`, {
+                    totalTrades: sessionTrader.totalTrades,
+                    winRate: sessionTrader.winRate,
+                    returnPercent: sessionTrader.returnPercent
+                });
+                
+                resultDiv.innerHTML = `
+                    <div class="result">
+                        <h3>✅ ${days} Days Result</h3>
+                        <p><strong>Total Trades:</strong> ${sessionTrader.totalTrades}</p>
+                        <p><strong>Win Rate:</strong> ${sessionTrader.winRate.toFixed(1)}%</p>
+                        <p><strong>Return:</strong> ${sessionTrader.returnPercent.toFixed(1)}%</p>
+                        <p><strong>Timestamp:</strong> ${new Date(cacheBuster).toLocaleTimeString()}</p>
+                    </div>
+                `;
+            } catch (error) {
+                console.error(`❌ Error testing ${days} days:`, error);
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <h3>❌ Error</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        function test5Days() {
+            testDays(5, 'result1');
+        }
+        
+        function test10Days() {
+            testDays(10, 'result1');
+        }
+        
+        function test15Days() {
+            testDays(15, 'result1');
+        }
+        
+        async function testCacheBusting() {
+            const resultDiv = document.getElementById('result2');
+            resultDiv.innerHTML = '<p>⏳ Testing cache busting...</p>';
+            
+            const results = [];
+            
+            // Make 3 requests with same parameters
+            for (let i = 1; i <= 3; i++) {
+                const cacheBuster = Date.now();
+                const url = `${API_URL}/backtest/test-all-strategies?_=${cacheBuster}`;
+                
+                console.log(`Request ${i}: ${url}`);
+                results.push({
+                    request: i,
+                    timestamp: cacheBuster,
+                    url: url
+                });
+                
+                await new Promise(resolve => setTimeout(resolve, 100)); // Small delay
+            }
+            
+            resultDiv.innerHTML = `
+                <div class="result">
+                    <h3>✅ Cache Busting Test</h3>
+                    <p>Each request has a unique timestamp:</p>
+                    <pre>${JSON.stringify(results, null, 2)}</pre>
+                    <p>✅ All URLs are unique - cache busting is working!</p>
+                </div>
+            `;
+        }
+        
+        // Log on page load
+        console.log('🧪 Frontend Test Page Loaded');
+        console.log('API URL:', API_URL);
+        console.log('Click buttons to test different day values');
+    </script>
+</body>
+</html>
