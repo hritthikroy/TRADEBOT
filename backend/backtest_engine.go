@@ -139,9 +139,9 @@ func runBacktestInternal(config BacktestConfig, candles []Candle, customStopATR,
 		ExitReasons:  make(map[string]int),
 	}
 
-	// Set defaults
+	// Set defaults - OPTIMIZED for lower drawdown
 	if config.RiskPercent == 0 {
-		config.RiskPercent = 0.02 // 2% risk per trade
+		config.RiskPercent = 0.003 // 0.3% risk per trade (optimized for <12% DD)
 	}
 	if config.MaxPositionCap == 0 {
 		config.MaxPositionCap = config.StartBalance * 10 // Max 10x starting capital
@@ -495,6 +495,9 @@ func calculateStats(result *BacktestResult) {
 	if result.TotalLoss > 0 {
 		result.ProfitFactor = result.TotalProfit / result.TotalLoss
 	}
+	
+	// Convert maxDrawdown to percentage (FIXED: Frontend expects percentage, not decimal)
+	result.MaxDrawdown = result.MaxDrawdown * 100
 	
 	// Calculate average RR
 	totalRR := 0.0

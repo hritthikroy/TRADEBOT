@@ -1,6 +1,7 @@
 package main
 
 import (
+	"math"
 	"time"
 )
 
@@ -148,180 +149,615 @@ func (usg *UnifiedSignalGenerator) generateLiquidityHunterSignal(candles []Candl
 	return nil
 }
 
-// generateSessionTraderSignal - WORKING VERSION: 52.6% SELL WR (Realistic & Profitable)
+// generateSessionTraderSignal - WORLD-CLASS: Multi-Timeframe + Smart Money Concepts
+// Target: 55-65% WR, 3.5-5.0 PF, <12% DD
 func (usg *UnifiedSignalGenerator) generateSessionTraderSignal(candles []Candle, idx int) *AdvancedSignal {
-	if idx < 50 {
+	if idx < 200 {
 		return nil
 	}
 	
 	currentPrice := candles[idx].Close
+	currentCandle := candles[idx]
+	previousCandle := candles[idx-1]
 	
-	// Calculate indicators
+	// === ADVANCED INDICATORS ===
 	atr := calculateATR(candles[:idx+1], 14)
+	atr20 := calculateATR(candles[:idx+1], 20)
+	
+	// Multiple EMAs for trend strength
 	ema9 := calculateEMA(candles[:idx+1], 9)
 	ema21 := calculateEMA(candles[:idx+1], 21)
 	ema50 := calculateEMA(candles[:idx+1], 50)
-	rsi := calculateRSI(candles[:idx+1], 14)
+	ema100 := calculateEMA(candles[:idx+1], 100)
+	ema200 := calculateEMA(candles[:idx+1], 200)
 	
-	// BUY Signal: EMA9 > EMA21 > EMA50 and RSI > 40 and RSI < 70
-	if ema9 > ema21 && ema21 > ema50 && rsi > 40 && rsi < 70 {
+	// RSI with multiple periods
+	rsi := calculateRSI(candles[:idx+1], 14)
+	rsi7 := calculateRSI(candles[:idx+1], 7)
+	
+	// MACD for momentum
+	macd, signal := calculateMACD(candles[:idx+1])
+	macdBullish := macd > signal
+	macdBearish := macd < signal
+	macdCrossDown := macd < signal && macd < 0
+	
+	// === VOLUME ANALYSIS (Smart Money Detection) ===
+	avgVolume20 := 0.0
+	avgVolume50 := 0.0
+	for i := idx - 19; i <= idx; i++ {
+		avgVolume20 += candles[i].Volume
+	}
+	avgVolume20 /= 20
+	
+	for i := idx - 49; i <= idx; i++ {
+		avgVolume50 += candles[i].Volume
+	}
+	avgVolume50 /= 50
+	
+	// Volume conditions - BALANCED: Optimal for profit
+	highVolume := currentCandle.Volume > avgVolume20*1.4 // Good volume
+	veryHighVolume := currentCandle.Volume > avgVolume20*2.0 // Strong volume
+	volumeIncreasing := avgVolume20 > avgVolume50*1.1 // Volume trend
+	
+	// === SMART MONEY CONCEPTS: Order Blocks & Fair Value Gaps ===
+	// Find key support/resistance levels (Order Blocks)
+	lookback := 50
+	support := currentPrice
+	resistance := currentPrice
+	strongSupport := currentPrice
+	strongResistance := currentPrice
+	
+	// Find swing highs and lows
+	for i := idx - lookback; i < idx-2; i++ {
+		// Swing Low (Order Block Support)
+		if candles[i].Low < candles[i-1].Low && candles[i].Low < candles[i+1].Low {
+			if candles[i].Low < support || support == currentPrice {
+				support = candles[i].Low
+			}
+			// Strong support with high volume
+			if candles[i].Volume > avgVolume50*1.5 {
+				strongSupport = candles[i].Low
+			}
+		}
+		
+		// Swing High (Order Block Resistance)
+		if candles[i].High > candles[i-1].High && candles[i].High > candles[i+1].High {
+			if candles[i].High > resistance || resistance == currentPrice {
+				resistance = candles[i].High
+			}
+			// Strong resistance with high volume
+			if candles[i].Volume > avgVolume50*1.5 {
+				strongResistance = candles[i].High
+			}
+		}
+	}
+	
+	// === MARKET STRUCTURE (Trend Strength) ===
+	// Multi-EMA alignment for strong trends
+	strongBullTrend := ema21 > ema50 && ema50 > ema200 && currentPrice > ema21
+	strongBearTrend := ema21 < ema50 && ema50 < ema200 && currentPrice < ema21
+	
+	perfectBearAlignment := ema9 < ema21 && ema21 < ema50 && ema50 < ema100 && ema100 < ema200
+	
+	// === MARKET REGIME DETECTION (Adaptive BUY/SELL) ===
+	// Calculate trend strength score
+	bullScore := 0
+	bearScore := 0
+	
+	// EMA alignment scoring
+	if ema9 > ema21 {
+		bullScore++
+	} else {
+		bearScore++
+	}
+	if ema21 > ema50 {
+		bullScore++
+	} else {
+		bearScore++
+	}
+	if ema50 > ema100 {
+		bullScore++
+	} else {
+		bearScore++
+	}
+	if ema100 > ema200 {
+		bullScore++
+	} else {
+		bearScore++
+	}
+	
+	// Price position scoring
+	if currentPrice > ema21 {
+		bullScore++
+	} else {
+		bearScore++
+	}
+	if currentPrice > ema50 {
+		bullScore++
+	} else {
+		bearScore++
+	}
+	
+	// MACD scoring
+	if macdBullish {
+		bullScore++
+	} else {
+		bearScore++
+	}
+	
+	// Volume trend scoring
+	if volumeIncreasing {
+		if currentPrice > candles[idx-1].Close {
+			bullScore++
+		} else {
+			bearScore++
+		}
+	}
+	
+	// Determine market regime
+	totalScore := bullScore + bearScore
+	bullStrength := float64(bullScore) / float64(totalScore)
+	bearStrength := float64(bearScore) / float64(totalScore)
+	
+	// Market regime classification - OPTIMIZED: Aggressive filtering for better win rates
+	isBullMarket := bullStrength >= 0.70      // 70%+ bull signals (increased from 60%)
+	isBearMarket := bearStrength >= 0.70      // 70%+ bear signals (increased from 60%)
+	isSidewaysMarket := !isBullMarket && !isBearMarket
+	
+	// === VOLATILITY ANALYSIS ===
+	volatilityExpanding := atr > atr20*1.2
+	
+	// === PRICE ACTION ===
+	bodySize := math.Abs(currentCandle.Close - currentCandle.Open)
+	lowerWick := math.Min(currentCandle.Open, currentCandle.Close) - currentCandle.Low
+	upperWick := currentCandle.High - math.Max(currentCandle.Open, currentCandle.Close)
+	
+	// Candle patterns
+	isBullish := currentCandle.Close > currentCandle.Open
+	isBearish := currentCandle.Close < currentCandle.Open
+	strongBullCandle := isBullish && bodySize > atr*0.6
+	strongBearCandle := isBearish && bodySize > atr*0.6
+	
+	// === WORLD-CLASS BUY SIGNAL ===
+	// Multi-factor confluence system
+	
+	// Price near order block support - BALANCED: Optimal zones
+	nearStrongSupport := currentPrice <= strongSupport*1.03 && currentPrice >= strongSupport*0.97 // 3% zone
+	
+	// Bullish reversal patterns
+	prevBearish := previousCandle.Close < previousCandle.Open
+	bullishEngulfing := isBullish && prevBearish &&
+		currentCandle.Close > previousCandle.Open &&
+		currentCandle.Open < previousCandle.Close
+	
+	hammer := lowerWick > bodySize*2 && upperWick < bodySize*0.5 && isBullish
+	
+	// RSI conditions - BALANCED: Optimal ranges
+	rsiOversold := rsi < 40 // Oversold
+	rsiHealthy := rsi > 35 && rsi < 75 // Healthy range
+	
+	// === BUY ENTRY LOGIC - OPTIMIZED & BALANCED ===
+	// Only take BUY signals in bull or sideways markets
+	if isBullMarket || isSidewaysMarket {
+		
+	// Strategy 1: Strong Trend Following (OPTIMIZED: 4 conditions)
+	if strongBullTrend && macdBullish && highVolume && rsiHealthy {
+		reasons := []string{
+			"Strong bull trend",
+			"MACD bullish",
+			"Good volume",
+			"RSI healthy",
+		}
+		
+		stopDistance := atr * 1.0
+		
 		return &AdvancedSignal{
 			Strategy:   "session_trader",
 			Type:       "BUY",
 			Entry:      currentPrice,
-			StopLoss:   currentPrice - (atr * 1.0),
-			TP1:        currentPrice + (atr * 4.0),
-			TP2:        currentPrice + (atr * 6.0),
-			TP3:        currentPrice + (atr * 10.0),
+			StopLoss:   currentPrice - stopDistance,
+			TP1:        currentPrice + (stopDistance * 2.0),
+			TP2:        currentPrice + (stopDistance * 3.5),
+			TP3:        currentPrice + (stopDistance * 5.0),
 			Confluence: 4,
-			Reasons:    []string{"EMA alignment", "RSI optimal"},
-			Strength:   80.0,
-			RR:         (atr * 4.0) / (atr * 1.0),
+			Reasons:    reasons,
+			Strength:   85.0,
+			RR:         5.0,
 			Timeframe:  "15m",
 		}
 	}
 	
-	// PROFESSIONAL SESSION TRADER SELL - Smart Uptrend Avoidance
-	// Goal: Keep good trades + Avoid losing streaks
-	
-	// Calculate additional indicators
-	ema200 := calculateEMA(candles[:idx+1], 200)
-	
-	// === CORE ENTRY CONDITIONS (MUST PASS ALL) ===
-	
-	// 1. Basic downtrend
-	if !(ema9 < ema21 && ema21 < ema50) {
-		return nil
-	}
-	
-	// 2. Price below EMAs
-	if !(currentPrice < ema9 && currentPrice < ema21) {
-		return nil
-	}
-	
-	// 3. RSI in range
-	if !(rsi > 30 && rsi < 60) {
-		return nil
-	}
-	
-	// === SMART UPTREND AVOIDANCE (Skip if 3+ signs) ===
-	// This is the KEY to avoiding Nov 27 - Dec 3 losing streak
-	
-	uptrendScore := 0
-	
-	// Check 1: Price above EMA50 (uptrend sign)
-	if currentPrice > ema50 {
-		uptrendScore++
-	}
-	
-	// Check 2: EMA50 > EMA200 (major uptrend)
-	if ema50 > ema200 {
-		uptrendScore++
-	}
-	
-	// Check 3: Majority bullish candles (last 10)
-	if idx >= 10 {
-		bullishCount := 0
-		for i := idx - 9; i <= idx; i++ {
-			if candles[i].Close > candles[i].Open {
-				bullishCount++
-			}
+	// Strategy 2: Order Block Bounce (OPTIMIZED: 4 conditions)
+	if nearStrongSupport && (hammer || bullishEngulfing) && highVolume && macdBullish {
+		reasons := []string{
+			"Order block support",
+			"Bullish reversal pattern",
+			"Volume confirmation",
+			"MACD bullish",
 		}
-		if bullishCount > 6 {
-			uptrendScore++
-		}
-	}
-	
-	// Check 4: Higher lows (last 15 candles)
-	if idx >= 15 {
-		low10ago := candles[idx-10].Low
-		low5ago := candles[idx-5].Low
-		currentLow := candles[idx].Low
-		if currentLow > low5ago && low5ago > low10ago {
-			uptrendScore++
-		}
-	}
-	
-	// Check 5: Price rising over 20 candles
-	if idx >= 20 {
-		price20ago := candles[idx-20].Close
-		if currentPrice >= price20ago*0.995 {
-			uptrendScore++
-		}
-	}
-	
-	// Check 6: Recent higher highs (last 10 candles)
-	if idx >= 10 {
-		high5ago := candles[idx-5].High
-		currentHigh := candles[idx].High
-		if currentHigh > high5ago {
-			uptrendScore++
-		}
-	}
-	
-	// Check 7: Strong bullish momentum (RSI > 55)
-	if rsi > 55 {
-		uptrendScore++
-	}
-	
-	// LOW DRAWDOWN: Skip if 3 or more uptrend signs detected
-	// Balanced approach for low drawdown with good win rate
-	if uptrendScore >= 3 {
-		return nil
-	}
-	
-	// === QUALITY FILTERS (Need 2+ for LOW DRAWDOWN) ===
-	
-	qualityScore := 0
-	
-	// 1. Strong downtrend structure
-	if ema9 < ema21*0.999 && ema21 < ema50*0.999 {
-		qualityScore++
-	}
-	
-	// 2. Lower highs pattern
-	if idx >= 10 {
-		high5ago := candles[idx-5].High
-		currentHigh := candles[idx].High
-		if currentHigh < high5ago {
-			qualityScore++
-		}
-	}
-	
-	// 3. Price well below EMA50
-	if currentPrice < ema50*0.998 {
-		qualityScore++
-	}
-	
-	// 4. RSI in optimal range (35-55)
-	if rsi > 35 && rsi < 55 {
-		qualityScore++
-	}
-	
-	// 5. EMA50 below EMA200 (major downtrend)
-	if ema50 < ema200 {
-		qualityScore++
-	}
-	
-	// Entry: Need at least 2 quality confirmations for LOW DRAWDOWN
-	if qualityScore >= 2 {
 		
-		// ULTRA LOW DRAWDOWN RISK MANAGEMENT
+		stopDistance := currentPrice - strongSupport + atr*0.5
+		
+		return &AdvancedSignal{
+			Strategy:   "session_trader",
+			Type:       "BUY",
+			Entry:      currentPrice,
+			StopLoss:   strongSupport - atr*0.5,
+			TP1:        currentPrice + (stopDistance * 2.0),
+			TP2:        currentPrice + (stopDistance * 3.0),
+			TP3:        currentPrice + (stopDistance * 4.5),
+			Confluence: 4,
+			Reasons:    reasons,
+			Strength:   82.0,
+			RR:         4.5,
+			Timeframe:  "15m",
+		}
+	}
+	
+	// Strategy 3: Momentum Breakout (OPTIMIZED: 5 conditions)
+	if ema9 > ema21 && ema21 > ema50 && strongBullCandle && highVolume && macdBullish {
+		reasons := []string{
+			"EMA alignment",
+			"Strong bull candle",
+			"Volume confirmation",
+			"MACD bullish",
+		}
+		
+		stopDistance := atr * 0.8
+		
+		return &AdvancedSignal{
+			Strategy:   "session_trader",
+			Type:       "BUY",
+			Entry:      currentPrice,
+			StopLoss:   currentPrice - stopDistance,
+			TP1:        currentPrice + (stopDistance * 2.5),
+			TP2:        currentPrice + (stopDistance * 4.0),
+			TP3:        currentPrice + (stopDistance * 6.0),
+			Confluence: 5,
+			Reasons:    reasons,
+			Strength:   80.0,
+			RR:         6.0,
+			Timeframe:  "15m",
+		}
+	}
+	
+	// Strategy 4: Pullback Entry (OPTIMIZED: 4 conditions)
+	if strongBullTrend && nearStrongSupport && highVolume && rsiOversold {
+		reasons := []string{
+			"Pullback in uptrend",
+			"Support zone",
+			"Volume confirmation",
+			"RSI oversold",
+		}
+		
+		stopDistance := currentPrice - strongSupport + atr*0.6
+		
+		return &AdvancedSignal{
+			Strategy:   "session_trader",
+			Type:       "BUY",
+			Entry:      currentPrice,
+			StopLoss:   strongSupport - atr*0.6,
+			TP1:        currentPrice + (stopDistance * 2.0),
+			TP2:        currentPrice + (stopDistance * 3.0),
+			TP3:        currentPrice + (stopDistance * 4.5),
+			Confluence: 4,
+			Reasons:    reasons,
+			Strength:   78.0,
+			RR:         4.5,
+			Timeframe:  "15m",
+		}
+	}
+	
+	// Strategy 5: EMA Bounce (OPTIMIZED: 4 conditions)
+	if currentPrice > ema21 && currentPrice < ema21*1.01 && // Near EMA21 (1%)
+		strongBullTrend && highVolume && macdBullish {
+		reasons := []string{
+			"EMA21 bounce",
+			"Strong uptrend",
+			"Volume confirmation",
+			"MACD bullish",
+		}
+		
+		stopDistance := currentPrice - ema21 + atr*0.5
+		
+		return &AdvancedSignal{
+			Strategy:   "session_trader",
+			Type:       "BUY",
+			Entry:      currentPrice,
+			StopLoss:   ema21 - atr*0.5,
+			TP1:        currentPrice + (stopDistance * 2.0),
+			TP2:        currentPrice + (stopDistance * 3.0),
+			TP3:        currentPrice + (stopDistance * 4.5),
+			Confluence: 4,
+			Reasons:    reasons,
+			Strength:   76.0,
+			RR:         4.5,
+			Timeframe:  "15m",
+		}
+	}
+	
+	// Strategy 6: Volume Spike Reversal (OPTIMIZED: 4 conditions)
+	if nearStrongSupport && veryHighVolume && (hammer || bullishEngulfing) && macdBullish {
+		reasons := []string{
+			"Support zone",
+			"Volume spike",
+			"Bullish pattern",
+			"MACD bullish",
+		}
+		
+		stopDistance := currentPrice - strongSupport + atr*0.7
+		
+		return &AdvancedSignal{
+			Strategy:   "session_trader",
+			Type:       "BUY",
+			Entry:      currentPrice,
+			StopLoss:   strongSupport - atr*0.7,
+			TP1:        currentPrice + (stopDistance * 2.0),
+			TP2:        currentPrice + (stopDistance * 3.0),
+			TP3:        currentPrice + (stopDistance * 4.5),
+			Confluence: 4,
+			Reasons:    reasons,
+			Strength:   74.0,
+			RR:         4.5,
+			Timeframe:  "15m",
+		}
+	}
+	
+	// Strategy 7: Simple Trend + RSI (OPTIMIZED: 3 conditions - most flexible)
+	if strongBullTrend && rsiHealthy && highVolume {
+		reasons := []string{
+			"Strong uptrend",
+			"RSI healthy",
+			"Volume confirmation",
+		}
+		
+		stopDistance := atr * 1.0
+		
+		return &AdvancedSignal{
+			Strategy:   "session_trader",
+			Type:       "BUY",
+			Entry:      currentPrice,
+			StopLoss:   currentPrice - stopDistance,
+			TP1:        currentPrice + (stopDistance * 1.8),
+			TP2:        currentPrice + (stopDistance * 3.0),
+			TP3:        currentPrice + (stopDistance * 4.5),
+			Confluence: 3,
+			Reasons:    reasons,
+			Strength:   70.0,
+			RR:         4.5,
+			Timeframe:  "15m",
+		}
+	}
+	
+	} // End of BUY market regime block (only in bull/sideways markets)
+	
+	// === WORLD-CLASS SELL SIGNAL - MARKET REGIME ADAPTIVE ===
+	// Only take SELL signals in bear or sideways markets
+	if isBearMarket || isSidewaysMarket {
+	
+	// Price near order block resistance - BALANCED: Optimal zones
+	nearStrongResistance := currentPrice >= strongResistance*0.97 && currentPrice <= strongResistance*1.03 // 3% zone
+	
+	// Bearish reversal patterns
+	prevBullish := previousCandle.Close > previousCandle.Open
+	bearishEngulfing := isBearish && prevBullish &&
+		currentCandle.Close < previousCandle.Open &&
+		currentCandle.Open > previousCandle.Close
+	
+	shootingStar := upperWick > bodySize*2 && lowerWick < bodySize*0.5 && isBearish
+	
+	// RSI conditions - BALANCED: Optimal ranges
+	rsiOverbought := rsi > 60 // Overbought
+	rsiWeakening := rsi < 75 && rsi > 45 && rsi7 < rsi // Weakening zone
+	
+	// === SELL ENTRY LOGIC ===
+	// Strategy 1: Perfect Trend Following (Highest Win Rate)
+	if perfectBearAlignment && macdCrossDown && veryHighVolume && strongBearCandle && rsi > 30 && rsi < 60 {
+		reasons := []string{
+			"Perfect bear alignment",
+			"MACD bearish crossover",
+			"Institutional selling",
+			"Strong bearish candle",
+			"RSI confirming",
+		}
+		
+		stopDistance := atr * 1.2
+		
 		return &AdvancedSignal{
 			Strategy:   "session_trader",
 			Type:       "SELL",
 			Entry:      currentPrice,
-			StopLoss:   currentPrice + (atr * 1.0),  // Ultra tight stop (1.0 ATR) for minimal drawdown
-			TP1:        currentPrice - (atr * 2.0),  // Conservative TP1 (2 ATR)
-			TP2:        currentPrice - (atr * 3.5),  // Medium TP2 (3.5 ATR)
-			TP3:        currentPrice - (atr * 6.0),  // Aggressive TP3 (6 ATR)
-			Confluence: 3 + qualityScore, // Core (3) + quality (3-7)
-			Reasons:    []string{"Ultra low drawdown", "Strict filters", "Quality confirmed", "Professional entry"},
-			Strength:   85.0 + (float64(qualityScore) * 2.0), // 85-99% based on quality
-			RR:         (atr * 3.5) / (atr * 1.0), // 3.5:1 R/R
+			StopLoss:   currentPrice + stopDistance,
+			TP1:        currentPrice - (stopDistance * 2.0),
+			TP2:        currentPrice - (stopDistance * 3.5),
+			TP3:        currentPrice - (stopDistance * 5.0),
+			Confluence: 5,
+			Reasons:    reasons,
+			Strength:   95.0,
+			RR:         5.0,
 			Timeframe:  "15m",
 		}
 	}
+	
+	// Strategy 2: Order Block Rejection (High Probability)
+	if nearStrongResistance && (shootingStar || bearishEngulfing) && highVolume &&
+		strongBearTrend && macdBearish && rsiWeakening {
+		reasons := []string{
+			"Order block resistance rejection",
+			"Bearish reversal pattern",
+			"Smart money selling",
+			"Strong downtrend",
+			"MACD bearish",
+			"RSI weakening",
+		}
+		
+		stopDistance := strongResistance - currentPrice + atr*0.5
+		
+		return &AdvancedSignal{
+			Strategy:   "session_trader",
+			Type:       "SELL",
+			Entry:      currentPrice,
+			StopLoss:   strongResistance + atr*0.5,
+			TP1:        currentPrice - (stopDistance * 2.0),
+			TP2:        currentPrice - (stopDistance * 3.0),
+			TP3:        currentPrice - (stopDistance * 4.5),
+			Confluence: 6,
+			Reasons:    reasons,
+			Strength:   90.0,
+			RR:         4.5,
+			Timeframe:  "15m",
+		}
+	}
+	
+	// Strategy 3: Momentum Breakdown (Aggressive)
+	if currentPrice < ema9 && ema9 < ema21 && strongBearCandle &&
+		veryHighVolume && macdCrossDown && rsi < 50 && rsi > 25 &&
+		volatilityExpanding && volumeIncreasing {
+		reasons := []string{
+			"Momentum breakdown",
+			"Strong bear candle",
+			"Institutional selling",
+			"MACD crossover",
+			"RSI momentum",
+			"Volatility expansion",
+		}
+		
+		stopDistance := atr * 1.0
+		
+		return &AdvancedSignal{
+			Strategy:   "session_trader",
+			Type:       "SELL",
+			Entry:      currentPrice,
+			StopLoss:   currentPrice + stopDistance,
+			TP1:        currentPrice - (stopDistance * 2.5),
+			TP2:        currentPrice - (stopDistance * 4.0),
+			TP3:        currentPrice - (stopDistance * 6.0),
+			Confluence: 6,
+			Reasons:    reasons,
+			Strength:   88.0,
+			RR:         6.0,
+			Timeframe:  "15m",
+		}
+	}
+	
+	// Strategy 4: Conservative Pullback (Safest)
+	if strongBearTrend && nearStrongResistance && (shootingStar || bearishEngulfing) &&
+		highVolume && rsiOverbought && macdBearish {
+		reasons := []string{
+			"Pullback in downtrend",
+			"Resistance rejection",
+			"Reversal pattern",
+			"Volume confirmation",
+			"RSI overbought",
+		}
+		
+		stopDistance := strongResistance - currentPrice + atr*0.6
+		
+		return &AdvancedSignal{
+			Strategy:   "session_trader",
+			Type:       "SELL",
+			Entry:      currentPrice,
+			StopLoss:   strongResistance + atr*0.6,
+			TP1:        currentPrice - (stopDistance * 1.8),
+			TP2:        currentPrice - (stopDistance * 3.0),
+			TP3:        currentPrice - (stopDistance * 4.5),
+			Confluence: 5,
+			Reasons:    reasons,
+			Strength:   85.0,
+			RR:         4.5,
+			Timeframe:  "15m",
+		}
+	}
+	
+	// === BALANCED MODE: Additional Flexible SELL Strategies ===
+	
+	// Strategy 5: Strong Downtrend + Volume (Relaxed)
+	if strongBearTrend && highVolume && isBearish && macdBearish && rsi > 25 && rsi < 65 {
+		reasons := []string{
+			"Strong downtrend",
+			"Good volume",
+			"Bearish candle",
+			"MACD bearish",
+			"RSI acceptable",
+		}
+		
+		stopDistance := atr * 1.0
+		
+		return &AdvancedSignal{
+			Strategy:   "session_trader",
+			Type:       "SELL",
+			Entry:      currentPrice,
+			StopLoss:   currentPrice + stopDistance,
+			TP1:        currentPrice - (stopDistance * 1.5),
+			TP2:        currentPrice - (stopDistance * 2.5),
+			TP3:        currentPrice - (stopDistance * 4.0),
+			Confluence: 5,
+			Reasons:    reasons,
+			Strength:   80.0,
+			RR:         4.0,
+			Timeframe:  "15m",
+		}
+	}
+	
+	// Strategy 6: EMA Rejection (Simple but Effective)
+	if currentPrice < ema21 && currentPrice > ema21*0.99 && // Near EMA21
+		strongBearTrend && isBearish && highVolume && rsi < 70 && rsi > 30 {
+		reasons := []string{
+			"EMA21 rejection",
+			"Strong downtrend",
+			"Bearish candle",
+			"Good volume",
+			"RSI confirming",
+		}
+		
+		stopDistance := ema21 - currentPrice + atr*0.5
+		
+		return &AdvancedSignal{
+			Strategy:   "session_trader",
+			Type:       "SELL",
+			Entry:      currentPrice,
+			StopLoss:   ema21 + atr*0.5,
+			TP1:        currentPrice - (stopDistance * 2.0),
+			TP2:        currentPrice - (stopDistance * 3.0),
+			TP3:        currentPrice - (stopDistance * 4.5),
+			Confluence: 5,
+			Reasons:    reasons,
+			Strength:   78.0,
+			RR:         4.5,
+			Timeframe:  "15m",
+		}
+	}
+	
+	// Strategy 7: Volume Spike + Reversal (Flexible)
+	if nearStrongResistance && veryHighVolume && (shootingStar || bearishEngulfing || strongBearCandle) &&
+		macdBearish && rsi > 30 && rsi < 70 {
+		reasons := []string{
+			"Resistance zone",
+			"Volume spike",
+			"Bearish pattern",
+			"MACD bearish",
+			"RSI acceptable",
+		}
+		
+		stopDistance := strongResistance - currentPrice + atr*0.7
+		
+		return &AdvancedSignal{
+			Strategy:   "session_trader",
+			Type:       "SELL",
+			Entry:      currentPrice,
+			StopLoss:   strongResistance + atr*0.7,
+			TP1:        currentPrice - (stopDistance * 1.5),
+			TP2:        currentPrice - (stopDistance * 2.5),
+			TP3:        currentPrice - (stopDistance * 4.0),
+			Confluence: 5,
+			Reasons:    reasons,
+			Strength:   75.0,
+			RR:         4.0,
+			Timeframe:  "15m",
+		}
+	}
+	
+	} // End of SELL market regime block (only in bear/sideways markets)
 	
 	return nil
 }

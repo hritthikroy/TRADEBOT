@@ -131,11 +131,17 @@ func fetchBinanceData(symbol, interval string, days int) ([]Candle, error) {
 	binanceInterval := toBinanceInterval(interval)
 	
 	// Calculate how many candles we need
-	limit := calculateCandleLimit(binanceInterval, days)
+	totalNeeded := calculateCandleLimit(binanceInterval, days)
 	
+	// If we need more than 1000 candles, fetch in batches
+	if totalNeeded > 1000 {
+		return fetchBinanceDataInBatches(symbol, binanceInterval, totalNeeded)
+	}
+	
+	// Single request for <= 1000 candles
 	// Binance API endpoint
 	url := fmt.Sprintf("https://api.binance.com/api/v3/klines?symbol=%s&interval=%s&limit=%d",
-		symbol, binanceInterval, limit)
+		symbol, binanceInterval, totalNeeded)
 	
 	// Make request
 	resp, err := http.Get(url)
@@ -169,6 +175,104 @@ func fetchBinanceData(symbol, interval string, days int) ([]Candle, error) {
 	}
 	
 	return candles, nil
+}
+
+// fetchBinanceDataInBatches fetches data in multiple requests when > 1000 candles needed
+func fetchBinanceDataInBatches(symbol, interval string, totalNeeded int) ([]Candle, error) {
+	allCandles := []Candle{}
+	batchSize := 1000
+	
+	// Calculate time per candle in milliseconds
+	intervalMs := getIntervalMilliseconds(interval)
+	
+	// Start from current time and go backwards
+	endTime := time.Now().UnixMilli()
+	
+	// Calculate how many batches we need
+	batchesNeeded := (totalNeeded + batchSize - 1) / batchSize
+	
+	for batch := 0; batch < batchesNeeded; batch++ {
+		// Fetch batch
+		url := fmt.Sprintf("https://api.binance.com/api/v3/klines?symbol=%s&interval=%s&limit=%d&endTime=%d",
+			symbol, interval, batchSize, endTime)
+		
+		resp, err := http.Get(url)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch batch from Binance: %w", err)
+		}
+		
+		if resp.StatusCode != http.StatusOK {
+			body, _ := io.ReadAll(resp.Body)
+			resp.Body.Close()
+			return nil, fmt.Errorf("binance API error: %s", string(body))
+		}
+		
+		var klines []BinanceKlineArray
+		if err := json.NewDecoder(resp.Body).Decode(&klines); err != nil {
+			resp.Body.Close()
+			return nil, fmt.Errorf("failed to parse batch response: %w", err)
+		}
+		resp.Body.Close()
+		
+		if len(klines) == 0 {
+			break // No more data
+		}
+		
+		// Convert to Candle format and prepend (we're going backwards)
+		batch := make([]Candle, len(klines))
+		for i, k := range klines {
+			batch[i] = Candle{
+				Timestamp: int64(k[0].(float64)),
+				Open:      parseFloatBT(k[1]),
+				High:      parseFloatBT(k[2]),
+				Low:       parseFloatBT(k[3]),
+				Close:     parseFloatBT(k[4]),
+				Volume:    parseFloatBT(k[5]),
+			}
+		}
+		
+		// Prepend batch to allCandles (going backwards in time)
+		allCandles = append(batch, allCandles...)
+		
+		// Update endTime to fetch earlier data (go back one interval before first candle)
+		endTime = int64(klines[0][0].(float64)) - intervalMs
+		
+		// Small delay to avoid rate limiting
+		time.Sleep(150 * time.Millisecond)
+	}
+	
+	// Return only the most recent totalNeeded candles
+	if len(allCandles) > totalNeeded {
+		return allCandles[len(allCandles)-totalNeeded:], nil
+	}
+	
+	return allCandles, nil
+}
+
+// getIntervalMilliseconds returns milliseconds per candle for an interval
+func getIntervalMilliseconds(interval string) int64 {
+	intervalMs := map[string]int64{
+		"1m":  60 * 1000,
+		"3m":  3 * 60 * 1000,
+		"5m":  5 * 60 * 1000,
+		"15m": 15 * 60 * 1000,
+		"30m": 30 * 60 * 1000,
+		"1h":  60 * 60 * 1000,
+		"2h":  2 * 60 * 60 * 1000,
+		"4h":  4 * 60 * 60 * 1000,
+		"6h":  6 * 60 * 60 * 1000,
+		"8h":  8 * 60 * 60 * 1000,
+		"12h": 12 * 60 * 60 * 1000,
+		"1d":  24 * 60 * 60 * 1000,
+		"3d":  3 * 24 * 60 * 60 * 1000,
+		"1w":  7 * 24 * 60 * 60 * 1000,
+	}
+	
+	ms := intervalMs[interval]
+	if ms == 0 {
+		ms = 15 * 60 * 1000 // Default to 15m
+	}
+	return ms
 }
 
 // fetchBinanceDataWithRange fetches historical candle data from Binance for a specific date range
@@ -269,10 +373,7 @@ func calculateCandleLimit(interval string, days int) int {
 	
 	needed := cpd * days
 	
-	// Binance limit is 1000, add 50 for indicators
-	if needed > 950 {
-		return 1000
-	}
+	// Add 50 for indicators (EMA200 needs at least 200 candles)
 	return needed + 50
 }
 
@@ -328,8 +429,8 @@ func HandleBacktestRunFiber(c *fiber.Ctx) error {
 		})
 	}
 
-	// Run backtest
-	result, err := RunBacktest(config, candles)
+	// Run PROFESSIONAL backtest with accurate partial exits
+	result, err := RunProfessionalBacktest(config, candles)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": fmt.Sprintf("Backtest failed: %v", err),

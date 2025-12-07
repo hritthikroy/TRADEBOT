@@ -84,10 +84,22 @@ func SetupRoutes(app *fiber.App) {
 	settings.Get("/", GetUserSettings)           // Get filter settings
 	settings.Post("/", UpdateUserSettings)       // Update filter settings
 
+	// Paper Trading routes
+	paperTrading := api.Group("/paper-trading")
+	paperTrading.Get("/stats", getPaperTradingStats)           // Get paper trading statistics
+	paperTrading.Get("/trades", getAllPaperTrades)             // Get all paper trades
+	paperTrading.Post("/trade", addPaperTrade)                 // Add new paper trade
+	paperTrading.Post("/update", updatePaperTrades)            // Update open trades
+	paperTrading.Post("/reset", resetPaperTrading)             // Reset paper trading
+	paperTrading.Post("/start-auto", startAutoPaperTrading)    // Start auto paper trading
+	paperTrading.Post("/stop-auto", stopAutoPaperTrading)      // Stop auto paper trading
+	paperTrading.Post("/add-test-trade", addTestTrade)         // Add test trade for demo
+
 	// Template-based routes (Server-Side Rendered)
 	app.Get("/", HandleIndexPage)
 	app.Post("/backtest/run", HandleBacktestForm)
 	app.Get("/signals/live", HandleLiveSignalsPage)
+	app.Get("/paper-trading", HandlePaperTradingPage)
 
 	// WebSocket route
 	app.Use("/ws", WebSocketUpgrade)

@@ -111,7 +111,7 @@ func testStrategy(strategyName, timeframe string, candles []Candle, startBalance
 		Interval:     timeframe,
 		Days:         30,
 		StartBalance: startBalance,
-		RiskPercent:  0.02,
+		RiskPercent:  0.01, // 1% risk per trade (default)
 	}
 	
 	// Run backtest with strategy-specific signal generation

@@ -294,9 +294,21 @@ func simulateAdvancedTrades(signals []AdvancedSignal, candles []Candle, startBal
 	totalProfit := 0.0
 	totalLoss := 0.0
 	
+	// Real trading constraints
+	consecutiveLosses := 0
+	
 	for _, signal := range signals {
-		// Calculate position size (2% risk)
-		riskPercent := 2.0
+		
+		// Calculate position size (0.5% risk - conservative, reduced after losses)
+		riskPercent := 0.5
+		
+		// Reduce risk after consecutive losses (risk management)
+		if consecutiveLosses >= 3 {
+			riskPercent = 0.25 // Half risk after 3 losses
+		} else if consecutiveLosses >= 5 {
+			riskPercent = 0.125 // Quarter risk after 5 losses
+		}
+		
 		riskAmount := balance * (riskPercent / 100.0)
 		riskPerUnit := math.Abs(signal.Entry - signal.StopLoss)
 		
@@ -387,8 +399,18 @@ func simulateAdvancedTrades(signals []AdvancedSignal, candles []Candle, startBal
 		}
 		
 		balance += profit
+		
+		// Track peak balance and calculate drawdown properly
 		if balance > maxBalance {
 			maxBalance = balance
+		}
+		
+		// Calculate current drawdown as percentage of PEAK balance (industry standard)
+		if maxBalance > 0 {
+			currentDrawdown := ((maxBalance - balance) / maxBalance) * 100
+			if currentDrawdown > result.MaxDrawdown {
+				result.MaxDrawdown = currentDrawdown
+			}
 		}
 		
 		// Calculate RR ratio
@@ -434,9 +456,11 @@ func simulateAdvancedTrades(signals []AdvancedSignal, candles []Candle, startBal
 		if profit > 0 {
 			result.WinningTrades++
 			totalProfit += profit
+			consecutiveLosses = 0 // Reset on win
 		} else {
 			result.LosingTrades++
 			totalLoss += profit
+			consecutiveLosses++ // Increment on loss
 		}
 	}
 	
@@ -449,9 +473,7 @@ func simulateAdvancedTrades(signals []AdvancedSignal, candles []Candle, startBal
 		result.ProfitFactor = totalProfit / (-totalLoss)
 	}
 	result.ReturnPercent = ((balance - startBalance) / startBalance) * 100
-	if maxBalance > 0 {
-		result.MaxDrawdown = ((maxBalance - balance) / maxBalance) * 100
-	}
+	// MaxDrawdown is already calculated during the loop above
 	
 	// Calculate buy/sell win rates
 	if result.BuyTrades > 0 {

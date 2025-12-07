@@ -85,3 +85,8 @@ func HandleLiveSignalsPage(c *fiber.Ctx) error {
 	c.Set("Content-Type", "text/html; charset=utf-8")
 	return tmpl.Execute(c.Response().BodyWriter(), data)
 }
+
+// HandlePaperTradingPage serves the paper trading dashboard
+func HandlePaperTradingPage(c *fiber.Ctx) error {
+	return c.SendFile("../public/paper-trading.html")
+}

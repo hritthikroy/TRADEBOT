@@ -64,7 +64,7 @@ func runSimulationWindowBacktest(config BacktestConfig, candles []Candle) (*Back
 	
 	// Set defaults
 	if config.RiskPercent == 0 {
-		config.RiskPercent = 0.02
+		config.RiskPercent = 0.01 // 1% risk per trade (default)
 	}
 	if config.MaxPositionCap == 0 {
 		config.MaxPositionCap = config.StartBalance * 10
