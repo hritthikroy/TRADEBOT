@@ -118,6 +118,20 @@ elif [ "$MODE" = "ai-compare" ]; then
     curl -s "http://localhost:8080/api/v1/backtest/ai-compare?symbol=$SYMBOL&interval=$INTERVAL&days=$DAYS" \
       | jq
       
+elif [ "$MODE" = "ai-enhanced" ]; then
+    echo "🌟 Running ENHANCED AI ANALYSIS (with external APIs)..."
+    echo ""
+    
+    curl -s "http://localhost:8080/api/v1/backtest/ai-enhanced?symbol=$SYMBOL&interval=$INTERVAL&days=$DAYS" \
+      | jq
+      
+elif [ "$MODE" = "ai-config" ]; then
+    echo "⚙️  Checking AI CONFIGURATION..."
+    echo ""
+    
+    curl -s "http://localhost:8080/api/v1/backtest/ai-config" \
+      | jq
+      
 else
     echo "🚀 Running STANDARD backtest..."
     echo ""
@@ -164,3 +178,5 @@ echo "   - compare: Compare both modes side-by-side"
 echo "   - ai-optimize: AI-powered parameter optimization (genetic algorithm)"
 echo "   - ai-analyze: AI market analysis and strategy recommendation"
 echo "   - ai-compare: AI compares all strategies for current market"
+echo "   - ai-enhanced: Enhanced AI with external APIs (GPT-4, Claude, Gemini)"
+echo "   - ai-config: Check AI configuration status"

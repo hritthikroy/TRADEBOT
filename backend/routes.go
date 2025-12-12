@@ -55,6 +55,8 @@ func SetupRoutes(app *fiber.App) {
 	backtest.Get("/ai-analyze", HandleAIMarketAnalysis)     // AI market analysis
 	backtest.Get("/ai-recommend", HandleAIStrategyRecommendation) // AI strategy recommendation
 	backtest.Get("/ai-compare", HandleAICompareStrategies)  // AI-powered strategy comparison
+	backtest.Get("/ai-enhanced", HandleEnhancedAIAnalysis)  // Enhanced AI with external APIs
+	backtest.Get("/ai-config", HandleAIConfig)              // Check AI configuration status
 	
 	// External Signal API routes (FREE)
 	externalSignals := api.Group("/external-signals")

@@ -203,6 +203,46 @@ curl -X POST "http://localhost:8080/api/v1/backtest/compare" \
 
 ---
 
+## 🔑 External AI Integration (Optional)
+
+The system works perfectly without API keys, but you can enhance it with external AI services:
+
+### Supported AI Services:
+- **OpenAI (GPT-4)**: Advanced market analysis (~$0.05/analysis)
+- **Anthropic (Claude)**: Deep reasoning and patterns (~$0.08/analysis)
+- **Google Gemini**: Market predictions (Free tier available)
+- **Perplexity AI**: Real-time news and sentiment (~$0.001/analysis)
+
+### Setup:
+```bash
+# Copy environment template
+cp .env.example .env
+
+# Add your API keys
+OPENAI_API_KEY=sk-...
+ENABLE_OPENAI=true
+
+# Restart backend
+cd backend && go run .
+```
+
+### Enhanced Analysis:
+```bash
+# Check configuration
+curl http://localhost:8080/api/v1/backtest/ai-config
+
+# Run enhanced analysis (uses all enabled AI services)
+curl "http://localhost:8080/api/v1/backtest/ai-enhanced?symbol=BTCUSDT&interval=15m&days=30"
+```
+
+**Benefits:**
+- Consensus recommendations from multiple AI models
+- Real-time news and sentiment analysis
+- Higher confidence scores
+- More detailed insights
+
+**See API_KEYS_GUIDE.txt for detailed setup instructions**
+
 ## 🤖 AI-Powered Features
 
 ### AI Strategy Optimization
