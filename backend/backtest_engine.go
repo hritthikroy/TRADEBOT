@@ -528,6 +528,99 @@ func calculateATR(candles []Candle, period int) float64 {
 	return sum / float64(period)
 }
 
+// calculateADX calculates Average Directional Index for trend strength
+func calculateADX(candles []Candle, period int) float64 {
+	if len(candles) < period+1 {
+		return 0
+	}
+	
+	// Calculate +DM, -DM, and TR
+	plusDM := make([]float64, len(candles)-1)
+	minusDM := make([]float64, len(candles)-1)
+	tr := make([]float64, len(candles)-1)
+	
+	for i := 1; i < len(candles); i++ {
+		high := candles[i].High
+		low := candles[i].Low
+		prevHigh := candles[i-1].High
+		prevLow := candles[i-1].Low
+		prevClose := candles[i-1].Close
+		
+		// +DM and -DM
+		upMove := high - prevHigh
+		downMove := prevLow - low
+		
+		if upMove > downMove && upMove > 0 {
+			plusDM[i-1] = upMove
+		} else {
+			plusDM[i-1] = 0
+		}
+		
+		if downMove > upMove && downMove > 0 {
+			minusDM[i-1] = downMove
+		} else {
+			minusDM[i-1] = 0
+		}
+		
+		// True Range
+		tr1 := high - low
+		tr2 := math.Abs(high - prevClose)
+		tr3 := math.Abs(low - prevClose)
+		tr[i-1] = math.Max(tr1, math.Max(tr2, tr3))
+	}
+	
+	// Smooth +DM, -DM, and TR
+	smoothPlusDM := 0.0
+	smoothMinusDM := 0.0
+	smoothTR := 0.0
+	
+	// Initial sum
+	for i := 0; i < period && i < len(plusDM); i++ {
+		smoothPlusDM += plusDM[i]
+		smoothMinusDM += minusDM[i]
+		smoothTR += tr[i]
+	}
+	
+	if smoothTR == 0 {
+		return 0
+	}
+	
+	// Calculate +DI and -DI
+	plusDI := (smoothPlusDM / smoothTR) * 100
+	minusDI := (smoothMinusDM / smoothTR) * 100
+	
+	// Calculate DX
+	if plusDI+minusDI == 0 {
+		return 0
+	}
+	dx := math.Abs(plusDI-minusDI) / (plusDI + minusDI) * 100
+	
+	// ADX is smoothed DX
+	adx := dx
+	
+	// Smooth ADX over remaining periods
+	for i := period; i < len(tr); i++ {
+		smoothPlusDM = smoothPlusDM - (smoothPlusDM / float64(period)) + plusDM[i]
+		smoothMinusDM = smoothMinusDM - (smoothMinusDM / float64(period)) + minusDM[i]
+		smoothTR = smoothTR - (smoothTR / float64(period)) + tr[i]
+		
+		if smoothTR == 0 {
+			continue
+		}
+		
+		plusDI = (smoothPlusDM / smoothTR) * 100
+		minusDI = (smoothMinusDM / smoothTR) * 100
+		
+		if plusDI+minusDI == 0 {
+			continue
+		}
+		dx = math.Abs(plusDI-minusDI) / (plusDI + minusDI) * 100
+		adx = ((adx * (float64(period) - 1)) + dx) / float64(period)
+	}
+	
+	return adx
+}
+
 // ExportToJSON exports results to JSON
 func (r *BacktestResult) ToJSON() ([]byte, error) {
 	return json.MarshalIndent(r, "", "  ")
@@ -611,8 +704,8 @@ func applyStrategyParameters(signal *Signal, strategyName string) *Signal {
 	
 	switch strategyName {
 	case "liquidity_hunter":
-		// PROVEN: 61.22% WR, 9.49 PF, 901% return, 49 trades - BEST OVERALL
-		stopATR, tp1ATR, tp2ATR, tp3ATR = 1.5, 4.0, 6.0, 10.0
+		// ULTRA HIGH WIN RATE: 80-90% target - Conservative targets, tight stops
+		stopATR, tp1ATR, tp2ATR, tp3ATR = 0.75, 0.75, 1.25, 2.0
 		
 	case "session_trader":
 		// PROVEN: 57.89% WR, 18.67 PF, 1,313% return, 38 trades - HIGHEST PROFIT FACTOR
