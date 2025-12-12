@@ -1,0 +1,157 @@
+🌟 WORLD-CLASS BACKTESTING - USAGE EXAMPLES
+
+=== QUICK START ===
+
+1. Standard Backtest (Fast):
+   ./test.sh BTCUSDT 15m 30 session_trader standard
+
+2. World-Class Backtest (Advanced):
+   ./test.sh BTCUSDT 15m 30 session_trader world-class
+
+3. Compare Both:
+   ./test.sh BTCUSDT 15m 30 session_trader compare
+
+
+=== API EXAMPLES ===
+
+Standard Backtest:
+curl -X POST "http://localhost:8080/api/v1/backtest/run" \
+  -H "Content-Type: application/json" \
+  -d '{"symbol":"BTCUSDT","interval":"15m","days":30,"strategy":"session_trader","startBalance":1000}'
+
+World-Class Backtest:
+curl -X POST "http://localhost:8080/api/v1/backtest/world-class" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "symbol":"BTCUSDT",
+    "interval":"15m",
+    "days":30,
+    "strategy":"session_trader",
+    "startBalance":1000,
+    "enableMonteCarlo":true,
+    "monteCarloRuns":1000,
+    "enableWalkForward":true,
+    "walkForwardPeriods":5,
+    "enableStressTest":true
+  }'
+
+
+=== WHAT YOU GET ===
+
+Standard Backtest:
+- Total trades
+- Win rate
+- Profit factor
+- Max drawdown
+- Final balance
+
+World-Class Backtest (ALL OF ABOVE PLUS):
+- Sharpe Ratio (risk-adjusted returns)
+- Sortino Ratio (downside risk)
+- Calmar Ratio (return vs drawdown)
+- Recovery Factor
+- Expectancy per trade
+- Win/loss streaks
+- Monte Carlo simulation (1000 runs)
+  * Probability of profit
+  * Worst/best case scenarios
+  * 95% confidence intervals
+- Walk-forward analysis (5 periods)
+  * In-sample vs out-of-sample performance
+  * Overfitting score
+  * Consistency across periods
+- Stress testing
+  * High/low volatility performance
+  * Crash scenario (-30%)
+  * Rally scenario (+50%)
+
+
+=== INTERPRETING RESULTS ===
+
+Sharpe Ratio:
+- > 2.0 = Excellent
+- 1.5-2.0 = Good
+- 1.0-1.5 = Fair
+- < 1.0 = Poor
+
+Sortino Ratio:
+- > 3.0 = Excellent
+- 2.0-3.0 = Good
+- 1.0-2.0 = Fair
+- < 1.0 = Poor
+
+Calmar Ratio:
+- > 3.0 = Excellent
+- 2.0-3.0 = Good
+- 1.0-2.0 = Fair
+- < 1.0 = Poor
+
+Monte Carlo - Probability of Profit:
+- > 70% = Excellent
+- 60-70% = Good
+- 50-60% = Fair
+- < 50% = Poor
+
+Walk-Forward - Overfitting Score:
+- < 20% = Excellent (not overfit)
+- 20-40% = Good
+- 40-60% = Fair
+- > 60% = Poor (overfit)
+
+
+=== RECOMMENDATIONS ===
+
+Use Standard Backtest when:
+- Quick testing
+- Initial strategy evaluation
+- Comparing multiple strategies quickly
+
+Use World-Class Backtest when:
+- Final strategy validation
+- Before live trading
+- Need risk-adjusted metrics
+- Want to understand worst-case scenarios
+- Need to detect overfitting
+
+
+=== EXAMPLE OUTPUT ===
+
+World-Class Backtest Result:
+{
+  "totalTrades": 45,
+  "winRate": 62.2,
+  "profitFactor": 4.2,
+  "maxDrawdown": 8.5,
+  "finalBalance": 1125,
+  "returnPercent": 12.5,
+  "sharpeRatio": 2.3,
+  "sortinoRatio": 3.1,
+  "calmarRatio": 3.5,
+  "recoveryFactor": 14.7,
+  "expectancyPerTrade": 2.78,
+  "winStreakMax": 7,
+  "lossStreakMax": 3,
+  "monteCarloResults": {
+    "probabilityProfit": 78.5,
+    "expectedReturn": 11.2,
+    "worstCase": -5.3,
+    "bestCase": 28.7,
+    "percentile5": 3.2,
+    "percentile95": 19.8
+  },
+  "walkForwardAnalysis": {
+    "consistency": 85.3,
+    "overfittingScore": 12.4,
+    "inSampleWinRate": 64.1,
+    "outOfSampleWinRate": 61.8
+  }
+}
+
+Interpretation:
+⭐⭐⭐⭐⭐ EXCELLENT - Ready for live trading
+- High Sharpe (2.3) = Good risk-adjusted returns
+- High Sortino (3.1) = Low downside risk
+- High Calmar (3.5) = Fast recovery from drawdowns
+- 78.5% probability of profit (Monte Carlo)
+- Low overfitting (12.4%) = Robust strategy
+- Consistent across periods (85.3%)
