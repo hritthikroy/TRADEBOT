@@ -203,6 +203,74 @@ curl -X POST "http://localhost:8080/api/v1/backtest/compare" \
 
 ---
 
+## 🤖 AI-Powered Features
+
+### AI Strategy Optimization
+Uses genetic algorithms to find optimal parameters:
+```bash
+./test.sh BTCUSDT 15m 30 session_trader ai-optimize
+```
+
+**How it works:**
+- Creates 50 random strategy variations
+- Evolves over 20 generations
+- Uses tournament selection, crossover, mutation
+- Finds optimal: stop loss, take profit, ADX threshold, RSI levels, cooldown
+- Returns top 5 strategies with fitness scores
+
+### AI Market Analysis
+Analyzes market conditions and recommends best strategy:
+```bash
+./test.sh BTCUSDT 15m 30 session_trader ai-analyze
+```
+
+**Provides:**
+- Market regime (trending/ranging/volatile)
+- Trend strength (0-100)
+- Volatility level (low/medium/high)
+- Support/resistance levels
+- Predicted move (up/down/sideways)
+- Best strategy for current conditions
+- Risk level assessment
+- Actionable recommendations
+
+### AI Strategy Comparison
+Compares all 10 strategies using AI scoring:
+```bash
+./test.sh BTCUSDT 15m 30 session_trader ai-compare
+```
+
+**Features:**
+- Tests all strategies on current market data
+- AI scores each strategy (0-100)
+- Adjusts scores based on market conditions
+- Recommends best strategy for current regime
+- Shows performance metrics for each
+
+### API Endpoints
+
+**AI Optimization:**
+```bash
+curl -X POST "http://localhost:8080/api/v1/backtest/ai-optimize" \
+  -H "Content-Type: application/json" \
+  -d '{"symbol":"BTCUSDT","interval":"15m","days":30,"strategy":"session_trader","startBalance":1000}'
+```
+
+**AI Market Analysis:**
+```bash
+curl "http://localhost:8080/api/v1/backtest/ai-analyze?symbol=BTCUSDT&interval=15m&days=30"
+```
+
+**AI Strategy Recommendation:**
+```bash
+curl "http://localhost:8080/api/v1/backtest/ai-recommend?symbol=BTCUSDT&interval=15m&days=30"
+```
+
+**AI Strategy Comparison:**
+```bash
+curl "http://localhost:8080/api/v1/backtest/ai-compare?symbol=BTCUSDT&interval=15m&days=30"
+```
+
 ## 🌟 World-Class Backtesting Features
 
 ### Advanced Risk Metrics

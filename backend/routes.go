@@ -50,7 +50,11 @@ func SetupRoutes(app *fiber.App) {
 	backtest.Post("/quick-optimize", HandleQuickOptimization) // Quick single strategy optimization
 	backtest.Post("/live-signal", HandleLiveSignalFiber) // Get live trading signal
 	backtest.Post("/world-class", HandleWorldClassBacktest) // World-class backtest with advanced metrics
-	backtest.Post("/compare", HandleQuickCompare) // Compare standard vs world-class backtest
+	backtest.Post("/compare", HandleQuickCompare)           // Compare standard vs world-class backtest
+	backtest.Post("/ai-optimize", HandleAIOptimization)     // AI-powered parameter optimization
+	backtest.Get("/ai-analyze", HandleAIMarketAnalysis)     // AI market analysis
+	backtest.Get("/ai-recommend", HandleAIStrategyRecommendation) // AI strategy recommendation
+	backtest.Get("/ai-compare", HandleAICompareStrategies)  // AI-powered strategy comparison
 	
 	// External Signal API routes (FREE)
 	externalSignals := api.Group("/external-signals")

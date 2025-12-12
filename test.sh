@@ -80,6 +80,44 @@ elif [ "$MODE" = "compare" ]; then
       -d "{\"symbol\":\"$SYMBOL\",\"interval\":\"$INTERVAL\",\"days\":$DAYS,\"strategy\":\"$STRATEGY\",\"startBalance\":1000}" \
       | jq
       
+elif [ "$MODE" = "ai-optimize" ]; then
+    echo "🤖 Running AI OPTIMIZATION (genetic algorithm)..."
+    echo ""
+    
+    curl -s -X POST "http://localhost:8080/api/v1/backtest/ai-optimize" \
+      -H "Content-Type: application/json" \
+      -d "{\"symbol\":\"$SYMBOL\",\"interval\":\"$INTERVAL\",\"days\":$DAYS,\"strategy\":\"$STRATEGY\",\"startBalance\":1000}" \
+      | jq '{
+        bestStrategy: {
+          stopLossATR,
+          takeProfitATR,
+          adxThreshold,
+          rsiLow,
+          rsiHigh,
+          cooldownCandles,
+          minConfluence,
+          fitness
+        },
+        improvementPct,
+        totalTests,
+        duration,
+        recommendation
+      }'
+      
+elif [ "$MODE" = "ai-analyze" ]; then
+    echo "🤖 Running AI MARKET ANALYSIS..."
+    echo ""
+    
+    curl -s "http://localhost:8080/api/v1/backtest/ai-analyze?symbol=$SYMBOL&interval=$INTERVAL&days=$DAYS" \
+      | jq
+      
+elif [ "$MODE" = "ai-compare" ]; then
+    echo "🤖 Running AI STRATEGY COMPARISON..."
+    echo ""
+    
+    curl -s "http://localhost:8080/api/v1/backtest/ai-compare?symbol=$SYMBOL&interval=$INTERVAL&days=$DAYS" \
+      | jq
+      
 else
     echo "🚀 Running STANDARD backtest..."
     echo ""
@@ -123,3 +161,6 @@ echo "🌟 Test Modes:"
 echo "   - standard: Basic backtest (fast)"
 echo "   - world-class: Advanced metrics + Monte Carlo + Walk Forward (slower)"
 echo "   - compare: Compare both modes side-by-side"
+echo "   - ai-optimize: AI-powered parameter optimization (genetic algorithm)"
+echo "   - ai-analyze: AI market analysis and strategy recommendation"
+echo "   - ai-compare: AI compares all strategies for current market"
