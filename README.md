@@ -24,6 +24,8 @@ Open `http://localhost:3000` in your browser
 
 ## 📊 Available Strategies
 
+### Crypto/Forex Strategies
+
 | Strategy | Win Rate | Profit Factor | Best For | Rating |
 |----------|----------|---------------|----------|--------|
 | **Liquidity Hunter** | 80-90% | 4.0-6.0 | High accuracy | ⭐⭐⭐⭐⭐ |
@@ -36,6 +38,42 @@ Open `http://localhost:3000` in your browser
 | **Reversal Sniper** | 52-62% | 2.3-3.2 | Reversals | ⭐⭐⭐⭐ |
 | **Momentum Beast** | 45-55% | 1.9-2.6 | Fast moves | ⭐⭐⭐ |
 | **Scalper Pro** | 55-65% | 2.4-3.5 | Quick trades | ⭐⭐⭐⭐ |
+
+### 🆕 Academic ORB Strategy (US Stocks)
+
+**Research-Proven Day Trading Strategy**
+
+| Metric | Value | Comparison |
+|--------|-------|------------|
+| **Total Return (2016-2023)** | **1,637%** | S&P 500: 198% |
+| **Annualized Return** | **41.6%** | S&P 500: 14.2% |
+| **Sharpe Ratio** | **2.81** | S&P 500: 0.78 |
+| **Max Drawdown** | **12%** | S&P 500: 34% |
+| **Alpha** | **36%** | Uncorrelated to market |
+| **Beta** | **0.00** | Zero market correlation |
+
+**Based on:** "A Profitable Day Trading Strategy For The U.S. Equity Market" by Zarattini, Barbon, and Aziz (2024)
+
+**Quick Start:**
+```bash
+# Open web interface
+http://localhost:8080/orb_academic.html
+
+# Or test via API
+./test_orb_strategy.sh
+```
+
+**Key Features:**
+- ✅ Focuses on "Stocks in Play" with high relative volume
+- ✅ 5-minute opening range breakout (best performance)
+- ✅ Trades only top 20 stocks by relative volume daily
+- ✅ 1% risk per trade, 10% ATR stop loss
+- ✅ Intraday only (close all positions at EOD)
+
+**Documentation:**
+- Quick Start: `ORB_QUICK_START.md`
+- Full Guide: `ORB_ACADEMIC_STRATEGY.md`
+- Test Script: `./test_orb_strategy.sh`
 
 ---
 

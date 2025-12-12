@@ -131,6 +131,22 @@ elif [ "$MODE" = "ai-config" ]; then
     
     curl -s "http://localhost:8080/api/v1/backtest/ai-config" \
       | jq
+
+elif [ "$MODE" = "optimized" ]; then
+    echo "🎯 Running OPTIMIZED daily trading backtest..."
+    echo ""
+    
+    curl -s -X POST "http://localhost:8080/api/v1/backtest/optimized" \
+      -H "Content-Type: application/json" \
+      -d "{\"symbol\":\"$SYMBOL\",\"interval\":\"$INTERVAL\",\"days\":$DAYS,\"strategy\":\"$STRATEGY\",\"startBalance\":1000}" \
+      | jq
+
+elif [ "$MODE" = "optimized-all" ]; then
+    echo "🎯 Testing ALL 10 OPTIMIZED daily strategies..."
+    echo ""
+    
+    curl -s "http://localhost:8080/api/v1/backtest/optimized-all?symbol=$SYMBOL&interval=$INTERVAL&days=$DAYS&startBalance=1000" \
+      | jq
       
 else
     echo "🚀 Running STANDARD backtest..."
@@ -180,3 +196,5 @@ echo "   - ai-analyze: AI market analysis and strategy recommendation"
 echo "   - ai-compare: AI compares all strategies for current market"
 echo "   - ai-enhanced: Enhanced AI with external APIs (GPT-4, Claude, Gemini)"
 echo "   - ai-config: Check AI configuration status"
+echo "   - optimized: Optimized daily trading strategies (NEW! 🔥)"
+echo "   - optimized-all: Test all 10 optimized strategies (NEW! 🔥)"

@@ -57,6 +57,8 @@ func SetupRoutes(app *fiber.App) {
 	backtest.Get("/ai-compare", HandleAICompareStrategies)  // AI-powered strategy comparison
 	backtest.Get("/ai-enhanced", HandleEnhancedAIAnalysis)  // Enhanced AI with external APIs
 	backtest.Get("/ai-config", HandleAIConfig)              // Check AI configuration status
+	backtest.Post("/optimized", HandleOptimizedBacktest)    // Optimized daily trading strategies
+	backtest.Get("/optimized-all", HandleOptimizeAllDailyStrategies) // Test all 10 optimized strategies
 	
 	// External Signal API routes (FREE)
 	externalSignals := api.Group("/external-signals")
@@ -67,6 +69,13 @@ func SetupRoutes(app *fiber.App) {
 	
 	// Enhanced backtest with external signals
 	backtest.Post("/enhanced", HandleEnhancedBacktest)    // Backtest with external signals
+
+	// Academic ORB Strategy routes
+	orb := api.Group("/orb")
+	orb.Post("/backtest", HandleORBBacktest)              // Run ORB backtest
+	orb.Get("/live-signals", HandleORBLiveSignals)        // Get live ORB signals
+	orb.Post("/compare", HandleORBCompareTimeframes)      // Compare timeframes
+	orb.Get("/top-performers", HandleORBTopPerformers)    // Get top performing stocks
 
 	// AI Enhancement routes (commented out - implement if needed)
 	// ai := api.Group("/ai")
