@@ -43,22 +43,21 @@ type ORBBacktestSummary struct {
 }
 
 // HandleORBBacktest handles the ORB backtest endpoint
-func HandleORBBacktest(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
+func HandleORBBacktest(c *fiber.Ctx) error {
 	var req ORBBacktestRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondWithError(w, "Invalid request body", http.StatusBadRequest)
-		return
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(ORBBacktestResponse{
+			Success: false,
+			Message: "Invalid request body",
+		})
 	}
 
 	// Validate request
 	if err := validateORBBacktestRequest(&req); err != nil {
-		respondWithError(w, err.Error(), http.StatusBadRequest)
-		return
+		return c.Status(fiber.StatusBadRequest).JSON(ORBBacktestResponse{
+			Success: false,
+			Message: err.Error(),
+		})
 	}
 
 	// Parse dates
@@ -79,74 +78,63 @@ func HandleORBBacktest(w http.ResponseWriter, r *http.Request) {
 	// Run backtest
 	result, err := runORBBacktestFromRequest(&req, startDate, endDate)
 	if err != nil {
-		respondWithError(w, fmt.Sprintf("Backtest failed: %v", err), http.StatusInternalServerError)
-		return
+		return c.Status(fiber.StatusInternalServerError).JSON(ORBBacktestResponse{
+			Success: false,
+			Message: fmt.Sprintf("Backtest failed: %v", err),
+		})
 	}
 
 	// Create summary
 	summary := createORBBacktestSummary(result)
 
-	response := ORBBacktestResponse{
+	return c.JSON(ORBBacktestResponse{
 		Success: true,
 		Result:  result,
 		Summary: summary,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	})
 }
 
 // HandleORBLiveSignals handles the endpoint for generating live ORB signals
-func HandleORBLiveSignals(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
+func HandleORBLiveSignals(c *fiber.Ctx) error {
 	// Get query parameters
-	timeFrameStr := r.URL.Query().Get("timeframe")
-	if timeFrameStr == "" {
-		timeFrameStr = "5"
-	}
+	timeFrameStr := c.Query("timeframe", "5")
 
 	var timeFrame int
 	fmt.Sscanf(timeFrameStr, "%d", &timeFrame)
 
 	if timeFrame != 5 && timeFrame != 15 && timeFrame != 30 && timeFrame != 60 {
-		respondWithError(w, "Invalid timeframe. Must be 5, 15, 30, or 60", http.StatusBadRequest)
-		return
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "Invalid timeframe. Must be 5, 15, 30, or 60",
+		})
 	}
 
 	// Generate live signals for today
 	signals, err := generateLiveORBSignals(timeFrame)
 	if err != nil {
-		respondWithError(w, fmt.Sprintf("Failed to generate signals: %v", err), http.StatusInternalServerError)
-		return
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"message": fmt.Sprintf("Failed to generate signals: %v", err),
+		})
 	}
 
-	response := map[string]interface{}{
+	return c.JSON(fiber.Map{
 		"success":   true,
 		"timeFrame": timeFrame,
 		"date":      time.Now().Format("2006-01-02"),
 		"signals":   signals,
 		"count":     len(signals),
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	})
 }
 
 // HandleORBCompareTimeframes compares ORB performance across different timeframes
-func HandleORBCompareTimeframes(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
+func HandleORBCompareTimeframes(c *fiber.Ctx) error {
 	var req ORBBacktestRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondWithError(w, "Invalid request body", http.StatusBadRequest)
-		return
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "Invalid request body",
+		})
 	}
 
 	startDate, _ := time.Parse("2006-01-02", req.StartDate)
@@ -170,27 +158,16 @@ func HandleORBCompareTimeframes(w http.ResponseWriter, r *http.Request) {
 		results[fmt.Sprintf("%dm", tf)] = summary
 	}
 
-	response := map[string]interface{}{
+	return c.JSON(fiber.Map{
 		"success": true,
 		"period":  fmt.Sprintf("%s to %s", req.StartDate, req.EndDate),
 		"results": results,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	})
 }
 
 // HandleORBTopPerformers returns the top performing stocks for ORB strategy
-func HandleORBTopPerformers(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	timeFrameStr := r.URL.Query().Get("timeframe")
-	if timeFrameStr == "" {
-		timeFrameStr = "5"
-	}
+func HandleORBTopPerformers(c *fiber.Ctx) error {
+	timeFrameStr := c.Query("timeframe", "5")
 
 	var timeFrame int
 	fmt.Sscanf(timeFrameStr, "%d", &timeFrame)
@@ -199,14 +176,11 @@ func HandleORBTopPerformers(w http.ResponseWriter, r *http.Request) {
 	// For now, return the top performers from the paper
 	topPerformers := getTopPerformersFromPaper(timeFrame)
 
-	response := map[string]interface{}{
+	return c.JSON(fiber.Map{
 		"success":       true,
 		"timeFrame":     timeFrame,
 		"topPerformers": topPerformers,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	})
 }
 
 // Helper functions
@@ -375,12 +349,4 @@ func createMockORBResult(timeFrame int, startDate, endDate time.Time, initialCap
 	}
 }
 
-func respondWithError(w http.ResponseWriter, message string, statusCode int) {
-	response := ORBBacktestResponse{
-		Success: false,
-		Message: message,
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	json.NewEncoder(w).Encode(response)
-}
+

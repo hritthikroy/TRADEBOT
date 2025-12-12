@@ -164,11 +164,11 @@ func GetOptimizedDailyStrategies() map[string]OptimizedDailyStrategy {
 			Description:     "🚀 MOMENTUM KING: Rides explosive momentum waves",
 			Timeframe:       "15m",
 			MinConfluence:   3, // Reduced from 4 for more signals
-			RiskRewardRatio: 2.5,
+			RiskRewardRatio: 2.0,
 			MaxDailyTrades:  15,
 			TradingHours:    []int{8, 9, 10, 13, 14, 15}, // High momentum hours
-			StopLossATR:     1.5,
-			TakeProfitATR:   []float64{2.5, 4.0, 6.0},
+			StopLossATR:     2.0,
+			TakeProfitATR:   []float64{2.0, 3.5, 5.0},
 			RequiredConcepts: []string{
 				"Strong Momentum",
 				"Volume Confirmation",
@@ -183,11 +183,11 @@ func GetOptimizedDailyStrategies() map[string]OptimizedDailyStrategy {
 			Description:     "📊 RANGE EXPERT: Trades ranges with precision",
 			Timeframe:       "1h",
 			MinConfluence:   3, // Reduced from 4 for more signals
-			RiskRewardRatio: 3.5,
+			RiskRewardRatio: 2.0,
 			MaxDailyTrades:  8,
 			TradingHours:    []int{0, 1, 2, 3, 4, 5, 6, 7, 18, 19, 20, 21, 22, 23}, // Low volatility hours
-			StopLossATR:     1.2,
-			TakeProfitATR:   []float64{2.0, 3.5, 5.0},
+			StopLossATR:     2.5,
+			TakeProfitATR:   []float64{2.5, 4.0, 5.5},
 			RequiredConcepts: []string{
 				"Clear Range Identified",
 				"Support/Resistance Bounce",
@@ -202,11 +202,11 @@ func GetOptimizedDailyStrategies() map[string]OptimizedDailyStrategy {
 			Description:     "🏛️ BIG MONEY: Follows institutional order blocks",
 			Timeframe:       "4h",
 			MinConfluence:   3, // Reduced from 5 for more signals
-			RiskRewardRatio: 5.0,
+			RiskRewardRatio: 2.5,
 			MaxDailyTrades:  4,
 			TradingHours:    []int{8, 9, 10, 11, 12, 13, 14, 15, 16, 17}, // Full institutional day
-			StopLossATR:     2.5,
-			TakeProfitATR:   []float64{5.0, 8.0, 12.0},
+			StopLossATR:     4.0,
+			TakeProfitATR:   []float64{4.0, 6.0, 9.0},
 			RequiredConcepts: []string{
 				"Institutional Order Block",
 				"Large Volume Spike",
