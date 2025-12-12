@@ -53,11 +53,14 @@ type BacktestResult struct {
 	Duration      string         `json:"duration"`
 
 	// Enhanced metrics
-	StrategyName       string              `json:"strategyName,omitempty"` // Added for identification
-	WindowType         string              `json:"windowType,omitempty"`
-	MonteCarloSim      *MonteCarloResult   `json:"monteCarloSim,omitempty"`
-	WalkForwardResults []WalkForwardPeriod `json:"walkForwardResults,omitempty"`
-	Confidence95       [2]float64          `json:"confidence95,omitempty"` // [low, high]
+	StrategyName         string              `json:"strategyName,omitempty"` // Added for identification
+	WindowType           string              `json:"windowType,omitempty"`
+	MonteCarloSim        *MonteCarloResult   `json:"monteCarloSim,omitempty"`
+	WalkForwardResults   []WalkForwardPeriod `json:"walkForwardResults,omitempty"`
+	Confidence95         [2]float64          `json:"confidence95,omitempty"` // [low, high]
+	SharpeRatio          float64             `json:"sharpeRatio,omitempty"`
+	SortinoRatio         float64             `json:"sortinoRatio,omitempty"`
+	MaxConsecutiveLosses int                 `json:"maxConsecutiveLosses,omitempty"`
 }
 
 // MonteCarloResult holds Monte Carlo simulation results
@@ -513,11 +516,64 @@ func calculateStats(result *BacktestResult) {
 
 	// Calculate average RR
 	totalRR := 0.0
+	returns := []float64{}
+	downsideReturns := []float64{}
+	currentConsecutiveLosses := 0
+	maxConsecutiveLosses := 0
+
 	for _, trade := range result.Trades {
 		totalRR += trade.RR
+
+		// Calculate percentage return for this trade relative to start balance
+		tradeReturn := (trade.Profit / result.StartBalance) * 100
+		returns = append(returns, tradeReturn)
+
+		if trade.Profit < 0 {
+			downsideReturns = append(downsideReturns, tradeReturn)
+			currentConsecutiveLosses++
+		} else {
+			if currentConsecutiveLosses > maxConsecutiveLosses {
+				maxConsecutiveLosses = currentConsecutiveLosses
+			}
+			currentConsecutiveLosses = 0
+		}
 	}
+
+	// Final check for consecutive losses in case series ends with losses
+	if currentConsecutiveLosses > maxConsecutiveLosses {
+		maxConsecutiveLosses = currentConsecutiveLosses
+	}
+	result.MaxConsecutiveLosses = maxConsecutiveLosses
+
 	if result.TotalTrades > 0 {
 		result.AverageRR = totalRR / float64(result.TotalTrades)
+	}
+
+	// Calculate Sharpe and Sortino Ratios (Annualized assuming 15m candles -> ~35000 trades/year? No, just per trade stats)
+	// Simplified Sharpe/Sortino: Mean Return / StdDev
+	if len(returns) > 1 {
+		mean := calculateMean(returns)
+		stdDev := calculateStdDev(returns, mean)
+
+		if stdDev > 0 {
+			// Risk Free Rate assumed 0 for simplicity in crypto
+			result.SharpeRatio = mean / stdDev
+		}
+
+		// Sortino: Mean Return / Downside Deviation
+		downsideStdDev := 0.0
+		if len(downsideReturns) > 0 {
+			// Calculate variance of downside returns relative to 0 (minimum acceptable return)
+			sumSquares := 0.0
+			for _, r := range downsideReturns {
+				sumSquares += r * r // Squared deviation from 0
+			}
+			downsideStdDev = math.Sqrt(sumSquares / float64(len(returns))) // Divided by total trades N
+		}
+
+		if downsideStdDev > 0 {
+			result.SortinoRatio = mean / downsideStdDev
+		}
 	}
 }
 
