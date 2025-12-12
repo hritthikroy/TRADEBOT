@@ -105,31 +105,63 @@ curl -X POST "http://localhost:8080/api/v1/paper-trading/start" \
 
 ## 📈 Backtesting
 
-### Quick Test (30 days)
+### Standard Backtest (Fast)
 ```bash
-curl -s -X POST "http://localhost:8080/api/v1/backtest/run" \
-  -H "Content-Type: application/json" \
-  -d '{"symbol":"BTCUSDT","interval":"15m","days":30,"strategy":"session_trader","startBalance":1000}' \
-  | jq '{totalTrades, winRate, profitFactor, finalBalance}'
+./test.sh BTCUSDT 15m 30 session_trader standard
 ```
 
-### Extended Test (90 days)
+### 🌟 World-Class Backtest (Advanced)
 ```bash
-curl -s -X POST "http://localhost:8080/api/v1/backtest/run" \
-  -H "Content-Type: application/json" \
-  -d '{"symbol":"BTCUSDT","interval":"15m","days":90,"strategy":"session_trader","startBalance":1000}' \
-  | jq
+./test.sh BTCUSDT 15m 30 session_trader world-class
 ```
 
-### Test All Strategies
+**Includes:**
+- Sharpe, Sortino, Calmar ratios
+- Monte Carlo simulation (1000 runs)
+- Walk-forward analysis (5 periods)
+- Stress testing (crash/rally scenarios)
+- Win/loss streak analysis
+- Expectancy per trade
+- Recovery factor
+- Overfitting detection
+
+### Compare Standard vs World-Class
 ```bash
-for strategy in liquidity_hunter session_trader breakout_master trend_rider range_master smart_money_tracker institutional_follower reversal_sniper momentum_beast scalper_pro; do
-  echo "Testing $strategy..."
-  curl -s -X POST "http://localhost:8080/api/v1/backtest/run" \
-    -H "Content-Type: application/json" \
-    -d "{\"symbol\":\"BTCUSDT\",\"interval\":\"15m\",\"days\":30,\"strategy\":\"$strategy\",\"startBalance\":1000}" \
-    | jq -r '"\(.strategy): \(.totalTrades) trades, \(.winRate)% WR, \(.profitFactor) PF"'
-done
+./test.sh BTCUSDT 15m 30 session_trader compare
+```
+
+### API Endpoints
+
+**Standard Backtest:**
+```bash
+curl -X POST "http://localhost:8080/api/v1/backtest/run" \
+  -H "Content-Type: application/json" \
+  -d '{"symbol":"BTCUSDT","interval":"15m","days":30,"strategy":"session_trader","startBalance":1000}'
+```
+
+**World-Class Backtest:**
+```bash
+curl -X POST "http://localhost:8080/api/v1/backtest/world-class" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "symbol":"BTCUSDT",
+    "interval":"15m",
+    "days":30,
+    "strategy":"session_trader",
+    "startBalance":1000,
+    "enableMonteCarlo":true,
+    "monteCarloRuns":1000,
+    "enableWalkForward":true,
+    "walkForwardPeriods":5,
+    "enableStressTest":true
+  }'
+```
+
+**Compare Both:**
+```bash
+curl -X POST "http://localhost:8080/api/v1/backtest/compare" \
+  -H "Content-Type: application/json" \
+  -d '{"symbol":"BTCUSDT","interval":"15m","days":30,"strategy":"session_trader","startBalance":1000}'
 ```
 
 ---
@@ -170,6 +202,50 @@ done
 - Input validation and sanitization
 
 ---
+
+## 🌟 World-Class Backtesting Features
+
+### Advanced Risk Metrics
+- **Sharpe Ratio**: Risk-adjusted returns (>2.0 = excellent)
+- **Sortino Ratio**: Downside risk focus (>3.0 = excellent)
+- **Calmar Ratio**: Return vs max drawdown (>3.0 = excellent)
+- **Recovery Factor**: How fast strategy recovers from drawdowns
+- **Expectancy Per Trade**: Average profit per trade
+
+### Monte Carlo Simulation
+- Runs 1000+ random trade sequences
+- Calculates probability of profit
+- Shows worst/best case scenarios
+- 95% confidence intervals
+- Detects probability of ruin
+
+### Walk-Forward Analysis
+- Tests strategy across 5 time periods
+- Compares in-sample vs out-of-sample performance
+- Detects overfitting (score <20% = good)
+- Measures consistency across periods
+- Validates strategy robustness
+
+### Stress Testing
+- High volatility scenarios
+- Low volatility scenarios
+- Market crash simulation (-30%)
+- Market rally simulation (+50%)
+- Worst/best month analysis
+
+### Performance Analysis
+- Win/loss streak tracking
+- Best/worst trading hours
+- Best/worst trading days
+- Average trade duration
+- Largest win/loss tracking
+
+### Why World-Class?
+- **Professional Grade**: Same metrics used by hedge funds
+- **Risk Aware**: Focuses on risk-adjusted returns, not just profit
+- **Robust**: Tests strategy under extreme conditions
+- **Validated**: Detects overfitting and ensures consistency
+- **Realistic**: Includes slippage, fees, and market impact
 
 ## 📦 Tech Stack
 

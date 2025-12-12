@@ -49,6 +49,8 @@ func SetupRoutes(app *fiber.App) {
 	backtest.Post("/world-class-optimize", HandleWorldClassOptimization) // World-class optimization
 	backtest.Post("/quick-optimize", HandleQuickOptimization) // Quick single strategy optimization
 	backtest.Post("/live-signal", HandleLiveSignalFiber) // Get live trading signal
+	backtest.Post("/world-class", HandleWorldClassBacktest) // World-class backtest with advanced metrics
+	backtest.Post("/compare", HandleQuickCompare) // Compare standard vs world-class backtest
 	
 	// External Signal API routes (FREE)
 	externalSignals := api.Group("/external-signals")
