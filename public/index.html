@@ -42,6 +42,49 @@
             opacity: 0.9;
         }
 
+        .quick-links {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .quick-link {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            text-decoration: none;
+            color: #333;
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .quick-link:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        }
+
+        .quick-link h3 {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+
+        .quick-link p {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+
         .nav {
             display: flex;
             gap: 10px;
@@ -311,11 +354,31 @@
     <div class="container">
         <div class="header">
             <h1>🚀 Trading Bot</h1>
-            <p>Powered by Go Backend</p>
+            <p>AI-Powered + World-Class Backtesting</p>
+        </div>
+
+        <div class="quick-links">
+            <a href="backtest.html" class="quick-link">
+                <h3>🤖 Advanced Backtest</h3>
+                <p>World-Class metrics + AI optimization</p>
+                <span class="badge">NEW</span>
+            </a>
+            <a href="signals.html" class="quick-link">
+                <h3>📊 Live Signals</h3>
+                <p>Real-time trading signals</p>
+            </a>
+            <a href="paper-trading.html" class="quick-link">
+                <h3>📈 Paper Trading</h3>
+                <p>Risk-free testing</p>
+            </a>
+            <a href="analytics.html" class="quick-link">
+                <h3>📉 Analytics</h3>
+                <p>Performance metrics</p>
+            </a>
         </div>
 
         <div class="nav">
-            <button onclick="showSection('backtest')" class="active">Backtest</button>
+            <button onclick="showSection('backtest')" class="active">Quick Backtest</button>
             <button onclick="showSection('signals')">Live Signals</button>
             <button onclick="showSection('livechart')">Live Chart</button>
             <button onclick="showSection('analytics')">Analytics</button>
