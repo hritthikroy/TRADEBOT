@@ -144,7 +144,7 @@ func RunWorldClassBacktest(config WorldClassBacktestConfig, candles []Candle) (*
 	
 	// Run Monte Carlo if enabled
 	if config.EnableMonteCarlo {
-		wcResult.MonteCarloResults = runMonteCarloSimulation(baseResult, config.MonteCarloRuns)
+		wcResult.MonteCarloResults = runMonteCarloSimulationWC(baseResult, config.MonteCarloRuns)
 	}
 	
 	// Run Walk Forward if enabled
@@ -228,8 +228,8 @@ func calculateAdvancedMetrics(result *WorldClassBacktestResult, candles []Candle
 	
 	// Sharpe Ratio (annualized)
 	if len(returns) > 1 {
-		mean := calculateMean(returns)
-		stdDev := calculateStdDev(returns, mean)
+		mean := calculateMeanWC(returns)
+		stdDev := calculateStdDevWC(returns, mean)
 		if stdDev > 0 {
 			result.SharpeRatio = (mean / stdDev) * math.Sqrt(252) // Annualized
 		}
@@ -237,8 +237,8 @@ func calculateAdvancedMetrics(result *WorldClassBacktestResult, candles []Candle
 	
 	// Sortino Ratio (uses only downside deviation)
 	if len(downside) > 1 {
-		mean := calculateMean(returns)
-		downsideDev := calculateStdDev(downside, 0)
+		mean := calculateMeanWC(returns)
+		downsideDev := calculateStdDevWC(downside, 0)
 		if downsideDev > 0 {
 			result.SortinoRatio = (mean / downsideDev) * math.Sqrt(252)
 		}
@@ -263,8 +263,8 @@ func calculateAdvancedMetrics(result *WorldClassBacktestResult, candles []Candle
 	result.AvgTradeHours = totalHours / float64(len(result.Trades))
 }
 
-// runMonteCarloSimulation runs Monte Carlo analysis
-func runMonteCarloSimulation(baseResult *BacktestResult, runs int) *MonteCarloAnalysis {
+// runMonteCarloSimulationWC runs Monte Carlo analysis for world-class backtest
+func runMonteCarloSimulationWC(baseResult *BacktestResult, runs int) *MonteCarloAnalysis {
 	if runs == 0 {
 		runs = 1000
 	}
@@ -315,9 +315,9 @@ func runMonteCarloSimulation(baseResult *BacktestResult, runs int) *MonteCarloAn
 	
 	mc := &MonteCarloAnalysis{
 		Runs:              runs,
-		MeanReturn:        calculateMean(simulationResults),
+		MeanReturn:        calculateMeanWC(simulationResults),
 		MedianReturn:      simulationResults[runs/2],
-		StdDeviation:      calculateStdDev(simulationResults, calculateMean(simulationResults)),
+		StdDeviation:      calculateStdDevWC(simulationResults, calculateMeanWC(simulationResults)),
 		BestCase:          simulationResults[runs-1],
 		WorstCase:         simulationResults[0],
 		Percentile5:       simulationResults[int(float64(runs)*0.05)],
@@ -326,7 +326,7 @@ func runMonteCarloSimulation(baseResult *BacktestResult, runs int) *MonteCarloAn
 		Percentile95:      simulationResults[int(float64(runs)*0.95)],
 		ProbabilityProfit: float64(profitableRuns) / float64(runs) * 100,
 		ProbabilityRuin:   float64(ruinRuns) / float64(runs) * 100,
-		ExpectedReturn:    calculateMean(simulationResults),
+		ExpectedReturn:    calculateMeanWC(simulationResults),
 	}
 	
 	return mc
@@ -408,8 +408,8 @@ func runWalkForwardAnalysis(config WorldClassBacktestConfig, candles []Candle) *
 		for i, p := range wfa.PeriodResults {
 			returns[i] = p.ReturnPercent
 		}
-		mean := calculateMean(returns)
-		stdDev := calculateStdDev(returns, mean)
+		mean := calculateMeanWC(returns)
+		stdDev := calculateStdDevWC(returns, mean)
 		wfa.Consistency = 100 - (stdDev * 10) // Higher is more consistent
 		if wfa.Consistency < 0 {
 			wfa.Consistency = 0
@@ -494,8 +494,8 @@ func analyzeMarketConditions(result *WorldClassBacktestResult, candles []Candle)
 	result.PerformanceByVolume["low"] = 0
 }
 
-// Helper functions
-func calculateMean(values []float64) float64 {
+// Helper functions for world-class backtest
+func calculateMeanWC(values []float64) float64 {
 	if len(values) == 0 {
 		return 0
 	}
@@ -506,7 +506,7 @@ func calculateMean(values []float64) float64 {
 	return sum / float64(len(values))
 }
 
-func calculateStdDev(values []float64, mean float64) float64 {
+func calculateStdDevWC(values []float64, mean float64) float64 {
 	if len(values) == 0 {
 		return 0
 	}

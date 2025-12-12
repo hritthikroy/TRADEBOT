@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"time"
 	
 	"github.com/gofiber/fiber/v2"
@@ -37,7 +38,7 @@ func HandleAIOptimization(c *fiber.Ctx) error {
 		config.Symbol, config.Interval, config.Days, config.Strategy)
 	
 	// Fetch candles
-	candles, err := FetchHistoricalData(config.Symbol, config.Interval, config.Days)
+	candles, err := fetchBinanceData(config.Symbol, config.Interval, config.Days)
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{
 			"error": "Failed to fetch data: " + err.Error(),
@@ -78,7 +79,7 @@ func HandleAIMarketAnalysis(c *fiber.Ctx) error {
 	fmt.Printf("🤖 AI analyzing market: %s %s %dd\n", symbol, interval, days)
 	
 	// Fetch candles
-	candles, err := FetchHistoricalData(symbol, interval, days)
+	candles, err := fetchBinanceData(symbol, interval, days)
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{
 			"error": "Failed to fetch data: " + err.Error(),
@@ -113,7 +114,7 @@ func HandleAIStrategyRecommendation(c *fiber.Ctx) error {
 	days := c.QueryInt("days", 30)
 	
 	// Fetch candles
-	candles, err := FetchHistoricalData(symbol, interval, days)
+	candles, err := fetchBinanceData(symbol, interval, days)
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{
 			"error": "Failed to fetch data: " + err.Error(),
@@ -168,7 +169,7 @@ func HandleAICompareStrategies(c *fiber.Ctx) error {
 	fmt.Printf("🤖 AI comparing all strategies: %s %s %dd\n", symbol, interval, days)
 	
 	// Fetch candles
-	candles, err := FetchHistoricalData(symbol, interval, days)
+	candles, err := fetchBinanceData(symbol, interval, days)
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{
 			"error": "Failed to fetch data: " + err.Error(),

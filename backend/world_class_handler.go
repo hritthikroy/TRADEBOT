@@ -47,7 +47,7 @@ func HandleWorldClassBacktest(c *fiber.Ctx) error {
 		config.Symbol, config.Interval, config.Days, config.Strategy)
 	
 	// Fetch candles
-	candles, err := FetchHistoricalData(config.Symbol, config.Interval, config.Days)
+	candles, err := fetchBinanceData(config.Symbol, config.Interval, config.Days)
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{
 			"error": "Failed to fetch data: " + err.Error(),
@@ -111,7 +111,7 @@ func HandleWorldClassBacktestHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	// Fetch candles
-	candles, err := FetchHistoricalData(config.Symbol, config.Interval, config.Days)
+	candles, err := fetchBinanceData(config.Symbol, config.Interval, config.Days)
 	if err != nil {
 		http.Error(w, "Failed to fetch data: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -160,7 +160,7 @@ func HandleQuickCompare(c *fiber.Ctx) error {
 	}
 	
 	// Fetch candles
-	candles, err := FetchHistoricalData(config.Symbol, config.Interval, config.Days)
+	candles, err := fetchBinanceData(config.Symbol, config.Interval, config.Days)
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{
 			"error": "Failed to fetch data: " + err.Error(),

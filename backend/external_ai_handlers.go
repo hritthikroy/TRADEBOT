@@ -15,7 +15,7 @@ func HandleEnhancedAIAnalysis(c *fiber.Ctx) error {
 	fmt.Printf("🤖 Enhanced AI analysis with external APIs: %s %s %dd\n", symbol, interval, days)
 	
 	// Fetch candles
-	candles, err := FetchHistoricalData(symbol, interval, days)
+	candles, err := fetchBinanceData(symbol, interval, days)
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{
 			"error": "Failed to fetch data: " + err.Error(),

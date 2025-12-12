@@ -68,12 +68,12 @@ func SetupRoutes(app *fiber.App) {
 	// Enhanced backtest with external signals
 	backtest.Post("/enhanced", HandleEnhancedBacktest)    // Backtest with external signals
 
-	// AI Enhancement routes
-	ai := api.Group("/ai")
-	ai.Get("/stats", GetAIStats)                          // Get AI statistics
-	ai.Post("/toggle", ToggleAIFilter)                    // Enable/disable AI filter
-	ai.Get("/test", TestAIConnection)                     // Test Grok AI connection
-	ai.Post("/sentiment", AnalyzeSymbolSentiment)         // Analyze symbol sentiment
+	// AI Enhancement routes (commented out - implement if needed)
+	// ai := api.Group("/ai")
+	// ai.Get("/stats", GetAIStats)                          // Get AI statistics
+	// ai.Post("/toggle", ToggleAIFilter)                    // Enable/disable AI filter
+	// ai.Get("/test", TestAIConnection)                     // Test Grok AI connection
+	// ai.Post("/sentiment", AnalyzeSymbolSentiment)         // Analyze symbol sentiment
 	
 	// Telegram Bot routes
 	telegram := api.Group("/telegram")
