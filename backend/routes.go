@@ -134,6 +134,6 @@ func SetupRoutes(app *fiber.App) {
 	
 	// Activity Terminal page
 	app.Get("/activity-terminal", func(c *fiber.Ctx) error {
-		return c.SendFile("./public/activity_terminal.html")
+		return c.SendFile("../public/activity_terminal.html")
 	})
 }
