@@ -1,4 +1,4 @@
-package backtest
+package main
 
 import (
 	"math"

@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activity Terminal - TradingBot</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0a0e27;
+            color: #00ff00;
+            overflow: hidden;
+        }
+
+        .terminal-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+        }
+
+        .terminal-header {
+            background: #1a1e3a;
+            padding: 15px;
+            border-radius: 8px 8px 0 0;
+            border: 2px solid #00ff00;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .terminal-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #00ff00;
+        }
+
+        .terminal-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .terminal-btn {
+            padding: 8px 15px;
+            background: #00ff00;
+            color: #0a0e27;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .terminal-btn:hover {
+            background: #00cc00;
+            transform: scale(1.05);
+        }
+
+        .terminal-btn.danger {
+            background: #ff0000;
+            color: white;
+        }
+
+        .terminal-btn.danger:hover {
+            background: #cc0000;
+        }
+
+        .terminal-stats {
+            background: #1a1e3a;
+            padding: 10px 15px;
+            border-left: 2px solid #00ff00;
+            border-right: 2px solid #00ff00;
+            display: flex;
+            gap: 30px;
+            font-size: 12px;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .stat-label {
+            color: #888;
+        }
+
+        .stat-value {
+            color: #00ff00;
+            font-weight: bold;
+        }
+
+        .terminal-filters {
+            background: #1a1e3a;
+            padding: 10px 15px;
+            border-left: 2px solid #00ff00;
+            border-right: 2px solid #00ff00;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .filter-label {
+            color: #888;
+            font-size: 12px;
+        }
+
+        .filter-select {
+            padding: 5px 10px;
+            background: #0a0e27;
+            color: #00ff00;
+            border: 1px solid #00ff00;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            cursor: pointer;
+        }
+
+        .terminal-output {
+            flex: 1;
+            background: #0a0e27;
+            border: 2px solid #00ff00;
+            border-radius: 0 0 8px 8px;
+            padding: 15px;
+            overflow-y: auto;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .terminal-output::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        .terminal-output::-webkit-scrollbar-track {
+            background: #1a1e3a;
+        }
+
+        .terminal-output::-webkit-scrollbar-thumb {
+            background: #00ff00;
+            border-radius: 5px;
+        }
+
+        .activity-line {
+            padding: 5px;
+            margin: 2px 0;
+            border-left: 3px solid transparent;
+            transition: all 0.3s;
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .activity-line:hover {
+            background: rgba(0, 255, 0, 0.1);
+            border-left-color: #00ff00;
+        }
+
+        .activity-line.new {
+            background: rgba(0, 255, 0, 0.2);
+            animation: highlight 2s;
+        }
+
+        @keyframes highlight {
+            0% {
+                background: rgba(0, 255, 0, 0.3);
+            }
+            100% {
+                background: transparent;
+            }
+        }
+
+        .timestamp {
+            color: #888;
+        }
+
+        .activity-type {
+            color: #00ccff;
+            font-weight: bold;
+        }
+
+        .level-INFO { color: #00ff00; }
+        .level-SUCCESS { color: #00ff00; font-weight: bold; }
+        .level-WARNING { color: #ffaa00; }
+        .level-ERROR { color: #ff0000; font-weight: bold; }
+        .level-DEBUG { color: #888; }
+
+        .activity-message {
+            color: #ffffff;
+        }
+
+        .activity-duration {
+            color: #ffaa00;
+            font-style: italic;
+        }
+
+        .activity-details {
+            color: #888;
+            font-size: 11px;
+            margin-left: 20px;
+            margin-top: 3px;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.connected {
+            background: #00ff00;
+        }
+
+        .status-dot.disconnected {
+            background: #ff0000;
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 50px;
+            color: #888;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #00ff00;
+        }
+
+        .loading::after {
+            content: '...';
+            animation: dots 1.5s infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+    </style>
+</head>
+<body>
+    <div class="terminal-container">
+        <div class="terminal-header">
+            <div class="terminal-title">🖥️ TRADING BOT ACTIVITY TERMINAL</div>
+            <div class="terminal-controls">
+                <div class="connection-status">
+                    <div class="status-dot" id="statusDot"></div>
+                    <span id="statusText">Connecting...</span>
+                </div>
+                <button class="terminal-btn" onclick="exportActivities()">📥 Export</button>
+                <button class="terminal-btn" onclick="clearActivities()" class="danger">🗑️ Clear</button>
+                <button class="terminal-btn" onclick="toggleAutoScroll()">
+                    <span id="autoScrollText">🔽 Auto-scroll: ON</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="terminal-stats">
+            <div class="stat-item">
+                <span class="stat-label">Total:</span>
+                <span class="stat-value" id="totalCount">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Signals:</span>
+                <span class="stat-value" id="signalCount">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Trades:</span>
+                <span class="stat-value" id="tradeCount">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Backtests:</span>
+                <span class="stat-value" id="backtestCount">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">AI:</span>
+                <span class="stat-value" id="aiCount">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Errors:</span>
+                <span class="stat-value" id="errorCount" style="color: #ff0000;">0</span>
+            </div>
+        </div>
+
+        <div class="terminal-filters">
+            <span class="filter-label">Filter by Type:</span>
+            <select class="filter-select" id="typeFilter" onchange="applyFilters()">
+                <option value="">All Types</option>
+                <option value="SIGNAL">Signals</option>
+                <option value="TRADE">Trades</option>
+                <option value="BACKTEST">Backtests</option>
+                <option value="OPTIMIZE">Optimization</option>
+                <option value="AI_ANALYSIS">AI Analysis</option>
+                <option value="TELEGRAM">Telegram</option>
+                <option value="WEBSOCKET">WebSocket</option>
+                <option value="API_CALL">API Calls</option>
+                <option value="PAPER_TRADE">Paper Trading</option>
+                <option value="SYSTEM">System</option>
+                <option value="ERROR">Errors</option>
+            </select>
+
+            <span class="filter-label">Filter by Level:</span>
+            <select class="filter-select" id="levelFilter" onchange="applyFilters()">
+                <option value="">All Levels</option>
+                <option value="INFO">Info</option>
+                <option value="SUCCESS">Success</option>
+                <option value="WARNING">Warning</option>
+                <option value="ERROR">Error</option>
+                <option value="DEBUG">Debug</option>
+            </select>
+        </div>
+
+        <div class="terminal-output" id="terminalOutput">
+            <div class="loading">Connecting to activity stream</div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let activities = [];
+        let autoScroll = true;
+        let stats = {
+            total: 0,
+            signals: 0,
+            trades: 0,
+            backtests: 0,
+            ai: 0,
+            errors: 0
+        };
+
+        // Connect to WebSocket
+        function connect() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws/activity`;
+            
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                updateConnectionStatus(true);
+                console.log('Connected to activity stream');
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                
+                if (data.type === 'initial') {
+                    activities = data.activities || [];
+                    renderActivities();
+                    updateStats();
+                } else if (data.type === 'activity') {
+                    addActivity(data.activity);
+                }
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                updateConnectionStatus(false);
+            };
+
+            ws.onclose = () => {
+                updateConnectionStatus(false);
+                console.log('Disconnected from activity stream');
+                // Reconnect after 3 seconds
+                setTimeout(connect, 3000);
+            };
+        }
+
+        function updateConnectionStatus(connected) {
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            
+            if (connected) {
+                statusDot.className = 'status-dot connected';
+                statusText.textContent = 'Connected';
+            } else {
+                statusDot.className = 'status-dot disconnected';
+                statusText.textContent = 'Disconnected';
+            }
+        }
+
+        function addActivity(activity) {
+            activities.unshift(activity);
+            
+            // Keep only last 500 activities in memory
+            if (activities.length > 500) {
+                activities = activities.slice(0, 500);
+            }
+
+            updateStats();
+            renderActivities();
+        }
+
+        function renderActivities() {
+            const output = document.getElementById('terminalOutput');
+            const typeFilter = document.getElementById('typeFilter').value;
+            const levelFilter = document.getElementById('levelFilter').value;
+
+            let filtered = activities;
+
+            if (typeFilter) {
+                filtered = filtered.filter(a => a.type === typeFilter);
+            }
+
+            if (levelFilter) {
+                filtered = filtered.filter(a => a.level === levelFilter);
+            }
+
+            if (filtered.length === 0) {
+                output.innerHTML = '<div class="empty-state">No activities to display</div>';
+                return;
+            }
+
+            const html = filtered.map(activity => {
+                const emoji = getEmoji(activity.type, activity.level);
+                const timestamp = new Date(activity.timestamp).toLocaleTimeString();
+                const details = activity.details ? JSON.stringify(activity.details) : '';
+                const duration = activity.duration ? `[${activity.duration}]` : '';
+
+                return `
+                    <div class="activity-line">
+                        <span class="timestamp">[${timestamp}]</span>
+                        <span>${emoji}</span>
+                        <span class="activity-type">${activity.type}</span>
+                        <span class="level-${activity.level}">${activity.level}</span>
+                        <span class="activity-message">${activity.message}</span>
+                        ${duration ? `<span class="activity-duration">${duration}</span>` : ''}
+                        ${details ? `<div class="activity-details">${details}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+
+            output.innerHTML = html;
+
+            if (autoScroll) {
+                output.scrollTop = 0;
+            }
+        }
+
+        function getEmoji(type, level) {
+            if (level === 'ERROR') return '❌';
+            if (level === 'WARNING') return '⚠️';
+            if (level === 'SUCCESS') return '✅';
+
+            const emojiMap = {
+                'SIGNAL': '📊',
+                'TRADE': '💰',
+                'BACKTEST': '🧪',
+                'OPTIMIZE': '⚙️',
+                'AI_ANALYSIS': '🤖',
+                'TELEGRAM': '📱',
+                'WEBSOCKET': '🔌',
+                'API_CALL': '🌐',
+                'PAPER_TRADE': '📝',
+                'SYSTEM': '🖥️',
+                'ERROR': '❌'
+            };
+
+            return emojiMap[type] || 'ℹ️';
+        }
+
+        function updateStats() {
+            stats.total = activities.length;
+            stats.signals = activities.filter(a => a.type === 'SIGNAL').length;
+            stats.trades = activities.filter(a => a.type === 'TRADE').length;
+            stats.backtests = activities.filter(a => a.type === 'BACKTEST').length;
+            stats.ai = activities.filter(a => a.type === 'AI_ANALYSIS').length;
+            stats.errors = activities.filter(a => a.level === 'ERROR').length;
+
+            document.getElementById('totalCount').textContent = stats.total;
+            document.getElementById('signalCount').textContent = stats.signals;
+            document.getElementById('tradeCount').textContent = stats.trades;
+            document.getElementById('backtestCount').textContent = stats.backtests;
+            document.getElementById('aiCount').textContent = stats.ai;
+            document.getElementById('errorCount').textContent = stats.errors;
+        }
+
+        function applyFilters() {
+            renderActivities();
+        }
+
+        function toggleAutoScroll() {
+            autoScroll = !autoScroll;
+            document.getElementById('autoScrollText').textContent = 
+                `🔽 Auto-scroll: ${autoScroll ? 'ON' : 'OFF'}`;
+        }
+
+        async function clearActivities() {
+            if (!confirm('Clear all activities?')) return;
+
+            try {
+                const response = await fetch('/api/v1/activity/clear', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    activities = [];
+                    renderActivities();
+                    updateStats();
+                    alert('Activities cleared!');
+                }
+            } catch (error) {
+                console.error('Error clearing activities:', error);
+                alert('Failed to clear activities');
+            }
+        }
+
+        async function exportActivities() {
+            try {
+                window.open('/api/v1/activity/export', '_blank');
+            } catch (error) {
+                console.error('Error exporting activities:', error);
+                alert('Failed to export activities');
+            }
+        }
+
+        // Start connection
+        connect();
+
+        // Update stats every 5 seconds
+        setInterval(updateStats, 5000);
+    </script>
+</body>
+</html>

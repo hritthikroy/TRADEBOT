@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: tradebot-api
+    runtime: go
+    region: singapore
+    plan: free
+    buildCommand: rm -f go.sum && go mod tidy && go build -o main
+    startCommand: ./main
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: SUPABASE_HOST
+        sync: false
+      - key: SUPABASE_PASSWORD
+        sync: false

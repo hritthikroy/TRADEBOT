@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Backtesting - TradingBot</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        .header h1 { font-size: 2.5em; margin-bottom: 10px; }
+        .nav {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        .nav button {
+            padding: 12px 24px;
+            background: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .nav button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+        .nav button.active { background: #4CAF50; color: white; }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .card h2 { margin-bottom: 20px; color: #333; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #555; }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .btn-primary { background: #4CAF50; color: white; }
+        .btn-secondary { background: #2196F3; color: white; }
+        .btn-ai { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .loading { text-align: center; padding: 20px; color: #666; }
+        .results { margin-top: 20px; }
+        .metric {
+            display: inline-block;
+            padding: 12px 20px;
+            margin: 8px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            border-left: 4px solid #4CAF50;
+        }
+        .metric.negative { border-left-color: #f44336; }
+        .metric-label { font-size: 12px; color: #666; display: block; }
+        .metric-value { font-size: 24px; font-weight: bold; color: #333; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .hidden { display: none; }
+        .ai-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        .recommendation {
+            padding: 16px;
+            background: #e8f5e9;
+            border-left: 4px solid #4CAF50;
+            border-radius: 8px;
+            margin: 16px 0;
+        }
+        .chart-container { height: 400px; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Advanced Backtesting System</h1>
+            <p>World-Class Metrics + AI-Powered Optimization</p>
+        </div>
+
+        <div class="nav">
+            <button onclick="showTab('standard')" class="active" id="tab-standard">Standard</button>
+            <button onclick="showTab('worldclass')" id="tab-worldclass">World-Class</button>
+            <button onclick="showTab('ai-optimize')" id="tab-ai-optimize">AI Optimize</button>
+            <button onclick="showTab('ai-analyze')" id="tab-ai-analyze">AI Analyze</button>
+            <button onclick="showTab('ai-compare')" id="tab-ai-compare">AI Compare</button>
+        </div>
+
+        <!-- Configuration Card -->
+        <div class="card">
+            <h2>Backtest Configuration</h2>
+            <div class="grid">
+                <div class="form-group">
+                    <label>Symbol</label>
+                    <input type="text" id="symbol" value="BTCUSDT">
+                </div>
+                <div class="form-group">
+                    <label>Interval</label>
+                    <select id="interval">
+                        <option value="1m">1 minute</option>
+                        <option value="5m">5 minutes</option>
+                        <option value="15m" selected>15 minutes</option>
+                        <option value="1h">1 hour</option>
+                        <option value="4h">4 hours</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Days</label>
+                    <input type="number" id="days" value="30" min="1" max="365">
+                </div>
+                <div class="form-group">
+                    <label>Strategy</label>
+                    <select id="strategy">
+                        <option value="session_trader">Session Trader</option>
+                        <option value="liquidity_hunter">Liquidity Hunter</option>
+                        <option value="breakout_master">Breakout Master</option>
+                        <option value="trend_rider">Trend Rider</option>
+                        <option value="range_master">Range Master</option>
+                        <option value="smart_money_tracker">Smart Money Tracker</option>
+                        <option value="institutional_follower">Institutional Follower</option>
+                        <option value="reversal_sniper">Reversal Sniper</option>
+                        <option value="momentum_beast">Momentum Beast</option>
+                        <option value="scalper_pro">Scalper Pro</option>
+                    </select>
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="runBacktest()" id="runBtn">Run Backtest</button>
+        </div>
+
+        <!-- Results Container -->
+        <div id="results" class="hidden"></div>
+    </div>
+
+    <script>
+        let currentTab = 'standard';
+
+        function showTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.nav button').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('tab-' + tab).classList.add('active');
+        }
+
+
+        async function runBacktest() {
+            const symbol = document.getElementById('symbol').value;
+            const interval = document.getElementById('interval').value;
+            const days = parseInt(document.getElementById('days').value);
+            const strategy = document.getElementById('strategy').value;
+
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.classList.remove('hidden');
+            resultsDiv.innerHTML = '<div class="card"><div class="loading">⏳ Running backtest...</div></div>';
+
+            const runBtn = document.getElementById('runBtn');
+            runBtn.disabled = true;
+
+            try {
+                let result;
+                if (currentTab === 'standard') {
+                    result = await runStandardBacktest(symbol, interval, days, strategy);
+                } else if (currentTab === 'worldclass') {
+                    result = await runWorldClassBacktest(symbol, interval, days, strategy);
+                } else if (currentTab === 'ai-optimize') {
+                    result = await runAIOptimization(symbol, interval, days, strategy);
+                } else if (currentTab === 'ai-analyze') {
+                    result = await runAIAnalysis(symbol, interval, days);
+                } else if (currentTab === 'ai-compare') {
+                    result = await runAICompare(symbol, interval, days);
+                }
+
+                displayResults(result, currentTab);
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="card"><p style="color: red;">Error: ${error.message}</p></div>`;
+            } finally {
+                runBtn.disabled = false;
+            }
+        }
+
+        async function runStandardBacktest(symbol, interval, days, strategy) {
+            const response = await fetch('/api/v1/backtest/run', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ symbol, interval, days, strategy, startBalance: 1000 })
+            });
+            return await response.json();
+        }
+
+        async function runWorldClassBacktest(symbol, interval, days, strategy) {
+            const response = await fetch('/api/v1/backtest/world-class', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    symbol, interval, days, strategy, startBalance: 1000,
+                    enableMonteCarlo: true, monteCarloRuns: 1000,
+                    enableWalkForward: true, walkForwardPeriods: 5,
+                    enableStressTest: true
+                })
+            });
+            return await response.json();
+        }
+
+        async function runAIOptimization(symbol, interval, days, strategy) {
+            const response = await fetch('/api/v1/backtest/ai-optimize', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ symbol, interval, days, strategy, startBalance: 1000 })
+            });
+            return await response.json();
+        }
+
+        async function runAIAnalysis(symbol, interval, days) {
+            const response = await fetch(`/api/v1/backtest/ai-analyze?symbol=${symbol}&interval=${interval}&days=${days}`);
+            return await response.json();
+        }
+
+        async function runAICompare(symbol, interval, days) {
+            const response = await fetch(`/api/v1/backtest/ai-compare?symbol=${symbol}&interval=${interval}&days=${days}`);
+            return await response.json();
+        }
+
+        function displayResults(result, tab) {
+            const resultsDiv = document.getElementById('results');
+            
+            if (tab === 'standard') {
+                resultsDiv.innerHTML = displayStandardResults(result);
+            } else if (tab === 'worldclass') {
+                resultsDiv.innerHTML = displayWorldClassResults(result);
+            } else if (tab === 'ai-optimize') {
+                resultsDiv.innerHTML = displayAIOptimizationResults(result);
+            } else if (tab === 'ai-analyze') {
+                resultsDiv.innerHTML = displayAIAnalysisResults(result);
+            } else if (tab === 'ai-compare') {
+                resultsDiv.innerHTML = displayAICompareResults(result);
+            }
+        }
+
+        function displayStandardResults(result) {
+            return `
+                <div class="card">
+                    <h2>📊 Standard Backtest Results</h2>
+                    <div class="results">
+                        <div class="metric">
+                            <span class="metric-label">Total Trades</span>
+                            <span class="metric-value">${result.totalTrades}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Win Rate</span>
+                            <span class="metric-value">${result.winRate.toFixed(2)}%</span>
+                        </div>
+                        <div class="metric ${result.profitFactor < 1 ? 'negative' : ''}">
+                            <span class="metric-label">Profit Factor</span>
+                            <span class="metric-value">${result.profitFactor.toFixed(2)}</span>
+                        </div>
+                        <div class="metric ${result.maxDrawdown > 20 ? 'negative' : ''}">
+                            <span class="metric-label">Max Drawdown</span>
+                            <span class="metric-value">${result.maxDrawdown.toFixed(2)}%</span>
+                        </div>
+                        <div class="metric ${result.returnPercent < 0 ? 'negative' : ''}">
+                            <span class="metric-label">Return</span>
+                            <span class="metric-value">${result.returnPercent.toFixed(2)}%</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Final Balance</span>
+                            <span class="metric-value">$${result.finalBalance.toFixed(2)}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+
+        function displayWorldClassResults(result) {
+            const mc = result.monteCarloResults || {};
+            const wf = result.walkForwardAnalysis || {};
+            
+            return `
+                <div class="card">
+                    <h2>🌟 World-Class Backtest Results</h2>
+                    <div class="results">
+                        <h3>Basic Metrics</h3>
+                        <div class="metric">
+                            <span class="metric-label">Total Trades</span>
+                            <span class="metric-value">${result.totalTrades}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Win Rate</span>
+                            <span class="metric-value">${result.winRate.toFixed(2)}%</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Profit Factor</span>
+                            <span class="metric-value">${result.profitFactor.toFixed(2)}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Return</span>
+                            <span class="metric-value">${result.returnPercent.toFixed(2)}%</span>
+                        </div>
+                    </div>
+                    
+                    <div class="results">
+                        <h3>Risk Metrics</h3>
+                        <div class="metric">
+                            <span class="metric-label">Sharpe Ratio</span>
+                            <span class="metric-value">${(result.sharpeRatio || 0).toFixed(2)}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Sortino Ratio</span>
+                            <span class="metric-value">${(result.sortinoRatio || 0).toFixed(2)}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Calmar Ratio</span>
+                            <span class="metric-value">${(result.calmarRatio || 0).toFixed(2)}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Recovery Factor</span>
+                            <span class="metric-value">${(result.recoveryFactor || 0).toFixed(2)}</span>
+                        </div>
+                    </div>
+
+                    ${mc.probabilityProfit ? `
+                    <div class="results">
+                        <h3>Monte Carlo Simulation (${mc.runs || 1000} runs)</h3>
+                        <div class="metric">
+                            <span class="metric-label">Probability of Profit</span>
+                            <span class="metric-value">${mc.probabilityProfit.toFixed(1)}%</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Expected Return</span>
+                            <span class="metric-value">${mc.expectedReturn.toFixed(2)}%</span>
+                        </div>
+                        <div class="metric negative">
+                            <span class="metric-label">Worst Case</span>
+                            <span class="metric-value">${mc.worstCase.toFixed(2)}%</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Best Case</span>
+                            <span class="metric-value">${mc.bestCase.toFixed(2)}%</span>
+                        </div>
+                    </div>
+                    ` : ''}
+
+                    ${wf.consistency ? `
+                    <div class="results">
+                        <h3>Walk-Forward Analysis</h3>
+                        <div class="metric">
+                            <span class="metric-label">Consistency</span>
+                            <span class="metric-value">${wf.consistency.toFixed(1)}%</span>
+                        </div>
+                        <div class="metric ${wf.overfittingScore > 40 ? 'negative' : ''}">
+                            <span class="metric-label">Overfitting Score</span>
+                            <span class="metric-value">${wf.overfittingScore.toFixed(1)}%</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">In-Sample WR</span>
+                            <span class="metric-value">${wf.inSampleWinRate.toFixed(1)}%</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Out-Sample WR</span>
+                            <span class="metric-value">${wf.outOfSampleWinRate.toFixed(1)}%</span>
+                        </div>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        function displayAIOptimizationResults(result) {
+            const best = result.bestStrategy || {};
+            return `
+                <div class="card">
+                    <h2>🤖 AI Optimization Results <span class="ai-badge">GENETIC ALGORITHM</span></h2>
+                    <div class="recommendation">
+                        <strong>${result.recommendation}</strong>
+                    </div>
+                    <div class="results">
+                        <div class="metric">
+                            <span class="metric-label">Fitness Score</span>
+                            <span class="metric-value">${(best.fitness || 0).toFixed(1)}/100</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Improvement</span>
+                            <span class="metric-value">+${(result.improvementPct || 0).toFixed(1)}%</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Total Tests</span>
+                            <span class="metric-value">${result.totalTests || 0}</span>
+                        </div>
+                    </div>
+                    
+                    <h3>Optimal Parameters Found</h3>
+                    <div class="results">
+                        <div class="metric">
+                            <span class="metric-label">Stop Loss ATR</span>
+                            <span class="metric-value">${(best.stopLossATR || 0).toFixed(2)}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Take Profit ATR</span>
+                            <span class="metric-value">${(best.takeProfitATR || 0).toFixed(2)}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">ADX Threshold</span>
+                            <span class="metric-value">${(best.adxThreshold || 0).toFixed(1)}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">RSI Low</span>
+                            <span class="metric-value">${(best.rsiLow || 0).toFixed(1)}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">RSI High</span>
+                            <span class="metric-value">${(best.rsiHigh || 0).toFixed(1)}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Cooldown Candles</span>
+                            <span class="metric-value">${best.cooldownCandles || 0}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Min Confluence</span>
+                            <span class="metric-value">${best.minConfluence || 0}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function displayAIAnalysisResults(result) {
+            return `
+                <div class="card">
+                    <h2>🤖 AI Market Analysis <span class="ai-badge">INTELLIGENT</span></h2>
+                    <div class="recommendation">
+                        <strong>Recommended Strategy:</strong> ${result.bestStrategy}<br>
+                        <strong>Confidence:</strong> ${result.confidence}%
+                    </div>
+                    
+                    <div class="results">
+                        <h3>Market Conditions</h3>
+                        <div class="metric">
+                            <span class="metric-label">Market Regime</span>
+                            <span class="metric-value">${result.marketRegime}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Trend Strength</span>
+                            <span class="metric-value">${result.trendStrength}/100</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Volatility</span>
+                            <span class="metric-value">${result.volatilityLevel}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Predicted Move</span>
+                            <span class="metric-value">${result.predictedMove}</span>
+                        </div>
+                        <div class="metric ${result.riskLevel === 'high' ? 'negative' : ''}">
+                            <span class="metric-label">Risk Level</span>
+                            <span class="metric-value">${result.riskLevel}</span>
+                        </div>
+                    </div>
+
+                    ${result.supportLevels && result.supportLevels.length > 0 ? `
+                    <div class="results">
+                        <h3>Key Levels</h3>
+                        <p><strong>Support:</strong> ${result.supportLevels.map(l => l.toFixed(2)).join(', ')}</p>
+                        <p><strong>Resistance:</strong> ${result.resistanceLevels.map(l => l.toFixed(2)).join(', ')}</p>
+                    </div>
+                    ` : ''}
+
+                    ${result.recommendations && result.recommendations.length > 0 ? `
+                    <div class="results">
+                        <h3>AI Recommendations</h3>
+                        ${result.recommendations.map(r => `<p>✓ ${r}</p>`).join('')}
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        function displayAICompareResults(result) {
+            const strategies = result.strategies || [];
+            strategies.sort((a, b) => b.aiScore - a.aiScore);
+            
+            return `
+                <div class="card">
+                    <h2>🤖 AI Strategy Comparison <span class="ai-badge">SMART RANKING</span></h2>
+                    <div class="recommendation">
+                        ${result.recommendation}
+                    </div>
+                    
+                    <div class="results">
+                        <h3>Market Analysis</h3>
+                        <p><strong>Regime:</strong> ${result.marketAnalysis.marketRegime}</p>
+                        <p><strong>Volatility:</strong> ${result.marketAnalysis.volatilityLevel}</p>
+                    </div>
+
+                    <h3>Strategy Rankings</h3>
+                    <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+                        <thead>
+                            <tr style="background: #f5f5f5;">
+                                <th style="padding: 12px; text-align: left;">Strategy</th>
+                                <th style="padding: 12px; text-align: center;">AI Score</th>
+                                <th style="padding: 12px; text-align: center;">Win Rate</th>
+                                <th style="padding: 12px; text-align: center;">Profit Factor</th>
+                                <th style="padding: 12px; text-align: center;">Return</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${strategies.map(s => `
+                                <tr style="border-bottom: 1px solid #eee; ${s.recommended ? 'background: #e8f5e9;' : ''}">
+                                    <td style="padding: 12px;">
+                                        ${s.strategy} ${s.recommended ? '⭐' : ''}
+                                    </td>
+                                    <td style="padding: 12px; text-align: center; font-weight: bold;">
+                                        ${s.aiScore.toFixed(1)}
+                                    </td>
+                                    <td style="padding: 12px; text-align: center;">
+                                        ${s.winRate.toFixed(1)}%
+                                    </td>
+                                    <td style="padding: 12px; text-align: center;">
+                                        ${s.profitFactor.toFixed(2)}
+                                    </td>
+                                    <td style="padding: 12px; text-align: center; color: ${s.returnPercent >= 0 ? 'green' : 'red'};">
+                                        ${s.returnPercent.toFixed(2)}%
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
