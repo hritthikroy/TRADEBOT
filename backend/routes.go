@@ -101,6 +101,15 @@ func SetupRoutes(app *fiber.App) {
 	settings.Get("/", GetUserSettings)           // Get filter settings
 	settings.Post("/", UpdateUserSettings)       // Update filter settings
 
+	// Activity Logging routes
+	activity := api.Group("/activity")
+	activity.Get("/", HandleGetActivities)           // Get recent activities
+	activity.Get("/stats", HandleGetActivityStats)   // Get activity statistics
+	activity.Post("/clear", HandleClearActivities)   // Clear all activities
+	activity.Post("/start", HandleStartActivityRecording)  // Start recording
+	activity.Post("/stop", HandleStopActivityRecording)    // Stop recording
+	activity.Get("/export", HandleExportActivities)  // Export activities as JSON
+
 	// Paper Trading routes
 	paperTrading := api.Group("/paper-trading")
 	paperTrading.Get("/stats", getPaperTradingStats)           // Get paper trading statistics
@@ -118,7 +127,13 @@ func SetupRoutes(app *fiber.App) {
 	app.Get("/signals/live", HandleLiveSignalsPage)
 	app.Get("/paper-trading", HandlePaperTradingPage)
 
-	// WebSocket route
+	// WebSocket routes
 	app.Use("/ws", WebSocketUpgrade)
 	app.Get("/ws/signals", websocket.New(HandleWebSocket))
+	app.Get("/ws/activity", websocket.New(HandleActivityWebSocket))
+	
+	// Activity Terminal page
+	app.Get("/activity-terminal", func(c *fiber.Ctx) error {
+		return c.SendFile("./public/activity_terminal.html")
+	})
 }

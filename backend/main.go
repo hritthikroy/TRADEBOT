@@ -78,13 +78,22 @@ func main() {
 	// Run database migrations
 	RunMigrations()
 
+	// Initialize Activity Logger
+	_ = GetActivityLogger()
+	LogSystemSuccess("Trading Bot starting up", fiber.Map{
+		"version": "1.0.0",
+		"port":    os.Getenv("PORT"),
+	})
+
 	// Start WebSocket hub
 	go hub.Run()
 	log.Println("✅ WebSocket hub started")
+	LogSystemSuccess("WebSocket hub started", nil)
 
 	// Start signal broadcaster (demo)
 	StartSignalBroadcaster()
 	log.Println("✅ Signal broadcaster started")
+	LogSystemSuccess("Signal broadcaster started", nil)
 	
 	// Initialize Telegram bot
 	InitTelegramBot()
@@ -147,6 +156,12 @@ func main() {
 	log.Printf("🚀 Server starting on port %s", port)
 	log.Printf("📊 Dashboard: http://localhost:%s", port)
 	log.Printf("🏥 Health: http://localhost:%s/api/v1/health", port)
+	log.Printf("🖥️  Activity Terminal: http://localhost:%s/activity-terminal", port)
+	
+	LogSystemSuccess("Server started successfully", fiber.Map{
+		"port":     port,
+		"handlers": len(app.Stack()),
+	})
 	
 	if err := app.Listen(":" + port); err != nil {
 		log.Fatalf("❌ Failed to start server: %v", err)
