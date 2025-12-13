@@ -33,8 +33,10 @@ node_modules/
 
 # Build artifacts
 backend/trading-bot
+backend/tradebot*
 backend/main
 *.exe
+*.backup
 
 # Test coverage
 backend/coverage.out
