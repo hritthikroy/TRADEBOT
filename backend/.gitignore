@@ -7,4 +7,9 @@
 *.test
 *.out
 go.work
-tradebot-backend
+
+# Build artifacts
+tradebot*
+trading-bot
+*.log
+*.backup

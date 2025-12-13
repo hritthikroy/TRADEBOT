@@ -8,8 +8,10 @@ A professional-grade cryptocurrency trading bot with 10 optimized strategies, re
 
 ### 1. Start Backend
 ```bash
-cd backend && go run .
+cd backend && go run ./cmd/server
 ```
+
+**Note**: Backend has been restructured. See `BACKEND_GUIDE.md` for details.
 
 ### 2. Start Frontend
 ```bash

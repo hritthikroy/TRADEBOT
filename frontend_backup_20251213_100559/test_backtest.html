@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Backtest Test</title>
+</head>
+<body>
+    <h1>Backtest API Test</h1>
+    <button onclick="runTest()">Run Test Backtest</button>
+    <pre id="result"></pre>
+    
+    <script>
+        async function runTest() {
+            document.getElementById('result').textContent = 'Running...';
+            
+            try {
+                const response = await fetch('/api/v1/backtest/run', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        symbol: 'BTCUSDT',
+                        interval: '15m',
+                        days: 30,
+                        strategy: 'breakout_master',
+                        startBalance: 1000
+                    })
+                });
+                
+                const data = await response.json();
+                document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+            } catch (err) {
+                document.getElementById('result').textContent = 'Error: ' + err.message;
+            }
+        }
+    </script>
+</body>
+</html>
